@@ -1,8 +1,11 @@
+using System.Net.WebSockets;
+
 using Microsoft.AspNetCore.Mvc;
 
 using Sandcastle.Api.ProblemDetails;
 using Sandcastle.Application.Identity;
 using Sandcastle.Application.Outpost;
+using Sandcastle.Infrastructure.Outpost;
 
 namespace Sandcastle.Api.Endpoints;
 
@@ -33,7 +36,84 @@ public static class OutpostEndpoints
         // Handshake do agente — auth é o enroll token (one-time).
         g.MapPost("/register", RegisterAsync).AllowAnonymous();
 
+        // Canal outbound-only do agente — auth via channel key opk-*
+        // (Bearer ou ?channel_key=) + fingerprint mTLS quando exigido.
+        app.Map("/api/v1/outposts/connect", ConnectAsync).AllowAnonymous();
+
         return app;
+    }
+
+    private static async Task ConnectAsync(
+        HttpContext http, IOutpostService svc,
+        Sandcastle.Infrastructure.Outpost.OutpostChannelRegistry channels,
+        Microsoft.Extensions.Options.IOptions<OutpostOptions> opt,
+        IHostEnvironment env, CancellationToken ct)
+    {
+        var key = http.Request.Headers.Authorization.ToString()
+            is { Length: > 7 } auth && auth.StartsWith("Bearer ", StringComparison.Ordinal)
+            ? auth[7..]
+            : http.Request.Query["channel_key"].ToString();
+        if (!key.StartsWith("opk-", StringComparison.Ordinal)
+            || await svc.ResolveChannelKeyAsync(key, ct) is not { } outpost)
+        {
+            http.Response.StatusCode = 401;
+            return;
+        }
+
+        if (opt.Value.EffectiveRequireMtls(env.IsProduction())
+            && http.Connection.ClientCertificate is { } cert
+            && outpost.CertFingerprint is { } want
+            && !string.Equals(want,
+                OutpostCertIssuer.FingerprintOf(cert), StringComparison.Ordinal))
+        {
+            http.Response.StatusCode = 403;
+            return;
+        }
+
+        if (!http.WebSockets.IsWebSocketRequest)
+        {
+            http.Response.StatusCode = 400;
+            return;
+        }
+
+        using var socket = await http.WebSockets.AcceptWebSocketAsync();
+        var conn = channels.Attach(outpost, socket, key);
+        var buf = new byte[64 * 1024];
+        try
+        {
+            while (socket.State == WebSocketState.Open)
+            {
+                var ms = new MemoryStream();
+                WebSocketReceiveResult r;
+                do
+                {
+                    r = await socket.ReceiveAsync(buf, ct);
+                    if (r.MessageType == WebSocketMessageType.Close)
+                    {
+                        break;
+                    }
+
+                    ms.Write(buf, 0, r.Count);
+                }
+                while (!r.EndOfMessage);
+
+                if (r.MessageType == WebSocketMessageType.Close)
+                {
+                    break;
+                }
+
+                if (OutpostFrame.Parse(ms.ToArray()) is { } frame
+                    && await channels.HandleFrameAsync(conn, frame, ct)
+                        is { } reply)
+                {
+                    await conn.SendAsync(reply, ct);
+                }
+            }
+        }
+        finally
+        {
+            await channels.DetachAsync(conn, "socket closed");
+        }
     }
 
     private static async Task<IResult> EnrollAsync(
