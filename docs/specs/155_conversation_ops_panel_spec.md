@@ -8,7 +8,7 @@
 | Type | `Frontend` |
 | Stack | `.NET 10 · Blazor WASM` |
 | Repository | `afonsoft/sandcastle` |
-| Status | `Approved` |
+| Status | `Completed` |
 | Ticket | #453 · Epic #451 |
 | Scope | `src/Sandcastle.Client/` + `tests/` |
 
