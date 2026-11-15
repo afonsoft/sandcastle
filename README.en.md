@@ -128,13 +128,17 @@ Full installation guides:
 |---|---|---|
 | ![home](docs/images/app-home.png) | ![conversation](docs/images/conversation.png) | ![auth](docs/images/auth.png) |
 
-| Settings | Skills and MCP | Automations |
-|---|---|---|
-| ![settings](docs/images/settings.png) | ![settings-mcp](docs/images/settings-mcp.png) | ![automations](docs/images/app-automations.png) |
+| Settings | MCP | Skills | Automations |
+|---|---|---|---|
+| ![settings](docs/images/settings.png) | ![settings-mcp](docs/images/settings-mcp.png) | ![settings-skills](docs/images/settings-skills.png) | ![automations](docs/images/app-automations.png) |
 
 | Admin | Users | Audit | Security |
 |---|---|---|---|
 | ![admin](docs/images/admin.png) | ![users](docs/images/admin-users.png) | ![audit](docs/images/admin-audit.png) | ![security](docs/images/admin-security.png) |
+
+| Administrative usage |
+|---|
+| ![usage](docs/images/admin-usage.png) |
 
 | Live sandbox desktop (noVNC — SPEC-113) |
 |---|
