@@ -411,6 +411,24 @@ public static class DependencyInjection
         services.AddScoped<
             Sandcastle.Infrastructure.Conversations.ConversationRuntimeService>();
 
+        // SPEC-153: outposts self-hosted — service, canal (singleton),
+        // router de sandbox, emissor mTLS e sweeper de heartbeat.
+        services.AddScoped<Sandcastle.Application.Outpost.IOutpostService,
+            Sandcastle.Infrastructure.Outpost.OutpostService>();
+        services.AddScoped<Sandcastle.Application.Outpost.IOutpostRouter,
+            Sandcastle.Infrastructure.Outpost.OutpostRouter>();
+        services.AddSingleton<
+            Sandcastle.Infrastructure.Outpost.OutpostChannelRegistry>();
+        services.AddSingleton<
+            Sandcastle.Application.Outpost.IOutpostTaskDispatcher>(
+            sp => sp.GetRequiredService<
+                Sandcastle.Infrastructure.Outpost.OutpostChannelRegistry>());
+        services.AddHostedService<
+            Sandcastle.Infrastructure.Outpost.OutpostStatusSweeper>();
+        services.AddOptions<
+            Sandcastle.Application.Outpost.OutpostOptions>()
+            .BindConfiguration("Outpost");
+
         // SPEC-150: handoff local↔cloud — create+package service e o
         // applier do patch dentro do sandbox (git apply --3way → --reject).
         services.Configure<
