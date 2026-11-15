@@ -331,6 +331,11 @@ public sealed class Spec52ScmTests : IAsyncDisposable
 
         public Task<AttentionDismissResult> DismissAttentionAsync(Guid id,
             CancellationToken ct) => throw new NotImplementedException();
+
+        public Task<AppConversation?> UpdateAsync(Guid id, string? title, IReadOnlyList<string>? tags, bool? pinned, Guid? outpostId, CancellationToken ct)
+        {
+            throw new NotImplementedException();
+        }
     }
 
     private sealed class CapturingEvents

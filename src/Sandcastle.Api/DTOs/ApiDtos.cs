@@ -121,6 +121,9 @@ public sealed record PatchConversationRequest
     public string? Title { get; init; }
     public IReadOnlyList<string>? Tags { get; init; }
     public bool? Pinned { get; init; }
+
+    /// <summary>SPEC-153: pin de rota outpost (null = mantém o atual).</summary>
+    public Guid? OutpostId { get; init; }
 }
 
 /// <summary>POST .../switch_profile body (SPEC-18 RF-005).</summary>

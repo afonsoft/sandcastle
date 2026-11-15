@@ -146,7 +146,7 @@ public class DelegationServiceTests : IDisposable
         public Task<long> CountAsync(ConversationQuery q, CancellationToken ct) => throw new NotSupportedException();
         public Task<IReadOnlyList<AppConversation>> GetBatchAsync(IReadOnlyCollection<Guid> ids, CancellationToken ct) => throw new NotSupportedException();
         public Task<AppConversation?> GetAsync(Guid id, CancellationToken ct) => throw new NotSupportedException();
-        public Task<AppConversation?> UpdateAsync(Guid id, string? title, IReadOnlyList<string>? tags, bool? pinned, CancellationToken ct) => throw new NotSupportedException();
+        public Task<AppConversation?> UpdateAsync(Guid id, string? title, IReadOnlyList<string>? tags, bool? pinned, Guid? outpostId, CancellationToken ct) => throw new NotSupportedException();
         public Task<bool> DeleteAsync(Guid id, CancellationToken ct) => throw new NotSupportedException();
         public Task<SendMessageError?> ValidateSendMessageAsync(Guid id, CancellationToken ct) => throw new NotSupportedException();
         public Task<SwitchResult> SwitchProfileAsync(Guid id, string? profile, CancellationToken ct) => throw new NotSupportedException();

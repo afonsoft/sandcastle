@@ -284,7 +284,8 @@ public static class AppConversationEndpoints
         HttpContext http,
         CancellationToken ct)
     {
-        return await svc.UpdateAsync(id, body.Title, body.Tags, body.Pinned, ct) is { } c
+        return await svc.UpdateAsync(
+            id, body.Title, body.Tags, body.Pinned, body.OutpostId, ct) is { } c
             ? Results.Ok(ToDto(c))
             : SandcastleProblemFactory.Create(http, 404, $"Conversation {id} not found");
     }

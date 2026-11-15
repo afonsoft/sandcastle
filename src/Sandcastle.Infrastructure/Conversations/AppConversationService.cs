@@ -353,7 +353,7 @@ public sealed class AppConversationService( // NOSONAR S107 â€” SPEC-104 (decisÃ
     /// <inheritdoc />
     public async Task<AppConversation?> UpdateAsync(
         Guid id, string? title, IReadOnlyList<string>? tags, bool? pinned,
-        CancellationToken ct)
+        Guid? outpostId, CancellationToken ct)
     {
         var record = await db.Conversations.FindAsync([id], ct);
         if (record is null)
@@ -369,6 +369,11 @@ public sealed class AppConversationService( // NOSONAR S107 â€” SPEC-104 (decisÃ
         if (tags is not null)
         {
             record.TagsJson = System.Text.Json.JsonSerializer.Serialize(tags);
+        }
+
+        if (outpostId is not null)
+        {
+            record.OutpostId = outpostId.Value;
         }
 
         if (pinned is not null)
