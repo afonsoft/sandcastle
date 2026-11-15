@@ -157,3 +157,15 @@ Aprovadas em 2026-11-10 pelo usuário — Epic acompanha no GitHub.
 | 151 | alert-integrations | Delivered · PR #448 | GAP-ALERT-INTEGRATIONS |
 | 152 | benchmark-adapters | Delivered · PR #449 | #446 |
 | 153 | hybrid-runner | Delivered · PR #463 | GAP-HYBRID-RUNNER · #447 |
+
+### Próxima onda (Onda F — UX vs OpenWebUiCode) — Approved
+
+| SPEC | Título | Status | Ticket |
+|---|---|---|---|
+| 154 | session-resume-fresh-sandbox | Delivered · PR #460 | #452 |
+| 155 | conversation-ops-panel | Delivered · PR #462 | #453 |
+| 156 | customize-hub | Delivered · PR #465 | #454 |
+| 157 | workspace-config | Approved | #455 |
+| 158 | account-settings | Approved | #456 |
+| 159 | composer-voice-stt | Approved | #457 |
+| 160 | automations-calendar | Approved | #458 |

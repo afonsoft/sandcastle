@@ -8,7 +8,7 @@
 | Type | `Feature` |
 | Stack | `.NET 10 · Blazor WASM · Docker` |
 | Repository | `afonsoft/sandcastle` |
-| Status | `Approved` |
+| Status | `Completed` |
 | Ticket | #452 · Epic #451 |
 | Scope | `src/` + `tests/` + `docker-compose.beta.yaml` |
 
