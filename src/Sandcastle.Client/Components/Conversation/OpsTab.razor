@@ -1,0 +1,115 @@
+@using Sandcastle.Client.Services
+@inject SandcastleApiClient Api
+@inject LocalizationService L
+
+@* SPEC-155: painel operacional — jobs em background, servidores MCP e
+   metadados da run, alimentados por GET /app-conversations/{id}/runtime.
+   Recarrega a cada 5s enquanto a aba estiver visível e a run ativa. *@
+
+@if (_rt is null)
+{
+    <div class="empty-state">@L["common.loading"]</div>
+}
+else if (Section == "jobs")
+{
+    <div class="commit-list">
+        @if (_rt.Jobs.Count == 0)
+        {
+            <div class="empty-state">@L["ops.jobs_empty"]</div>
+        }
+        @foreach (var j in _rt.Jobs)
+        {
+            <div class="commit-item">
+                <span class="sha">@j.Status</span>
+                <span class="msg">@j.Name (@j.JobId)</span>
+                <span class="when">rc=@j.ExitCode</span>
+            </div>
+        }
+    </div>
+}
+else if (Section == "mcps")
+{
+    <div class="commit-list">
+        @if (_rt.McpServers.Count == 0)
+        {
+            <div class="empty-state">@L["ops.mcps_empty"]</div>
+        }
+        @foreach (var m in _rt.McpServers)
+        {
+            <div class="commit-item">
+                <span class="sha">@m.Status</span>
+                <span class="msg">@m.Name</span>
+                <span class="when">@m.ToolsCount @L["ops.tools"]</span>
+            </div>
+            @if (m.Error is { } err)
+            {
+                <div class="commit-item"><span class="msg">@err</span></div>
+            }
+        }
+    </div>
+}
+else
+{
+    var i = _rt.Info;
+    <div class="usage-grid">
+        <div class="usage-card">
+            <div class="num">@(i.Model ?? "—")</div>
+            <div class="lbl">@L["ops.model"]</div>
+        </div>
+        <div class="usage-card">
+            <div class="num">@(i.AgentType ?? "—")</div>
+            <div class="lbl">@L["ops.agent_type"]</div>
+        </div>
+        <div class="usage-card">
+            <div class="num">@(i.Repository ?? "—")</div>
+            <div class="lbl">@L["ops.repository"]</div>
+        </div>
+        <div class="usage-card">
+            <div class="num">@(i.SandboxStatus ?? "—")</div>
+            <div class="lbl">@L["ops.sandbox"]</div>
+        </div>
+    </div>
+    @if (i.Rehydrated)
+    {
+        <div class="empty-state">@L["ops.rehydrated"]</div>
+    }
+}
+
+@code {
+    [Parameter, EditorRequired] public ConversationStateService State { get; set; } = default!;
+
+    /// <summary>Seção renderizada: jobs | mcps | info.</summary>
+    [Parameter, EditorRequired] public string Section { get; set; } = "info";
+
+    private SandcastleApiClient.RuntimeDto? _rt;
+    private PeriodicTimer? _timer;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadAsync();
+        _ = PollAsync();
+    }
+
+    private async Task LoadAsync()
+    {
+        try { _rt = await Api.GetRuntimeAsync(State.Conversation!.Id); }
+        catch { _rt = new([], [], new(null, null, null, null, null, null, false)); }
+        await InvokeAsync(StateHasChanged);
+    }
+
+    /// <summary>Polling ~5s apenas enquanto a run segue ativa.</summary>
+    private async Task PollAsync()
+    {
+        _timer = new PeriodicTimer(TimeSpan.FromSeconds(5));
+        while (await _timer.WaitForNextTickAsync())
+        {
+            if (State.ExecutionStatus is not "RUNNING")
+            {
+                _timer.Dispose();
+                return;
+            }
+
+            await LoadAsync();
+        }
+    }
+}

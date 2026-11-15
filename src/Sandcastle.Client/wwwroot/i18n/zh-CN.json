@@ -857,5 +857,16 @@
   "alerts.session_failed": "无法启动会话（未路由、重复或配额）。",
   "admin.chat_provider": "供应商",
   "admin.chat_webhook_url": "Webhook URL",
-  "admin.chat_connected": "连接已创建。"
+  "admin.chat_connected": "连接已创建。",
+  "conv.tab_jobs": "任务",
+  "conv.tab_mcps": "MCP",
+  "conv.tab_info": "信息",
+  "ops.jobs_empty": "没有后台任务",
+  "ops.mcps_empty": "没有已连接的 MCP 服务器",
+  "ops.tools": "个工具",
+  "ops.model": "模型",
+  "ops.agent_type": "代理",
+  "ops.repository": "仓库",
+  "ops.sandbox": "沙盒",
+  "ops.rehydrated": "Sandbox 已重建 — 工作区已从检查点恢复。"
 }

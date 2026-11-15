@@ -857,5 +857,16 @@
   "alerts.session_failed": "Sitzung konnte nicht gestartet werden (nicht zugeordnet, Duplikat oder Kontingent).",
   "admin.chat_provider": "Anbieter",
   "admin.chat_webhook_url": "Webhook-URL",
-  "admin.chat_connected": "Verbindung erstellt."
+  "admin.chat_connected": "Verbindung erstellt.",
+  "conv.tab_jobs": "Jobs",
+  "conv.tab_mcps": "MCPs",
+  "conv.tab_info": "Info",
+  "ops.jobs_empty": "Keine Hintergrund-Jobs",
+  "ops.mcps_empty": "Keine MCP-Server verbunden",
+  "ops.tools": "Tools",
+  "ops.model": "Modell",
+  "ops.agent_type": "Agent",
+  "ops.repository": "Repository",
+  "ops.sandbox": "Sandbox",
+  "ops.rehydrated": "Sandbox rehydriert — Workspace aus dem Checkpoint wiederhergestellt."
 }

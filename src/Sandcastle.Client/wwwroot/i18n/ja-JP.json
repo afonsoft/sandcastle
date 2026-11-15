@@ -857,5 +857,16 @@
   "alerts.session_failed": "セッションを開始できませんでした（未ルーティング・重複・クォータ）。",
   "admin.chat_provider": "プロバイダー",
   "admin.chat_webhook_url": "Webhook URL",
-  "admin.chat_connected": "接続を作成しました。"
+  "admin.chat_connected": "接続を作成しました。",
+  "conv.tab_jobs": "ジョブ",
+  "conv.tab_mcps": "MCP",
+  "conv.tab_info": "情報",
+  "ops.jobs_empty": "バックグラウンドジョブはありません",
+  "ops.mcps_empty": "接続中のMCPサーバーはありません",
+  "ops.tools": "ツール",
+  "ops.model": "モデル",
+  "ops.agent_type": "エージェント",
+  "ops.repository": "リポジトリ",
+  "ops.sandbox": "サンドボックス",
+  "ops.rehydrated": "サンドボックスが再構築されました — チェックポイントからワークスペースを復元しました。"
 }
