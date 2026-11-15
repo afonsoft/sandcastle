@@ -2,7 +2,7 @@ using Sandcastle.Application.Refactors;
 using Sandcastle.Infrastructure.Refactors;
 using Sandcastle.Infrastructure.Scans;
 
-namespace Sandcastle.UnitTests.Infrastructure;
+namespace Sandcastle.UnitTests.Dispatchers;
 
 public sealed class DispatcherQueueTests
 {
