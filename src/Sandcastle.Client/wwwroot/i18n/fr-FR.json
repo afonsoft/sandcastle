@@ -881,5 +881,20 @@
   "outposts.col_heartbeat": "Heartbeat",
   "outposts.drain": "Drain",
   "outposts.deregister": "Désenrôler",
-  "outposts.enroll_failed": "Échec de l'enrôlement — vérifiez la permission outposts.manage."
+  "outposts.enroll_failed": "Échec de l'enrôlement — vérifiez la permission outposts.manage.",
+  "sidebar.customize": "Personnaliser",
+  "customize.title": "Personnaliser",
+  "customize.hint": "Gérez les connaissances, les skills et les serveurs MCP qui alimentent l'agent.",
+  "customize.tab_knowledge": "Connaissances",
+  "customize.tab_skills": "Skills",
+  "customize.tab_mcps": "MCP",
+  "customize.scope": "portée",
+  "customize.scope_personal": "personnel",
+  "customize.scope_org": "organisation",
+  "customize.source_builtin": "intégré",
+  "customize.source_manual": "manuel",
+  "customize.source_repo": "dépôt",
+  "customize.source_marketplace": "marketplace",
+  "customize.knowledge_summary": "{{total}} entrées · {{pending}} en attente",
+  "customize.open_knowledge": "Ouvrir les connaissances →"
 }

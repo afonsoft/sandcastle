@@ -1,0 +1,53 @@
+@page "/customize"
+@using Sandcastle.Client.Components.Customize
+@using Sandcastle.Client.Services
+@inject LocalizationService L
+@inject NavigationManager Nav
+
+<PageTitle>@L["customize.title"] · Sandcastle</PageTitle>
+
+<div class="settings-wrap">
+    <h1>@L["customize.title"]</h1>
+    <p class="sub" style="color:var(--sc-fg-dim)">@L["customize.hint"]</p>
+
+    <div class="tab-bar" role="tablist" aria-label="@L["customize.title"]">
+        <button role="tab" class="@Active("knowledge")"
+                aria-selected="@(Current == "knowledge")"
+                @onclick='() => Nav.NavigateTo("/customize?tab=knowledge")'>
+            @L["customize.tab_knowledge"]
+        </button>
+        <button role="tab" class="@Active("skills")"
+                aria-selected="@(Current == "skills")"
+                @onclick='() => Nav.NavigateTo("/customize?tab=skills")'>
+            @L["customize.tab_skills"]
+        </button>
+        <button role="tab" class="@Active("mcps")"
+                aria-selected="@(Current == "mcps")"
+                @onclick='() => Nav.NavigateTo("/customize?tab=mcps")'>
+            @L["customize.tab_mcps"]
+        </button>
+    </div>
+
+    @if (Current == "skills")
+    {
+        <SkillsPanel />
+    }
+    else if (Current == "mcps")
+    {
+        <McpPanel />
+    }
+    else
+    {
+        <KnowledgePanel />
+    }
+</div>
+
+@code {
+    /// <summary>SPEC-156 RF-001: deep-link via ?tab=knowledge|skills|mcps.</summary>
+    [SupplyParameterFromQuery(Name = "tab")]
+    public string? Tab { get; set; }
+
+    private string Current => Tab is "skills" or "mcps" ? Tab : "knowledge";
+
+    private string Active(string tab) => Current == tab ? "active" : "";
+}

@@ -881,5 +881,20 @@
   "outposts.col_heartbeat": "心跳",
   "outposts.drain": "排空",
   "outposts.deregister": "注销",
-  "outposts.enroll_failed": "注册失败 — 请检查 outposts.manage 权限。"
+  "outposts.enroll_failed": "注册失败 — 请检查 outposts.manage 权限。",
+  "sidebar.customize": "自定义",
+  "customize.title": "自定义",
+  "customize.hint": "管理为代理提供能力的知识、技能和 MCP 服务器。",
+  "customize.tab_knowledge": "知识",
+  "customize.tab_skills": "技能",
+  "customize.tab_mcps": "MCP",
+  "customize.scope": "范围",
+  "customize.scope_personal": "个人",
+  "customize.scope_org": "组织",
+  "customize.source_builtin": "内置",
+  "customize.source_manual": "手动",
+  "customize.source_repo": "仓库",
+  "customize.source_marketplace": "市场",
+  "customize.knowledge_summary": "共 {{total}} 条 · {{pending}} 条待处理",
+  "customize.open_knowledge": "打开知识 →"
 }

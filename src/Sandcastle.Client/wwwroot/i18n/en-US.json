@@ -881,5 +881,20 @@
   "outposts.col_heartbeat": "Heartbeat",
   "outposts.drain": "Drain",
   "outposts.deregister": "Deregister",
-  "outposts.enroll_failed": "Enroll failed — check outposts.manage permission."
+  "outposts.enroll_failed": "Enroll failed — check outposts.manage permission.",
+  "sidebar.customize": "Customize",
+  "customize.title": "Customize",
+  "customize.hint": "Manage the knowledge, skills and MCP servers that feed the agent.",
+  "customize.tab_knowledge": "Knowledge",
+  "customize.tab_skills": "Skills",
+  "customize.tab_mcps": "MCPs",
+  "customize.scope": "scope",
+  "customize.scope_personal": "personal",
+  "customize.scope_org": "organization",
+  "customize.source_builtin": "built-in",
+  "customize.source_manual": "manual",
+  "customize.source_repo": "repo",
+  "customize.source_marketplace": "marketplace",
+  "customize.knowledge_summary": "{{total}} entries · {{pending}} pending",
+  "customize.open_knowledge": "Open knowledge →"
 }

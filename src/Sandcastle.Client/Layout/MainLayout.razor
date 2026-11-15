@@ -100,8 +100,14 @@
                 </div>
             }
             @* SPEC-136 RF-001: rotas órfãs ganham entrada na shell —
-               Knowledge (/knowledge) e Skills & MCP (/settings/skills). *@
+               Knowledge (/knowledge) e Customize (/customize) + Knowledge (/knowledge).. *@
             <div class="sb-label">@L["sidebar.workspace"]</div>
+            @* SPEC-156 RF-001: hub unificado knowledge/skills/mcps. *@
+            <a class="sb-item @(IsActive("/customize") || IsActive("/settings/skills") || IsActive("/settings/mcp") ? "active" : "")"
+               href="/customize" title="@L["sidebar.customize"]">
+                <Icon Name="sparkles" Size="16" />
+                <span class="txt">@L["sidebar.customize"]</span>
+            </a>
             <a class="sb-item @(IsActive("/knowledge") ? "active" : "")"
                href="/knowledge" title="@L["sidebar.knowledge"]">
                 <Icon Name="book" Size="16" />
@@ -143,11 +149,6 @@
                href="/automations" title="@L["sidebar.automations"]">
                 <Icon Name="clock" Size="16" />
                 <span class="txt">@L["sidebar.automations"]</span>
-            </a>
-            <a class="sb-item @(IsActive("/settings/skills") || IsActive("/settings/mcp") ? "active" : "")"
-               href="/settings/skills" title="@L["sidebar.skills_mcp"]">
-                <Icon Name="sparkles" Size="16" />
-                <span class="txt">@L["sidebar.skills_mcp"]</span>
             </a>
             @* SPEC-148 RF-004: marketplace — catálogo instalável de
                skills/agents/mcp/hooks (browse + installed). *@

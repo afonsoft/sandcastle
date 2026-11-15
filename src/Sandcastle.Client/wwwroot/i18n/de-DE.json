@@ -881,5 +881,20 @@
   "outposts.col_heartbeat": "Heartbeat",
   "outposts.drain": "Drain",
   "outposts.deregister": "Abmelden",
-  "outposts.enroll_failed": "Registrierung fehlgeschlagen — Berechtigung outposts.manage prüfen."
+  "outposts.enroll_failed": "Registrierung fehlgeschlagen — Berechtigung outposts.manage prüfen.",
+  "sidebar.customize": "Anpassen",
+  "customize.title": "Anpassen",
+  "customize.hint": "Verwalte Wissen, Skills und MCP-Server, die den Agenten versorgen.",
+  "customize.tab_knowledge": "Wissen",
+  "customize.tab_skills": "Skills",
+  "customize.tab_mcps": "MCPs",
+  "customize.scope": "Geltungsbereich",
+  "customize.scope_personal": "persönlich",
+  "customize.scope_org": "Organisation",
+  "customize.source_builtin": "eingebaut",
+  "customize.source_manual": "manuell",
+  "customize.source_repo": "Repo",
+  "customize.source_marketplace": "Marketplace",
+  "customize.knowledge_summary": "{{total}} Einträge · {{pending}} ausstehend",
+  "customize.open_knowledge": "Wissen öffnen →"
 }

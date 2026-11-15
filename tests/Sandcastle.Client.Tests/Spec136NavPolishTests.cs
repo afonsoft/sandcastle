@@ -58,7 +58,7 @@ public class Spec136NavPolishTests : BunitContext
             x => x.Body, (Microsoft.AspNetCore.Components.RenderFragment)(_ => { })));
 
         cut.Find("a.sb-item[href='/knowledge']").ShouldNotBeNull();
-        cut.Find("a.sb-item[href='/settings/skills']").ShouldNotBeNull();
+        cut.Find("a.sb-item[href='/customize']").ShouldNotBeNull();
     }
 
     [Theory]
