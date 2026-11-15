@@ -41,6 +41,12 @@
                     @onclick='() => _tab = "indexing"'>
                 @L["settings.indexing"]
             </button>
+            <button type="button" role="tab"
+                    aria-selected="@(_tab == "outposts")"
+                    class="settings-tab @(_tab == "outposts" ? "active" : "")"
+                    @onclick='() => _tab = "outposts"'>
+                @L["settings.outposts"]
+            </button>
             <a class="settings-tab settings-tab-link" href="/settings/skills">
                 @L["skills.title"] →
             </a>
@@ -356,6 +362,76 @@
                     }
                 </div>
             }
+            else if (_tab == "outposts")
+            {
+                @* SPEC-153 RF-004: admin de outposts — enroll one-time +
+                   lista status/labels + drain/deregister. *@
+                <h3>@L["settings.outposts"]</h3>
+                <p class="sub" style="color:var(--sc-fg-dim)">
+                    @L["outposts.hint"]
+                </p>
+                <div class="row" style="display:flex;gap:8px;margin-bottom:12px">
+                    <input aria-label="@L["outposts.name"]"
+                           placeholder="@L["outposts.name"]"
+                           @bind="_opName" @bind:event="oninput"
+                           style="flex:1" />
+                    <button @onclick="EnrollOutpostAsync"
+                            disabled="@(_opBusy || string.IsNullOrWhiteSpace(_opName))">
+                        @L["outposts.enroll"]
+                    </button>
+                </div>
+                @if (_opEnroll is not null)
+                {
+                    <div class="field" style="border:1px solid var(--sc-amber,#b58900);padding:8px;border-radius:6px">
+                        <p><strong>@L["outposts.once"]</strong></p>
+                        <p class="sub"><code>@_opEnroll.EnrollToken</code></p>
+                        <p class="sub"><code>@_opEnroll.DockerCommand</code></p>
+                    </div>
+                }
+                @if (_outposts.Count == 0)
+                {
+                    <p class="sub">@L["outposts.empty"]</p>
+                }
+                else
+                {
+                    <table class="budget-models">
+                        <thead><tr>
+                            <th>@L["outposts.col_name"]</th>
+                            <th>@L["outposts.col_status"]</th>
+                            <th>@L["outposts.col_tasks"]</th>
+                            <th>@L["outposts.col_heartbeat"]</th>
+                            <th></th>
+                        </tr></thead>
+                        <tbody>
+                        @foreach (var o in _outposts)
+                        {
+                            <tr>
+                                <td>@o.Name</td>
+                                <td>@o.Status</td>
+                                <td>@o.RunningTasks/@o.MaxSandboxes</td>
+                                <td>@(o.LastHeartbeat?.ToString("HH:mm:ss") ?? "—")</td>
+                                <td>
+                                    @if (o.Status is "online")
+                                    {
+                                        <button class="danger"
+                                                @onclick="() => DrainOutpostAsync(o.Id)">
+                                            @L["outposts.drain"]
+                                        </button>
+                                    }
+                                    @if (o.Status is not "revoked")
+                                    {
+                                        <button class="danger"
+                                                @onclick="() => DeregisterOutpostAsync(o.Id)">
+                                            @L["outposts.deregister"]
+                                        </button>
+                                    }
+                                </td>
+                            </tr>
+                        }
+                        </tbody>
+                    </table>
+                }
+            }
             else
             {
                 <h3>@L["settings.secrets"]</h3>
@@ -423,10 +499,50 @@
     private sealed record LkProvider(
         string Id, string Label, bool RequiresBaseUrl);
 
+    // SPEC-153: outposts
+    private List<OutpostInfoDto> _outposts = [];
+    private OutpostEnrollDto? _opEnroll;
+    private string _opName = "";
+    private bool _opBusy;
+
+    private async Task LoadOutpostsAsync()
+    {
+        try { _outposts = (await Api.ListOutpostsAsync()).ToList(); }
+        catch { /* permissão outposts.view ausente — painel vazio */ }
+    }
+
+    private async Task EnrollOutpostAsync()
+    {
+        _opBusy = true;
+        try
+        {
+            _opEnroll = await Api.EnrollOutpostAsync(_opName.Trim());
+            _opName = "";
+            await LoadOutpostsAsync();
+            if (_opEnroll is null)
+            {
+                Toasts.Error(L["outposts.enroll_failed"]);
+            }
+        }
+        finally { _opBusy = false; }
+    }
+
+    private async Task DrainOutpostAsync(Guid id)
+    {
+        await Api.DrainOutpostAsync(id);
+        await LoadOutpostsAsync();
+    }
+
+    private async Task DeregisterOutpostAsync(Guid id)
+    {
+        await Api.DeregisterOutpostAsync(id);
+        await LoadOutpostsAsync();
+    }
+
     protected override async Task OnInitializedAsync()
     {
         if (InitialTab is "general" or "agent" or "secrets"
-            or "usage" or "indexing")
+            or "usage" or "indexing" or "outposts")
         {
             _tab = InitialTab;
         }
@@ -454,6 +570,7 @@
         try { _budget = await Api.GetUsageBudgetAsync(); } catch { }
         try { _llmUsage = await Api.GetLlmUsageByRoleAsync(); } catch { } // SPEC-149
         try { _indexing = await Api.GetIndexingStatusAsync(); } catch { }
+        await LoadOutpostsAsync();
         try
         {
             var prefs = await Api.GetPreferencesAsync();

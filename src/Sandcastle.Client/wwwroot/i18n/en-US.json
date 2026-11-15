@@ -868,5 +868,18 @@
   "ops.agent_type": "Agent",
   "ops.repository": "Repository",
   "ops.sandbox": "Sandbox",
-  "ops.rehydrated": "Sandbox was rehydrated — workspace restored from the checkpoint."
+  "ops.rehydrated": "Sandbox was rehydrated — workspace restored from the checkpoint.",
+  "settings.outposts": "Outposts",
+  "outposts.hint": "Self-hosted runners that execute sandboxes inside your network (outbound-only channel).",
+  "outposts.name": "Outpost name",
+  "outposts.enroll": "Enroll outpost",
+  "outposts.once": "Shown once — copy the enroll token / docker command now.",
+  "outposts.empty": "No outposts enrolled.",
+  "outposts.col_name": "Name",
+  "outposts.col_status": "Status",
+  "outposts.col_tasks": "Tasks",
+  "outposts.col_heartbeat": "Heartbeat",
+  "outposts.drain": "Drain",
+  "outposts.deregister": "Deregister",
+  "outposts.enroll_failed": "Enroll failed — check outposts.manage permission."
 }
