@@ -94,6 +94,21 @@ public sealed class AgentRunner(
         var sandbox = conv.SandboxId is null
             ? null
             : await sandboxes.GetAsync(conv.SandboxId.Value, ct);
+        // SPEC-154 RF-002: sandbox Missing/Error → reidrata (nova sandbox
+        // no workspace bind-mounted; checkpoint git-dir sobrevive).
+        if (sandbox?.Status is not Domain.Sandbox.SandboxStatus.Running
+            && services.GetService<Application.Sandbox
+                .IConversationSandboxGuard>() is { } guard)
+        {
+            var res = await guard.EnsureRunningAsync(conversationId, ct);
+            if (res.Rehydrated)
+            {
+                sandbox = res.Sandbox;
+                // O record da conversa foi repontado p/ a sandbox nova.
+                conv.SandboxId = res.Sandbox?.Id;
+            }
+        }
+
         if (sandbox?.Status is not Domain.Sandbox.SandboxStatus.Running)
         {
             await events.AppendAsync(conversationId, new ServerErrorEvent

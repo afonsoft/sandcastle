@@ -364,6 +364,33 @@ public sealed class SandcastleApiClient(HttpClient http)
         string Name, string Protocol, int Port,
         string? Url, DateTimeOffset? ExpiresAt);
 
+    /// <summary>SPEC-155: <c>GET /app-conversations/{id}/runtime</c>.</summary>
+    public async Task<RuntimeDto?> GetRuntimeAsync(
+        string conversationId, CancellationToken ct = default) =>
+        await http.GetFromJsonAsync<RuntimeDto>(
+            $"/api/v1/app-conversations/{conversationId}/runtime",
+            Json, ct);
+
+    /// <summary>Estado operacional da run (jobs, MCPs, info).</summary>
+    public sealed record RuntimeDto(
+        IReadOnlyList<RuntimeJob> Jobs,
+        IReadOnlyList<RuntimeMcp> McpServers,
+        RuntimeInfo Info);
+
+    /// <summary>Job em background na sandbox (tools <c>job_*</c>).</summary>
+    public sealed record RuntimeJob(
+        string JobId, string Status, string ExitCode, string Name, string Pid);
+
+    /// <summary>Estado mais recente de um servidor MCP.</summary>
+    public sealed record RuntimeMcp(
+        string Name, string Status, int ToolsCount, string? Error);
+
+    /// <summary>Metadados da run/conversa/sandbox.</summary>
+    public sealed record RuntimeInfo(
+        string? Model, string? AgentType, string? Repository,
+        Guid? SandboxId, string? SandboxStatus, string? SandboxImage,
+        bool Rehydrated);
+
     // ---- sharing (SPEC-56) --------------------------------------------
 
     /// <summary>

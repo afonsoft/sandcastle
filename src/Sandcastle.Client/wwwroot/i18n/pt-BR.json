@@ -857,5 +857,16 @@
   "alerts.session_failed": "Não foi possível iniciar a sessão (não roteado, duplicado ou cota).",
   "admin.chat_provider": "Provider",
   "admin.chat_webhook_url": "URL do webhook",
-  "admin.chat_connected": "Conexão criada."
+  "admin.chat_connected": "Conexão criada.",
+  "conv.tab_jobs": "Jobs",
+  "conv.tab_mcps": "MCPs",
+  "conv.tab_info": "Info",
+  "ops.jobs_empty": "Sem jobs em background",
+  "ops.mcps_empty": "Nenhum servidor MCP conectado",
+  "ops.tools": "ferramentas",
+  "ops.model": "Modelo",
+  "ops.agent_type": "Agente",
+  "ops.repository": "Repositório",
+  "ops.sandbox": "Sandbox",
+  "ops.rehydrated": "Sandbox reidratada — workspace restaurado do checkpoint."
 }

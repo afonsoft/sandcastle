@@ -857,5 +857,16 @@
   "alerts.session_failed": "Could not start the session (unrouted, duplicate or quota).",
   "admin.chat_provider": "Provider",
   "admin.chat_webhook_url": "Webhook URL",
-  "admin.chat_connected": "Connection created."
+  "admin.chat_connected": "Connection created.",
+  "conv.tab_jobs": "Jobs",
+  "conv.tab_mcps": "MCPs",
+  "conv.tab_info": "Info",
+  "ops.jobs_empty": "No background jobs",
+  "ops.mcps_empty": "No MCP servers connected",
+  "ops.tools": "tools",
+  "ops.model": "Model",
+  "ops.agent_type": "Agent",
+  "ops.repository": "Repository",
+  "ops.sandbox": "Sandbox",
+  "ops.rehydrated": "Sandbox was rehydrated — workspace restored from the checkpoint."
 }

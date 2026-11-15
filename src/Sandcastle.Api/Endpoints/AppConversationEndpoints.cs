@@ -58,6 +58,17 @@ public static class AppConversationEndpoints
         group.MapGet("/{id:guid}/surfaces",
             GetSurfacesAsync).RequireAuthorization();
 
+        // SPEC-155: painel operacional — jobs, servidores MCP e info da run.
+        group.MapGet("/{id:guid}/runtime",
+            static async (Guid id, HttpContext http,
+                Sandcastle.Infrastructure.Conversations.ConversationRuntimeService rt,
+                CancellationToken ct) =>
+                await rt.GetAsync(id, ct) is { } dto
+                    ? Results.Ok(dto)
+                    : SandcastleProblemFactory.Create(
+                        http, 404, $"Conversation {id} not found"))
+            .RequireAuthorization();
+
         group.MapPatch(IdGuid,
             UpdateConversationAsync);
 

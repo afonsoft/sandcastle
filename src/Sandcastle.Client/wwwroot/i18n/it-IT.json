@@ -857,5 +857,16 @@
   "alerts.session_failed": "Impossibile avviare la sessione (non instradato, duplicato o quota).",
   "admin.chat_provider": "Provider",
   "admin.chat_webhook_url": "URL webhook",
-  "admin.chat_connected": "Connessione creata."
+  "admin.chat_connected": "Connessione creata.",
+  "conv.tab_jobs": "Jobs",
+  "conv.tab_mcps": "MCPs",
+  "conv.tab_info": "Info",
+  "ops.jobs_empty": "Nessun job in background",
+  "ops.mcps_empty": "Nessun server MCP connesso",
+  "ops.tools": "strumenti",
+  "ops.model": "Modello",
+  "ops.agent_type": "Agente",
+  "ops.repository": "Repository",
+  "ops.sandbox": "Sandbox",
+  "ops.rehydrated": "Sandbox reidratata — workspace ripristinato dal checkpoint."
 }

@@ -58,11 +58,12 @@ public sealed class ScanWorker(
             Guid scanId;
             try
             {
-                var wait = dispatcher.Queue.WaitToReadAsync(stoppingToken);
+                var waitTask = dispatcher.Queue
+                    .WaitToReadAsync(stoppingToken).AsTask();
                 var delay = Task.Delay(
                     TimeSpan.FromSeconds(5), stoppingToken);
-                var done = await Task.WhenAny(wait.AsTask(), delay);
-                if (done == wait.AsTask() && wait.Result)
+                var done = await Task.WhenAny(waitTask, delay);
+                if (done == waitTask && waitTask.Result)
                 {
                     scanId = await dispatcher.Queue.ReadAsync(stoppingToken);
                     await RunScanAsync(scanId, stoppingToken);
