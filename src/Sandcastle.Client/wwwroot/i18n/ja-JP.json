@@ -868,5 +868,18 @@
   "ops.agent_type": "エージェント",
   "ops.repository": "リポジトリ",
   "ops.sandbox": "サンドボックス",
-  "ops.rehydrated": "サンドボックスが再構築されました — チェックポイントからワークスペースを復元しました。"
+  "ops.rehydrated": "サンドボックスが再構築されました — チェックポイントからワークスペースを復元しました。",
+  "settings.outposts": "アウトポスト",
+  "outposts.hint": "あなたのネットワーク内でサンドボックスを実行するセルフホストランナー（アウトバウンド専用チャネル）。",
+  "outposts.name": "アウトポスト名",
+  "outposts.enroll": "アウトポストを登録",
+  "outposts.once": "一度だけ表示 — トークン／コマンドを今すぐコピー。",
+  "outposts.empty": "登録済みのアウトポストはありません。",
+  "outposts.col_name": "名前",
+  "outposts.col_status": "ステータス",
+  "outposts.col_tasks": "タスク",
+  "outposts.col_heartbeat": "ハートビート",
+  "outposts.drain": "ドレイン",
+  "outposts.deregister": "登録解除",
+  "outposts.enroll_failed": "登録に失敗 — outposts.manage 権限を確認。"
 }

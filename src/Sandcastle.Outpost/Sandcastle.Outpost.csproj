@@ -1,0 +1,18 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <AssemblyName>sandcastle-outpost</AssemblyName>
+    <RootNamespace>Sandcastle.Outpost</RootNamespace>
+    <!-- SPEC-153: runner do host do cliente — publicar single-file na
+         release: dotnet publish -r <rid> -p:PublishSingleFile=true
+         (não fixar RID aqui: o ILLink implícito quebra o restore
+         locked-mode a cada bump de SDK). -->
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="Docker.DotNet.Enhanced" />
+    <ProjectReference Include="..\Sandcastle.Application\Sandcastle.Application.csproj" />
+  </ItemGroup>
+</Project>

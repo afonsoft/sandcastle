@@ -800,6 +800,28 @@
         ],
         "type": "object"
       },
+      "EnrollRequest": {
+        "description": "Enroll request body.",
+        "properties": {
+          "labels": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "type": [
+              "null",
+              "object"
+            ]
+          },
+          "name": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "name",
+          "labels"
+        ],
+        "type": "object"
+      },
       "EvalEstimateRequest": {
         "description": "\u0060POST /api/v1/evals/estimate\u0060 body.",
         "properties": {
@@ -1348,6 +1370,14 @@
       "PatchConversationRequest": {
         "description": "PATCH /app-conversations/{id} body.",
         "properties": {
+          "outpost_id": {
+            "description": "SPEC-153: pin de rota outpost (null = mant\u00E9m o atual).",
+            "format": "uuid",
+            "type": [
+              "null",
+              "string"
+            ]
+          },
           "pinned": {
             "type": [
               "null",
@@ -1666,6 +1696,42 @@
         "required": [
           "daily_max",
           "concurrent_max"
+        ],
+        "type": "object"
+      },
+      "RegisterRequest": {
+        "description": "Register request body (agente \u2192 plano).",
+        "properties": {
+          "enroll_token": {
+            "type": "string"
+          },
+          "labels": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "type": [
+              "null",
+              "object"
+            ]
+          },
+          "name": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "version": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        },
+        "required": [
+          "enroll_token",
+          "name",
+          "labels",
+          "version"
         ],
         "type": "object"
       },
@@ -10851,6 +10917,168 @@
         ]
       }
     },
+    "/api/v1/outposts": {
+      "get": {
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          }
+        },
+        "summary": "GET /api/v1/outposts/",
+        "tags": [
+          "Outposts"
+        ]
+      }
+    },
+    "/api/v1/outposts/enroll": {
+      "post": {
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EnrollRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          }
+        },
+        "summary": "POST /api/v1/outposts/enroll",
+        "tags": [
+          "Outposts"
+        ]
+      }
+    },
+    "/api/v1/outposts/register": {
+      "post": {
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RegisterRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "security": [],
+        "summary": "POST /api/v1/outposts/register",
+        "tags": [
+          "Outposts"
+        ]
+      }
+    },
+    "/api/v1/outposts/{id}": {
+      "get": {
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          }
+        },
+        "summary": "GET /api/v1/outposts/{id:guid}",
+        "tags": [
+          "Outposts"
+        ]
+      }
+    },
+    "/api/v1/outposts/{id}/deregister": {
+      "post": {
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          }
+        },
+        "summary": "POST /api/v1/outposts/{id:guid}/deregister",
+        "tags": [
+          "Outposts"
+        ]
+      }
+    },
+    "/api/v1/outposts/{id}/drain": {
+      "post": {
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          }
+        },
+        "summary": "POST /api/v1/outposts/{id:guid}/drain",
+        "tags": [
+          "Outposts"
+        ]
+      }
+    },
     "/api/v1/qa/runs": {
       "get": {
         "parameters": [
@@ -14160,6 +14388,9 @@
     },
     {
       "name": "Evals"
+    },
+    {
+      "name": "Outposts"
     }
   ]
 }

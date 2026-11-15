@@ -15,6 +15,7 @@ using Sandcastle.Application.Git;
 using Sandcastle.Application.Identity;
 using Sandcastle.Application.Sandbox;
 using Sandcastle.Application.Scm;
+using Sandcastle.Domain.Conversations;
 using Sandcastle.Domain.Sandbox;
 using Sandcastle.Infrastructure.Persistence;
 using Sandcastle.Infrastructure.Scm;
@@ -1381,5 +1382,10 @@ public sealed class Spec142QaTests : IAsyncDisposable
             .AttentionDismissResult> DismissAttentionAsync(Guid id,
                 CancellationToken ct) =>
             throw new NotImplementedException();
+
+        public Task<AppConversation?> UpdateAsync(Guid id, string? title, IReadOnlyList<string>? tags, bool? pinned, Guid? outpostId, CancellationToken ct)
+        {
+            throw new NotImplementedException();
+        }
     }
 }

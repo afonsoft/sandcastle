@@ -868,5 +868,18 @@
   "ops.agent_type": "代理",
   "ops.repository": "仓库",
   "ops.sandbox": "沙盒",
-  "ops.rehydrated": "Sandbox 已重建 — 工作区已从检查点恢复。"
+  "ops.rehydrated": "Sandbox 已重建 — 工作区已从检查点恢复。",
+  "settings.outposts": "前哨",
+  "outposts.hint": "在您的网络内执行沙箱的自托管运行器（仅出站通道）。",
+  "outposts.name": "前哨名称",
+  "outposts.enroll": "注册前哨",
+  "outposts.once": "仅显示一次 — 请立即复制令牌／命令。",
+  "outposts.empty": "尚未注册前哨。",
+  "outposts.col_name": "名称",
+  "outposts.col_status": "状态",
+  "outposts.col_tasks": "任务",
+  "outposts.col_heartbeat": "心跳",
+  "outposts.drain": "排空",
+  "outposts.deregister": "注销",
+  "outposts.enroll_failed": "注册失败 — 请检查 outposts.manage 权限。"
 }

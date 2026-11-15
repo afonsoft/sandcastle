@@ -44,6 +44,7 @@
 - [features/knowledge.md](features/knowledge.md) — suggestion queue,
   human review, groom automático (SPEC-63).
 - [features/browser-profiles.md](features/browser-profiles.md) — storage
+- [features/outposts.md](features/outposts.md) — outposts self-hosted (SPEC-153).
   state criptografado, site cookies, TOTP (SPEC-64).
 
 ## Deployment

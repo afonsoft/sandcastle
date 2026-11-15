@@ -387,6 +387,7 @@ internal static class ProgramParts
         app.MapBrowserProfileEndpoints();
         app.MapAlertEndpoints(); // SPEC-151: alert integrations
         app.MapEvalEndpoints(); // SPEC-152: benchmark/eval harness
+        app.MapOutpostEndpoints(); // SPEC-153: outposts self-hosted
         app.MapHub<ConversationHub>("/hubs/conversations");
         // Probes k8s/docker — anônimos por definição (SPEC-97).
         app.MapHealthChecks("/api/v1/health").AllowAnonymous();

@@ -1675,6 +1675,44 @@ public sealed class SandcastleApiClient(HttpClient http)
         return resp.StatusCode;
     }
 
+    // ---- SPEC-153: outposts ----
+
+    /// <summary>GET /outposts — lista da org efetiva.</summary>
+    public async Task<IReadOnlyList<OutpostInfoDto>> ListOutpostsAsync(
+        CancellationToken ct = default) =>
+        await GetOrNull<IReadOnlyList<OutpostInfoDto>>(
+            "/api/v1/outposts/", ct) ?? [];
+
+    /// <summary>
+    /// POST /outposts/enroll — cria outpost pending + token one-time
+    /// (exibido uma única vez).
+    /// </summary>
+    public async Task<OutpostEnrollDto?> EnrollOutpostAsync(
+        string name, IReadOnlyDictionary<string, string>? labels = null,
+        CancellationToken ct = default)
+    {
+        var resp = await http.PostAsJsonAsync(
+            "/api/v1/outposts/enroll",
+            new { name, labels }, Json, ct);
+        return resp.IsSuccessStatusCode
+            ? await resp.Content.ReadFromJsonAsync<OutpostEnrollDto>(Json, ct)
+            : null;
+    }
+
+    /// <summary>POST /outposts/{id}/drain — para de aceitar tasks.</summary>
+    public async Task<bool> DrainOutpostAsync(
+        Guid id, CancellationToken ct = default) =>
+        (await http.PostAsync(
+            $"/api/v1/outposts/{id}/drain", null, ct))
+            .IsSuccessStatusCode;
+
+    /// <summary>POST /outposts/{id}/deregister — revoga + desconecta.</summary>
+    public async Task<bool> DeregisterOutpostAsync(
+        Guid id, CancellationToken ct = default) =>
+        (await http.PostAsync(
+            $"/api/v1/outposts/{id}/deregister", null, ct))
+            .IsSuccessStatusCode;
+
     /// <summary>
     /// POST /alerts/events/{id}/create-session → 202 {conversation_id}
     /// (null quando 404/409 — unrouted/duplicado).
@@ -1882,3 +1920,18 @@ public sealed record AlertEventDto(
     IReadOnlyDictionary<string, string>? Labels,
     DateTimeOffset FirstSeen, string Status, Guid? SessionId,
     string? PrUrl, DateTimeOffset CreatedAt, DateTimeOffset UpdatedAt);
+/// <summary>SPEC-153: outpost na listagem/detalhe (GET /outposts).</summary>
+public sealed record OutpostInfoDto(
+    Guid Id, Guid? OrgId, string Name,
+    IReadOnlyDictionary<string, string>? Labels, string Status,
+    string? Version, int MaxSandboxes, int RunningTasks,
+    DateTimeOffset? LastHeartbeat, string? CertFingerprint,
+    Guid CreatedBy, DateTimeOffset CreatedAt);
+
+/// <summary>
+/// SPEC-153: resultado de POST /outposts/enroll — enroll_token e
+/// docker_command exibidos UMA única vez.
+/// </summary>
+public sealed record OutpostEnrollDto(
+    Guid OutpostId, string EnrollToken,
+    string ConnectUrl, string DockerCommand);

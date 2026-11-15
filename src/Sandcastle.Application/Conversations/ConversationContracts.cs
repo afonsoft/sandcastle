@@ -152,10 +152,13 @@ public interface IAppConversationService
 
     Task<AppConversation?> GetAsync(Guid id, CancellationToken ct);
 
-    /// <summary>Patches title/tags/pinned.</summary>
+    /// <summary>
+    /// Patches title/tags/pinned. SPEC-153: <paramref name="outpostId"/>
+    /// fixa a rota sandbox no outpost (null = sem mudança).
+    /// </summary>
     Task<AppConversation?> UpdateAsync(
         Guid id, string? title, IReadOnlyList<string>? tags, bool? pinned,
-        CancellationToken ct);
+        Guid? outpostId, CancellationToken ct);
 
     /// <summary>Archives the conversation and deletes its sandbox.</summary>
     Task<bool> DeleteAsync(Guid id, CancellationToken ct);

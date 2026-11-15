@@ -107,8 +107,11 @@ public static class DependencyInjection
         services.AddSingleton<Sandcastle.Sandboxing.WarmPoolService>();
         services.AddHostedService(p => p.GetRequiredService<
             Sandcastle.Sandboxing.WarmPoolService>());
+        services.AddScoped<Sandcastle.Infrastructure.Sandbox.SandboxService>();
+        // SPEC-153: decorator que roteia ops de sandbox pro outpost —
+        // delegates para o engine local conforme a decisão do router.
         services.AddScoped<Sandcastle.Application.Sandbox.ISandboxService,
-            Sandcastle.Infrastructure.Sandbox.SandboxService>();
+            Sandcastle.Infrastructure.Outpost.OutpostSandboxService>();
         // SPEC-17: executor dual-mode — HTTP agent in-container quando a
         // imagem traz o sandbox-agent; docker exec como fallback legado.
         services.AddHttpClient("sandbox-agent");
@@ -410,6 +413,24 @@ public static class DependencyInjection
         // SPEC-155: painel operacional — /runtime agrega jobs/MCP/info.
         services.AddScoped<
             Sandcastle.Infrastructure.Conversations.ConversationRuntimeService>();
+
+        // SPEC-153: outposts self-hosted — service, canal (singleton),
+        // router de sandbox, emissor mTLS e sweeper de heartbeat.
+        services.AddScoped<Sandcastle.Application.Outpost.IOutpostService,
+            Sandcastle.Infrastructure.Outpost.OutpostService>();
+        services.AddScoped<Sandcastle.Application.Outpost.IOutpostRouter,
+            Sandcastle.Infrastructure.Outpost.OutpostRouter>();
+        services.AddSingleton<
+            Sandcastle.Infrastructure.Outpost.OutpostChannelRegistry>();
+        services.AddSingleton<
+            Sandcastle.Application.Outpost.IOutpostTaskDispatcher>(
+            sp => sp.GetRequiredService<
+                Sandcastle.Infrastructure.Outpost.OutpostChannelRegistry>());
+        services.AddHostedService<
+            Sandcastle.Infrastructure.Outpost.OutpostStatusSweeper>();
+        services.AddOptions<
+            Sandcastle.Application.Outpost.OutpostOptions>()
+            .BindConfiguration("Outpost");
 
         // SPEC-150: handoff local↔cloud — create+package service e o
         // applier do patch dentro do sandbox (git apply --3way → --reject).

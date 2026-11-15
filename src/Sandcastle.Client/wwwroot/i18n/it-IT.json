@@ -868,5 +868,18 @@
   "ops.agent_type": "Agente",
   "ops.repository": "Repository",
   "ops.sandbox": "Sandbox",
-  "ops.rehydrated": "Sandbox reidratata — workspace ripristinato dal checkpoint."
+  "ops.rehydrated": "Sandbox reidratata — workspace ripristinato dal checkpoint.",
+  "settings.outposts": "Outposts",
+  "outposts.hint": "Runner self-hosted che eseguono sandbox dentro la tua rete (canale solo in uscita).",
+  "outposts.name": "Nome outpost",
+  "outposts.enroll": "Registra outpost",
+  "outposts.once": "Mostrato una sola volta — copia subito token/comando.",
+  "outposts.empty": "Nessun outpost registrato.",
+  "outposts.col_name": "Nome",
+  "outposts.col_status": "Stato",
+  "outposts.col_tasks": "Task",
+  "outposts.col_heartbeat": "Heartbeat",
+  "outposts.drain": "Drain",
+  "outposts.deregister": "Rimuovi",
+  "outposts.enroll_failed": "Registrazione fallita — verifica il permesso outposts.manage."
 }
