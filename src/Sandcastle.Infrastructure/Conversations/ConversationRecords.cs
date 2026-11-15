@@ -37,6 +37,12 @@ public sealed class ConversationRecord : IOrgScoped
     public Guid? SandboxSpecId { get; set; }
 
     /// <summary>
+    /// SPEC-153: outpost pinado para execução do sandbox desta conversa
+    /// (null = roteamento pela policy org — cloud|prefer-outpost|outpost-only).
+    /// </summary>
+    public Guid? OutpostId { get; set; }
+
+    /// <summary>
     /// Regras de permissão por tool da conversa (SPEC-29 RF-001) — JSON de
     /// <c>AgentPermissionRule[]</c>; null = herda org/instância.
     /// </summary>

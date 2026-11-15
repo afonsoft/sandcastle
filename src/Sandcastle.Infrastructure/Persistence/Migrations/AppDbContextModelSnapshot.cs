@@ -753,6 +753,10 @@ namespace Sandcastle.Infrastructure.Persistence.Migrations
                         .HasColumnType("TEXT")
                         .HasColumnName("org_id");
 
+                    b.Property<Guid?>("OutpostId")
+                        .HasColumnType("TEXT")
+                        .HasColumnName("outpost_id");
+
                     b.Property<Guid?>("ParentConversationId")
                         .HasColumnType("TEXT")
                         .HasColumnName("parent_conversation_id");
@@ -1250,6 +1254,99 @@ namespace Sandcastle.Infrastructure.Persistence.Migrations
                         .HasName("pk_knowledge_suggestions");
 
                     b.ToTable("knowledge_suggestions", (string)null);
+                });
+
+            modelBuilder.Entity("Sandcastle.Infrastructure.Outpost.OutpostRecord", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("TEXT")
+                        .HasColumnName("id");
+
+                    b.Property<string>("CertFingerprint")
+                        .HasMaxLength(64)
+                        .HasColumnType("TEXT")
+                        .HasColumnName("cert_fingerprint");
+
+                    b.Property<string>("ChannelKeyHash")
+                        .HasMaxLength(64)
+                        .HasColumnType("TEXT")
+                        .HasColumnName("channel_key_hash");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("TEXT")
+                        .HasColumnName("created_at");
+
+                    b.Property<long>("CreatedAtTicks")
+                        .HasColumnType("INTEGER")
+                        .HasColumnName("created_at_ticks");
+
+                    b.Property<Guid>("CreatedBy")
+                        .HasColumnType("TEXT")
+                        .HasColumnName("created_by");
+
+                    b.Property<DateTimeOffset?>("EnrollTokenExpiresAt")
+                        .HasColumnType("TEXT")
+                        .HasColumnName("enroll_token_expires_at");
+
+                    b.Property<string>("EnrollTokenHash")
+                        .HasMaxLength(64)
+                        .HasColumnType("TEXT")
+                        .HasColumnName("enroll_token_hash");
+
+                    b.Property<string>("LabelsJson")
+                        .HasColumnType("TEXT")
+                        .HasColumnName("labels_json");
+
+                    b.Property<DateTimeOffset?>("LastHeartbeat")
+                        .HasColumnType("TEXT")
+                        .HasColumnName("last_heartbeat");
+
+                    b.Property<int>("MaxSandboxes")
+                        .HasColumnType("INTEGER")
+                        .HasColumnName("max_sandboxes");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("TEXT")
+                        .HasColumnName("name");
+
+                    b.Property<Guid?>("OrgId")
+                        .HasColumnType("TEXT")
+                        .HasColumnName("org_id");
+
+                    b.Property<DateTimeOffset?>("RevokedAt")
+                        .HasColumnType("TEXT")
+                        .HasColumnName("revoked_at");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("TEXT")
+                        .HasColumnName("status");
+
+                    b.Property<string>("Version")
+                        .HasMaxLength(60)
+                        .HasColumnType("TEXT")
+                        .HasColumnName("version");
+
+                    b.HasKey("Id")
+                        .HasName("pk_outposts");
+
+                    b.HasIndex("ChannelKeyHash")
+                        .HasDatabaseName("ix_outposts_channel_key_hash");
+
+                    b.HasIndex("CreatedAtTicks")
+                        .HasDatabaseName("ix_outposts_created_at_ticks");
+
+                    b.HasIndex("EnrollTokenHash")
+                        .HasDatabaseName("ix_outposts_enroll_token_hash");
+
+                    b.HasIndex("OrgId", "Status")
+                        .HasDatabaseName("ix_outposts_org_id_status");
+
+                    b.ToTable("outposts", (string)null);
                 });
 
             modelBuilder.Entity("Sandcastle.Infrastructure.Persistence.ApiKeyRecord", b =>

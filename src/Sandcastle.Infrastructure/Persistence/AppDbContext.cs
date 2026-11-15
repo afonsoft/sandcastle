@@ -290,6 +290,10 @@ public class AppDbContext : DbContext, IDataProtectionKeyContext
     public DbSet<Sandcastle.Infrastructure.Eval.EvalResultRecord>
         EvalResults => Set<Sandcastle.Infrastructure.Eval.EvalResultRecord>();
 
+    /// <summary>SPEC-153: outposts — runner agents enrolled por org.</summary>
+    public DbSet<Sandcastle.Infrastructure.Outpost.OutpostRecord>
+        Outposts => Set<Sandcastle.Infrastructure.Outpost.OutpostRecord>();
+
     /// <summary>SPEC-61 RF-001: Diagnósticos pós-sessão de conversas.</summary>
     public DbSet<SessionInsightRecord> SessionInsights => Set<SessionInsightRecord>();
 
