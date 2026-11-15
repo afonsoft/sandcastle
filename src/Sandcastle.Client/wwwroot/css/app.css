@@ -196,6 +196,7 @@ pre, code { font-family: var(--sc-mono); font-size: 12.5px; }
     border: 1px solid var(--sc-border); color: var(--sc-fg-dim);
 }
 .badge .dot { width: 8px; height: 8px; border-radius: 50%; background: currentColor; }
+.badge.badge-dim { color: var(--sc-fg-dim); border-color: var(--sc-border); }
 .badge.running { color: var(--sc-green); border-color: var(--sc-green); }
 .badge.working, .badge.setting_up_workspace, .badge.setting_up_skills,
 .badge.setting_up_git { color: var(--sc-yellow); border-color: var(--sc-yellow); }

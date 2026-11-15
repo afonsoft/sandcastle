@@ -1,0 +1,48 @@
+@using Sandcastle.Client.Services
+@inject SandcastleApiClient Api
+@inject LocalizationService L
+
+@if (_items is null)
+{
+    <p class="sub">@L["common.loading"]</p>
+}
+else
+{
+    <p class="sub">
+        @L.T("customize.knowledge_summary",
+            ("total", _items.Count.ToString()),
+            ("pending", _pending.Count.ToString()))
+    </p>
+
+    @if (_pending.Count == 0)
+    {
+        <p class="sub">@L["knowledge.empty"]</p>
+    }
+    else
+    {
+        @foreach (var s in _pending.Take(5))
+        {
+            <div class="suggestion">
+                <div class="head">
+                    <span class="badge @s.Kind">@s.Kind</span>
+                    <strong>@s.Title</strong>
+                    <span class="badge">@s.Scope</span>
+                </div>
+            </div>
+        }
+    }
+
+    <p><a href="/knowledge">@L["customize.open_knowledge"]</a></p>
+}
+
+@code {
+    private IReadOnlyList<KnowledgeSuggestionItem>? _items;
+    private IReadOnlyList<KnowledgeSuggestionItem> _pending = [];
+
+    protected override async Task OnInitializedAsync()
+    {
+        _items = await Api.ListKnowledgeSuggestionsAsync();
+        _pending = _items.Where(i => i.Status == "pending")
+            .OrderByDescending(i => i.CreatedAt).ToList();
+    }
+}

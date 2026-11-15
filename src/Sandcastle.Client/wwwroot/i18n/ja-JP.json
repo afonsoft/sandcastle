@@ -881,5 +881,20 @@
   "outposts.col_heartbeat": "ハートビート",
   "outposts.drain": "ドレイン",
   "outposts.deregister": "登録解除",
-  "outposts.enroll_failed": "登録に失敗 — outposts.manage 権限を確認。"
+  "outposts.enroll_failed": "登録に失敗 — outposts.manage 権限を確認。",
+  "sidebar.customize": "カスタマイズ",
+  "customize.title": "カスタマイズ",
+  "customize.hint": "エージェントを養うナレッジ、スキル、MCP サーバーを管理します。",
+  "customize.tab_knowledge": "ナレッジ",
+  "customize.tab_skills": "スキル",
+  "customize.tab_mcps": "MCP",
+  "customize.scope": "スコープ",
+  "customize.scope_personal": "個人",
+  "customize.scope_org": "組織",
+  "customize.source_builtin": "組み込み",
+  "customize.source_manual": "手動",
+  "customize.source_repo": "リポジトリ",
+  "customize.source_marketplace": "マーケットプレイス",
+  "customize.knowledge_summary": "{{total}} 件 · {{pending}} 件待ち",
+  "customize.open_knowledge": "ナレッジを開く →"
 }
