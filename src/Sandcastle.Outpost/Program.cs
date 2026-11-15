@@ -13,6 +13,7 @@ using Docker.DotNet;
 using Docker.DotNet.Models;
 
 using Sandcastle.Application.Outpost;
+using Sandcastle.Outpost;
 
 
 var cmd = args.FirstOrDefault() ?? "run";
@@ -566,39 +567,42 @@ static string ConfigPath() =>
 static string? ThisAssemblyVersion() =>
     typeof(Program).Assembly.GetName().Version?.ToString();
 
-file static class JsonOpts
+namespace Sandcastle.Outpost
 {
-    public static readonly JsonSerializerOptions CfgJson = new()
+    internal static class JsonOpts
     {
-        PropertyNamingPolicy = JsonNamingPolicy.SnakeCaseLower,
-        WriteIndented = true,
-    };
-}
+        public static readonly JsonSerializerOptions CfgJson = new()
+        {
+            PropertyNamingPolicy = JsonNamingPolicy.SnakeCaseLower,
+            WriteIndented = true,
+        };
+    }
 
-file sealed class OutpostConfig
-{
-    [JsonPropertyName("outpost_id")] public Guid OutpostId { get; set; }
-    [JsonPropertyName("channel_key")] public string ChannelKey { get; set; } = "";
-    [JsonPropertyName("connect_url")] public string ConnectUrl { get; set; } = "";
-    [JsonPropertyName("heartbeat_sec")] public int HeartbeatSec { get; set; } = 30;
-    [JsonPropertyName("cert_path")] public string? CertPath { get; set; }
-    [JsonPropertyName("key_path")] public string? KeyPath { get; set; }
-}
-
-file sealed class RegisterResponse
-{
-    [JsonPropertyName("outpost_id")] public Guid OutpostId { get; set; }
-    [JsonPropertyName("channel_key")] public string ChannelKey { get; set; } = "";
-    [JsonPropertyName("heartbeat_sec")] public int HeartbeatSec { get; set; }
-    [JsonPropertyName("cert_pem")] public string? CertPem { get; set; }
-    [JsonPropertyName("key_pem")] public string? KeyPem { get; set; }
-}
-
-internal static class TaskExt
-{
-    public static async Task SuppressCancel(this Task t)
+    internal sealed class OutpostConfig
     {
-        try { await t; }
-        catch (OperationCanceledException) { }
+        [JsonPropertyName("outpost_id")] public Guid OutpostId { get; set; }
+        [JsonPropertyName("channel_key")] public string ChannelKey { get; set; } = "";
+        [JsonPropertyName("connect_url")] public string ConnectUrl { get; set; } = "";
+        [JsonPropertyName("heartbeat_sec")] public int HeartbeatSec { get; set; } = 30;
+        [JsonPropertyName("cert_path")] public string? CertPath { get; set; }
+        [JsonPropertyName("key_path")] public string? KeyPath { get; set; }
+    }
+
+    internal sealed class RegisterResponse
+    {
+        [JsonPropertyName("outpost_id")] public Guid OutpostId { get; set; }
+        [JsonPropertyName("channel_key")] public string ChannelKey { get; set; } = "";
+        [JsonPropertyName("heartbeat_sec")] public int HeartbeatSec { get; set; }
+        [JsonPropertyName("cert_pem")] public string? CertPem { get; set; }
+        [JsonPropertyName("key_pem")] public string? KeyPem { get; set; }
+    }
+
+    internal static class TaskExt
+    {
+        public static async Task SuppressCancel(this Task t)
+        {
+            try { await t; }
+            catch (OperationCanceledException) { }
+        }
     }
 }

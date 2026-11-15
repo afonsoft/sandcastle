@@ -104,19 +104,19 @@ public sealed class OutpostSandboxService(
     public Task<Domain.Sandbox.Sandbox> PauseAsync(
         Guid sandboxId, CancellationToken ct) =>
         RemoteOrLocal(sandboxId, OutpostTaskOps.Pause,
-            SandboxStatus.Paused, () => inner.PauseAsync(sandboxId, ct));
+            SandboxStatus.Paused, () => inner.PauseAsync(sandboxId, ct), ct);
 
     /// <inheritdoc />
     public Task<Domain.Sandbox.Sandbox> StopAsync(
         Guid sandboxId, CancellationToken ct) =>
         RemoteOrLocal(sandboxId, OutpostTaskOps.Stop,
-            SandboxStatus.Stopped, () => inner.StopAsync(sandboxId, ct));
+            SandboxStatus.Stopped, () => inner.StopAsync(sandboxId, ct), ct);
 
     /// <inheritdoc />
     public Task<Domain.Sandbox.Sandbox> ResumeAsync(
         Guid sandboxId, CancellationToken ct) =>
         RemoteOrLocal(sandboxId, OutpostTaskOps.Unpause,
-            SandboxStatus.Running, () => inner.ResumeAsync(sandboxId, ct));
+            SandboxStatus.Running, () => inner.ResumeAsync(sandboxId, ct), ct);
 
     /// <inheritdoc />
     public async Task DeleteAsync(Guid sandboxId, CancellationToken ct)
@@ -176,9 +176,9 @@ public sealed class OutpostSandboxService(
     /// </summary>
     private async Task<Domain.Sandbox.Sandbox> RemoteOrLocal(
         Guid sandboxId, string op, SandboxStatus after,
-        Func<Task<Domain.Sandbox.Sandbox>> local)
+        Func<Task<Domain.Sandbox.Sandbox>> local, CancellationToken ct)
     {
-        var record = await db.Sandboxes.FindAsync([sandboxId], default);
+        var record = await db.Sandboxes.FindAsync([sandboxId], ct);
         if (record?.ContainerId is not { } cid
             || dispatch.ContainerOwner(cid) is not { } owner)
         {
@@ -189,12 +189,12 @@ public sealed class OutpostSandboxService(
         {
             Op = op,
             ContainerId = cid,
-        }, TaskTimeout, default);
+        }, TaskTimeout, ct);
 
         record.Status = evt.Status == OutpostTaskStatus.Completed
             ? after.ToString() : SandboxStatus.Error.ToString();
         record.LastError = evt.Error;
-        await db.SaveChangesAsync(default);
+        await db.SaveChangesAsync(ct);
         return record.ToDomain();
     }
 }
