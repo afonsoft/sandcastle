@@ -7,6 +7,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
+using Sandcastle.Application.Identity;
 using Sandcastle.Application.Outpost;
 using Sandcastle.Infrastructure.Persistence;
 
@@ -92,6 +93,7 @@ public sealed class OutpostChannelRegistry : IOutpostTaskDispatcher
         }
 
         _connections[outpost.Id] = conn;
+        _ = AuditAsync("outpost.connect", outpost.OrgId, outpost.Id);
         return conn;
     }
 
@@ -105,6 +107,8 @@ public sealed class OutpostChannelRegistry : IOutpostTaskDispatcher
             _logger.LogInformation(
                 "outpost {OutpostId} disconnected ({Reason})",
                 conn.OutpostId, reason);
+            await AuditAsync("outpost.disconnect", conn.OrgId,
+                conn.OutpostId, new { reason });
         }
     }
 
@@ -120,10 +124,34 @@ public sealed class OutpostChannelRegistry : IOutpostTaskDispatcher
         }
 
         var result = await conn.DispatchAsync(task, timeout, ct);
+        await AuditAsync("outpost.task_assign", conn.OrgId, outpostId,
+            new { op = task.Op });
         return result.Status == OutpostTaskStatus.Completed
             ? result
             : throw new OutpostTaskException(
                 result.Error ?? $"task failed on outpost {outpostId}");
+    }
+
+    private async Task AuditAsync(
+        string action, Guid? orgId, Guid outpostId, object? metadata = null)
+    {
+        try
+        {
+            await using var scope = _scopeFactory.CreateAsyncScope();
+            var audit = scope.ServiceProvider.GetService<IAuditService>();
+            if (audit is not null)
+            {
+                await audit.RecordAsync(action, null, orgId,
+                    "outpost", outpostId.ToString(),
+                    metadata: metadata);
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex,
+                "audit {Action} for outpost {OutpostId} failed",
+                action, outpostId);
+        }
     }
 
     /// <inheritdoc />
