@@ -49,6 +49,8 @@ public enum Permission
     AlertsView,
     AlertsManage,
     EvalsRun,
+    OutpostsView,
+    OutpostsManage,
 }
 
 public static class PermissionExtensions
@@ -98,6 +100,8 @@ public static class PermissionExtensions
         Permission.AlertsView => "alerts.view",
         Permission.AlertsManage => "alerts.manage",
         Permission.EvalsRun => "evals.run",
+        Permission.OutpostsView => "outposts.view",
+        Permission.OutpostsManage => "outposts.manage",
         _ => throw new ArgumentOutOfRangeException(nameof(permission)),
     };
 
@@ -146,6 +150,8 @@ public static class PermissionExtensions
         "alerts.view" => Permission.AlertsView,
         "alerts.manage" => Permission.AlertsManage,
         "evals.run" => Permission.EvalsRun,
+        "outposts.view" => Permission.OutpostsView,
+        "outposts.manage" => Permission.OutpostsManage,
         _ => null,
     };
 }

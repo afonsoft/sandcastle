@@ -28,6 +28,8 @@ public static class RolePermissions
         Permission.MarketplaceInstall,
         // SPEC-151: member lê fontes/eventos de alerta da org.
         Permission.AlertsView,
+        // SPEC-153: member vê outposts da org (status/labels/heartbeat).
+        Permission.OutpostsView,
     ];
 
     private static readonly Permission[] Admin =
@@ -59,6 +61,8 @@ public static class RolePermissions
         // SPEC-152 §RF-004: evals são caros — run/scorecard é admin+
         // (member não recebe perm:evals.run por default).
         Permission.EvalsRun,
+        // SPEC-153: admin+ enrola/drena/revoga outposts da org.
+        Permission.OutpostsManage,
     ];
 
     private static readonly Permission[] Owner =
@@ -84,6 +88,9 @@ public static class RolePermissions
         // install é incluído pois o super-role não herda org perms.
         Permission.MarketplaceInstall,
         Permission.MarketplaceManage,
+        // SPEC-153: superadmin enxerga/gerencia outposts cross-org.
+        Permission.OutpostsView,
+        Permission.OutpostsManage,
     ];
 
     /// <summary>Permissions for an org role name (owner|admin|member). Empty for unknown roles.</summary>
