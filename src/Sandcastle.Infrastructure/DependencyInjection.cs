@@ -107,8 +107,11 @@ public static class DependencyInjection
         services.AddSingleton<Sandcastle.Sandboxing.WarmPoolService>();
         services.AddHostedService(p => p.GetRequiredService<
             Sandcastle.Sandboxing.WarmPoolService>());
+        services.AddScoped<Sandcastle.Infrastructure.Sandbox.SandboxService>();
+        // SPEC-153: decorator que roteia ops de sandbox pro outpost —
+        // delegates para o engine local conforme a decisão do router.
         services.AddScoped<Sandcastle.Application.Sandbox.ISandboxService,
-            Sandcastle.Infrastructure.Sandbox.SandboxService>();
+            Sandcastle.Infrastructure.Outpost.OutpostSandboxService>();
         // SPEC-17: executor dual-mode — HTTP agent in-container quando a
         // imagem traz o sandbox-agent; docker exec como fallback legado.
         services.AddHttpClient("sandbox-agent");
