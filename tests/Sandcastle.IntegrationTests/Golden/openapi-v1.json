@@ -1370,6 +1370,14 @@
       "PatchConversationRequest": {
         "description": "PATCH /app-conversations/{id} body.",
         "properties": {
+          "outpost_id": {
+            "description": "SPEC-153: pin de rota outpost (null = mant\u00E9m o atual).",
+            "format": "uuid",
+            "type": [
+              "null",
+              "string"
+            ]
+          },
           "pinned": {
             "type": [
               "null",
