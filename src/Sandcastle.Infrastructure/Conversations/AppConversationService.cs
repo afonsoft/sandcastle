@@ -28,7 +28,8 @@ public sealed class AppConversationService( // NOSONAR S107 â€” SPEC-104 (decisÃ
     Sandcastle.Application.Identity.IEffectiveOrgResolver? orgResolver = null,
     Sandcastle.Application.Artifacts.IArtifactStore? artifacts = null,
     Sandcastle.Application.Conversations.IAttentionBus? attention = null,
-    Microsoft.Extensions.Options.IOptions<MultiRepoOptions>? multiRepo = null)
+    Microsoft.Extensions.Options.IOptions<MultiRepoOptions>? multiRepo = null,
+    Sandcastle.Application.Sandbox.IConversationSandboxGuard? sandboxGuard = null)
     : IAppConversationService
 {
     /// <inheritdoc />
@@ -609,6 +610,16 @@ public sealed class AppConversationService( // NOSONAR S107 â€” SPEC-104 (decisÃ
             or Domain.Sandbox.SandboxStatus.Stopped)
         {
             sandbox = await sandboxes.ResumeAsync(record.SandboxId.Value, ct);
+        }
+
+        // SPEC-154 RF-002: Missing/Error â†’ reidrata (sandbox nova no
+        // mesmo workspace bind-mounted) em vez de Gone imediato.
+        if ((sandbox?.Status is Domain.Sandbox.SandboxStatus.Missing
+            or Domain.Sandbox.SandboxStatus.Error)
+            && sandboxGuard is not null)
+        {
+            var res = await sandboxGuard.EnsureRunningAsync(id, ct);
+            sandbox = res.Sandbox;
         }
 
         if (sandbox?.Status == Domain.Sandbox.SandboxStatus.Running)
