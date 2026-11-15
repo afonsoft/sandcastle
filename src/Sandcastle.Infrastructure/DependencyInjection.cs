@@ -407,6 +407,9 @@ public static class DependencyInjection
             Sandcastle.Infrastructure.Conversations.ConversationUxService>();
         services.AddHostedService<
             Sandcastle.Infrastructure.Conversations.ConversationStartWorker>();
+        // SPEC-155: painel operacional — /runtime agrega jobs/MCP/info.
+        services.AddScoped<
+            Sandcastle.Infrastructure.Conversations.ConversationRuntimeService>();
 
         // SPEC-150: handoff local↔cloud — create+package service e o
         // applier do patch dentro do sandbox (git apply --3way → --reject).

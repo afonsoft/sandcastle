@@ -156,6 +156,11 @@
                 {
                     <CommitsTab State="State" />
                 }
+                else if (_tab is "jobs" or "mcps" or "info")
+                {
+                    @* SPEC-155: painel operacional (jobs/MCPs/info). *@
+                    <OpsTab State="State" Section="@_tab" @key="_tab" />
+                }
                 else
                 {
                     <UsageTab State="State" />
@@ -177,6 +182,7 @@
         ("ide", "conv.tab_ide"),
         ("terminal", "conv.tab_terminal"), ("browser", "conv.tab_browser"), ("desktop", "conv.tab_desktop"), ("files", "conv.tab_files"),
         ("diff", "conv.tab_diff"), ("commits", "conv.tab_commits"), ("usage", "conv.tab_usage"),
+        ("jobs", "conv.tab_jobs"), ("mcps", "conv.tab_mcps"), ("info", "conv.tab_info"),
     ];
 
     protected override async Task OnInitializedAsync()

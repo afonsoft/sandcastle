@@ -857,5 +857,16 @@
   "alerts.session_failed": "Impossible de démarrer la session (non routée, doublon ou quota).",
   "admin.chat_provider": "Fournisseur",
   "admin.chat_webhook_url": "URL du webhook",
-  "admin.chat_connected": "Connexion créée."
+  "admin.chat_connected": "Connexion créée.",
+  "conv.tab_jobs": "Jobs",
+  "conv.tab_mcps": "MCPs",
+  "conv.tab_info": "Info",
+  "ops.jobs_empty": "Aucune tâche en arrière-plan",
+  "ops.mcps_empty": "Aucun serveur MCP connecté",
+  "ops.tools": "outils",
+  "ops.model": "Modèle",
+  "ops.agent_type": "Agent",
+  "ops.repository": "Dépôt",
+  "ops.sandbox": "Sandbox",
+  "ops.rehydrated": "Sandbox réhydratée — espace de travail restauré depuis le checkpoint."
 }
