@@ -120,6 +120,10 @@ public static class DependencyInjection
             Sandcastle.Infrastructure.Sandbox.SandboxAgentExecutor>();
         services.AddScoped<
             Sandcastle.Infrastructure.Sandbox.BlueprintService>();
+        // SPEC-154: guard que reidrata sandbox morta (workspace bind-mounted).
+        services.AddScoped<
+            Sandcastle.Application.Sandbox.IConversationSandboxGuard,
+            Sandcastle.Infrastructure.Sandbox.ConversationSandboxGuard>();
         services.AddHostedService<Sandcastle.Infrastructure.Sandbox.OrphanSweepService>();
         services.AddHostedService<Sandcastle.Infrastructure.Sandbox.SandboxTimeoutWatcher>();
         services.AddSingleton<Sandcastle.Infrastructure.Sandbox.SandboxSleepService>();
