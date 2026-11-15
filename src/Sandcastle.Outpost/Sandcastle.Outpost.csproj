@@ -1,0 +1,17 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <AssemblyName>sandcastle-outpost</AssemblyName>
+    <RootNamespace>Sandcastle.Outpost</RootNamespace>
+    <!-- SPEC-153: self-contained single-file runner (customer host). -->
+    <PublishSingleFile>true</PublishSingleFile>
+    <RuntimeIdentifiers>linux-x64;linux-arm64;osx-arm64</RuntimeIdentifiers>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="Docker.DotNet.Enhanced" />
+    <ProjectReference Include="..\Sandcastle.Application\Sandcastle.Application.csproj" />
+  </ItemGroup>
+</Project>

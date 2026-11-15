@@ -10,6 +10,7 @@
     <Project Path="src/Sandcastle.Eval/Sandcastle.Eval.csproj" />
     <Project Path="src/Sandcastle.Infrastructure/Sandcastle.Infrastructure.csproj" />
     <Project Path="src/Sandcastle.Mcp/Sandcastle.Mcp.csproj" />
+    <Project Path="src/Sandcastle.Outpost/Sandcastle.Outpost.csproj" />
     <Project Path="src/Sandcastle.SandboxAgent/Sandcastle.SandboxAgent.csproj" />
     <Project Path="src/Sandcastle.RuntimeApi/Sandcastle.RuntimeApi.csproj" />
     <Project Path="src/Sandcastle.Sandboxing/Sandcastle.Sandboxing.csproj" />
