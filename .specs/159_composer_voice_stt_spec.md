@@ -9,7 +9,7 @@
 | Stack | `.NET 10 · Blazor WASM · Web Speech API` |
 | Repository | `afonsoft/sandcastle` |
 | Status | `Approved` |
-| Ticket | #TBD · Epic #TBD |
+| Ticket | #457 · Epic #451 |
 | Scope | `src/Sandcastle.Client/` + `tests/` |
 
 ## 1. User Story

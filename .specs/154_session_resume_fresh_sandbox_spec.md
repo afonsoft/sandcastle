@@ -9,7 +9,7 @@
 | Stack | `.NET 10 · Blazor WASM · Docker` |
 | Repository | `afonsoft/sandcastle` |
 | Status | `Approved` |
-| Ticket | #TBD · Epic #TBD |
+| Ticket | #452 · Epic #451 |
 | Scope | `src/` + `tests/` + `docker-compose.beta.yaml` |
 
 ## 1. User Story
