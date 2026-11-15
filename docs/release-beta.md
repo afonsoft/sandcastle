@@ -39,9 +39,9 @@ Em uma VM/runner sem estado dev (`git clone` fresco):
 - [x] Desktop tab abre noVNC (verificado: xterm live no X do sandbox —
       exige `Sandbox__DefaultImage=sandcastle/runtime:local`,
       `Sandbox__ControlNetwork=<rede do compose>` e `group_add` do gid docker)
-- [ ] `Auth:Provider=none` → boot direto sem login (single-user local);
-      quando `oidc` configurado → `/auth` + SSO + sign-out funcionam
-      (none verificado; OIDC não exercitado — exige IdP)
+- [x] `Auth:Provider=none` → boot direto sem login (single-user local)
+- [ ] quando `oidc` configurado → `/auth` + SSO + sign-out funcionam
+      (não exercitado — exige IdP)
 - [x] PWA instalável (manifest + service worker ativos — verificado 200)
 
 ## 4. Segurança (defaults auditados)
@@ -79,9 +79,9 @@ Em uma VM/runner sem estado dev (`git clone` fresco):
 ## 6. Pós-tag
 
 - [x] Issue de feedback beta pinada (canal de report) — #393
-- [ ] Rename do projeto (decisão pendente — família "fusão dos 4";
-      recomendado executar **antes** do anúncio público para não
-      rebatizar depois do lançamento)
+- [x] Rename do projeto para **Sandcastle** — títulos da UI, imagens,
+      README e docs atualizados; referências históricas e chave imutável do
+      SonarCloud `afonsoft_OpenHandsNET` preservadas
 - [ ] Anúncio: descrição honesta do estado (ver §7)
 
 ## 7. Nota de escopo para o anúncio (honestidade de produto)

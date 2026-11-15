@@ -81,6 +81,9 @@ public sealed class SandboxSurfaceProxy(IHttpClientFactory httpFactory)
         HttpContext ctx, Uri upstream, string path)
     {
         using var client = new ClientWebSocket();
+        var requested = ctx.WebSockets.WebSocketRequestedProtocols;
+        foreach (var p in requested)
+            client.Options.AddSubProtocol(p);
         var wsUri = new UriBuilder(upstream)
         {
             Scheme = "ws",
@@ -88,7 +91,10 @@ public sealed class SandboxSurfaceProxy(IHttpClientFactory httpFactory)
             Query = ctx.Request.QueryString.Value?.TrimStart('?'),
         }.Uri;
         await client.ConnectAsync(wsUri, ctx.RequestAborted);
-        using var server = await ctx.WebSockets.AcceptWebSocketAsync();
+        // RFC 6455: ecoar o subprotocol pedido (noVNC usa 'binary') —
+        // sem o header o browser derruba a conexão após o 101.
+        using var server = await ctx.WebSockets.AcceptWebSocketAsync(
+            requested.Count > 0 ? requested[0] : null);
         var pump = async (WebSocket from, WebSocket to) =>
         {
             var buf = new byte[64 * 1024];
