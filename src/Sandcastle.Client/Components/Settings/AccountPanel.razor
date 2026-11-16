@@ -1,0 +1,155 @@
+@using Sandcastle.Client.Services
+@inject SandcastleApiClient Api
+@inject AuthStateService Auth
+@inject ToastService Toasts
+@inject LocalizationService L
+@inject IJSRuntime JS
+
+@* SPEC-158 RF-002: perfil + senha + sessões. *@
+<h3>@L["settings.account"]</h3>
+
+<div class="settings-section">
+    <h4>@L["settings.account.profile"]</h4>
+    <div class="field">
+        <label for="acct-email">@L["settings.account.email"]</label>
+        <input id="acct-email" type="text" value="@_email" disabled />
+    </div>
+    <div class="field">
+        <label for="acct-name">@L["settings.account.display_name"]</label>
+        <input id="acct-name" type="text" @bind="_displayName" />
+    </div>
+    <div class="field">
+        <label for="acct-avatar">@L["settings.account.avatar_url"]</label>
+        <input id="acct-avatar" type="url" @bind="_avatarUrl"
+               placeholder="https://…" />
+    </div>
+    <button type="button" class="badge" @onclick="SaveProfileAsync"
+            disabled="@_busy">
+        @L["common.save"]
+    </button>
+</div>
+
+@if (_localProvider)
+{
+    <div class="settings-section">
+        <h4>@L["settings.account.password"]</h4>
+        <div class="field">
+            <label for="acct-cur-pwd">@L["settings.account.current_password"]</label>
+            <input id="acct-cur-pwd" type="password" @bind="_currentPwd"
+                   autocomplete="current-password" />
+        </div>
+        <div class="field">
+            <label for="acct-new-pwd">@L["settings.account.new_password"]</label>
+            <input id="acct-new-pwd" type="password" @bind="_newPwd"
+                   autocomplete="new-password" />
+            <span style="color:var(--sc-fg-dim)">@L["settings.account.password_hint"]</span>
+        </div>
+        <button type="button" class="badge" @onclick="ChangePasswordAsync"
+                disabled="@_busy">
+            @L["settings.account.change_password"]
+        </button>
+    </div>
+}
+
+<div class="settings-section">
+    <h4>@L["settings.account.sessions"]</h4>
+    <table class="table">
+        <thead>
+            <tr>
+                <th>@L["settings.account.session_id"]</th>
+                <th>@L["settings.account.session_ip"]</th>
+                <th></th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var sess in _sessions)
+            {
+                <tr>
+                    <td>@sess.Id</td>
+                    <td>@(sess.Ip ?? "—")</td>
+                    <td>
+                        <button type="button" class="badge badge-dim"
+                                @onclick="() => RevokeSessionAsync(sess.Id)">
+                            @L["settings.account.sign_out"]
+                        </button>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+</div>
+
+@code {
+    private string? _email;
+    private string? _displayName;
+    private string? _avatarUrl;
+    private string? _currentPwd;
+    private string? _newPwd;
+    private bool _busy;
+    private bool _localProvider;
+    private List<SessionDto> _sessions = [];
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            _localProvider = string.Equals(Auth.Provider, "local",
+                StringComparison.OrdinalIgnoreCase);
+            _email = Auth.User?.Email;
+            _displayName = Auth.User?.DisplayName;
+        }
+        catch (Exception) { }
+        try { _sessions = (await Api.ListSessionsAsync()).ToList(); }
+        catch (Exception) { }
+    }
+
+    private async Task SaveProfileAsync()
+    {
+        _busy = true;
+        try
+        {
+            var p = await Api.UpdateProfileAsync(_displayName, _avatarUrl);
+            if (p is null)
+            {
+                Toasts.Error(L["settings.account.save_failed"]);
+            }
+            else
+            {
+                Toasts.Success(L["settings.account.saved"]);
+            }
+        }
+        finally { _busy = false; }
+    }
+
+    private async Task ChangePasswordAsync()
+    {
+        _busy = true;
+        try
+        {
+            var (ok, error) = await Api.ChangePasswordAsync(
+                _currentPwd ?? "", _newPwd ?? "");
+            if (ok)
+            {
+                _currentPwd = _newPwd = null;
+                Toasts.Success(L["settings.account.password_changed"]);
+            }
+            else
+            {
+                Toasts.Error(error ?? L["settings.account.save_failed"]);
+            }
+        }
+        finally { _busy = false; }
+    }
+
+    private async Task RevokeSessionAsync(string id)
+    {
+        if (await Api.DeleteSessionAsync(id))
+        {
+            await JS.InvokeVoidAsync("location.assign", "/");
+        }
+        else
+        {
+            Toasts.Error(L["settings.account.save_failed"]);
+        }
+    }
+}

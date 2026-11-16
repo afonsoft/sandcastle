@@ -356,3 +356,20 @@ public sealed class WorkspaceItemConfiguration
         b.HasIndex(e => new { e.OrgId, e.Kind });
     }
 }
+
+/// <inheritdoc />
+public sealed class PersonalAccessTokenConfiguration
+    : IEntityTypeConfiguration<PersonalAccessTokenRecord>
+{
+    /// <inheritdoc />
+    public void Configure(EntityTypeBuilder<PersonalAccessTokenRecord> b)
+    {
+        b.ToTable("personal_access_tokens");
+        b.HasKey(e => e.Id);
+        b.Property(e => e.Name).HasMaxLength(120);
+        b.Property(e => e.Prefix).HasMaxLength(16);
+        b.Property(e => e.TokenHash).HasMaxLength(64);
+        b.HasIndex(e => e.TokenHash).IsUnique();
+        b.HasIndex(e => e.UserId);
+    }
+}

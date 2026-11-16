@@ -1784,6 +1784,149 @@ public sealed class SandcastleApiClient(HttpClient http)
         return await http.GetFromJsonAsync<JsonElement>(url, ct);
     }
 
+    // ---- account (SPEC-158) --------------------------------------------
+
+    /// <summary>SPEC-158 RF-002: PATCH /users/me — perfil.</summary>
+    public async Task<ProfileDto?> UpdateProfileAsync(
+        string? displayName, string? avatarUrl,
+        CancellationToken ct = default)
+    {
+        var resp = await http.PatchAsJsonAsync("/api/v1/users/me",
+            new { display_name = displayName, avatar_url = avatarUrl },
+            Json, ct);
+        return resp.IsSuccessStatusCode
+            ? await resp.Content.ReadFromJsonAsync<ProfileDto>(Json, ct)
+            : null;
+    }
+
+    /// <summary>SPEC-158 RF-002: troca de senha — (ok, erro?).</summary>
+    public async Task<(bool Ok, string? Error)> ChangePasswordAsync(
+        string currentPassword, string newPassword,
+        CancellationToken ct = default)
+    {
+        var resp = await http.PostAsJsonAsync(
+            "/api/v1/users/me/password",
+            new
+            {
+                current_password = currentPassword,
+                new_password = newPassword,
+            }, Json, ct);
+        return resp.IsSuccessStatusCode
+            ? (true, null)
+            : (false, await ReadDetailAsync(resp, ct));
+    }
+
+    /// <summary>SPEC-158 RF-002: sessões ativas.</summary>
+    public async Task<IReadOnlyList<SessionDto>> ListSessionsAsync(
+        CancellationToken ct = default)
+    {
+        var doc = await http.GetFromJsonAsync<JsonElement>(
+            "/api/v1/users/me/sessions", ct);
+        return doc.TryGetProperty("sessions", out var arr)
+            ? arr.Deserialize<List<SessionDto>>(Json) ?? []
+            : [];
+    }
+
+    /// <summary>SPEC-158 RF-002: encerra sessão (só "current").</summary>
+    public async Task<bool> DeleteSessionAsync(
+        string id, CancellationToken ct = default)
+    {
+        var resp = await http.DeleteAsync(
+            $"/api/v1/users/me/sessions/{id}", ct);
+        return resp.IsSuccessStatusCode;
+    }
+
+    /// <summary>SPEC-158 RF-003: lista PATs.</summary>
+    public async Task<IReadOnlyList<PatDto>> ListPatTokensAsync(
+        CancellationToken ct = default)
+    {
+        var doc = await http.GetFromJsonAsync<JsonElement>(
+            "/api/v1/users/me/tokens", ct);
+        return doc.TryGetProperty("tokens", out var arr)
+            ? arr.Deserialize<List<PatDto>>(Json) ?? []
+            : [];
+    }
+
+    /// <summary>SPEC-158 RF-003: cria PAT — (token cru 1×, erro?).</summary>
+    public async Task<(CreatedPatDto? Pat, string? Error)> CreatePatTokenAsync(
+        string name, string[] scopes, int? expiresInDays,
+        CancellationToken ct = default)
+    {
+        var resp = await http.PostAsJsonAsync(
+            "/api/v1/users/me/tokens",
+            new { name, scopes, expires_in_days = expiresInDays },
+            Json, ct);
+        return resp.IsSuccessStatusCode
+            ? (await resp.Content.ReadFromJsonAsync<CreatedPatDto>(
+                Json, ct), null)
+            : (null, await ReadDetailAsync(resp, ct));
+    }
+
+    /// <summary>SPEC-158 RF-003: revoga PAT.</summary>
+    public async Task<bool> DeletePatTokenAsync(
+        Guid id, CancellationToken ct = default)
+    {
+        var resp = await http.DeleteAsync(
+            $"/api/v1/users/me/tokens/{id}", ct);
+        return resp.IsSuccessStatusCode;
+    }
+
+    /// <summary>SPEC-158 RF-004: preferências de notificação.</summary>
+    public async Task<NotificationPrefsDto?> GetNotificationPrefsAsync(
+        CancellationToken ct = default)
+    {
+        return await http.GetFromJsonAsync<NotificationPrefsDto>(
+            "/api/v1/users/me/notification-prefs", Json, ct);
+    }
+
+    /// <summary>SPEC-158 RF-004: salva preferências — (ok, erro?).</summary>
+    public async Task<(bool Ok, string? Error)> UpdateNotificationPrefsAsync(
+        bool runFinished, bool runFailed, string? webhookUrl,
+        CancellationToken ct = default)
+    {
+        var resp = await http.PutAsJsonAsync(
+            "/api/v1/users/me/notification-prefs",
+            new
+            {
+                run_finished = runFinished,
+                run_failed = runFailed,
+                webhook_url = webhookUrl,
+            }, Json, ct);
+        return resp.IsSuccessStatusCode
+            ? (true, null)
+            : (false, await ReadDetailAsync(resp, ct));
+    }
+
+    /// <summary>SPEC-158 RF-004: dispara webhook de teste.</summary>
+    public async Task<(bool Ok, string? Error)> SendNotificationTestAsync(
+        CancellationToken ct = default)
+    {
+        var resp = await http.PostAsJsonAsync(
+            "/api/v1/users/me/notifications/test", new { }, Json, ct);
+        return resp.IsSuccessStatusCode
+            ? (true, null)
+            : (false, await ReadDetailAsync(resp, ct));
+    }
+
+    /// <summary>SPEC-158 RF-005: URL do export (download autenticado).</summary>
+    public static string ExportUrl => "/api/v1/users/me/export";
+
+    private static async Task<string?> ReadDetailAsync(
+        HttpResponseMessage resp, CancellationToken ct)
+    {
+        try
+        {
+            var doc = await resp.Content
+                .ReadFromJsonAsync<JsonElement>(cancellationToken: ct);
+            return doc.TryGetProperty("detail", out var d)
+                ? d.GetString()
+                : $"HTTP {(int)resp.StatusCode}";
+        }
+        catch (Exception)
+        {
+            return $"HTTP {(int)resp.StatusCode}";
+        }
+    }
 
 }
 
@@ -1991,3 +2134,42 @@ public sealed record OutpostEnrollDto(
 public sealed record WorkspaceItemDto(
     Guid Id, string Kind, string Name, string Scope,
     DateTimeOffset UpdatedAt, JsonElement Body);
+
+/// <summary>SPEC-158: perfil do usuário corrente.</summary>
+public sealed record ProfileDto(
+    Guid Id,
+    string? Email,
+    string? DisplayName,
+    string? AvatarUrl);
+
+/// <summary>SPEC-158: sessão ativa (cookie stateless → só a corrente).</summary>
+public sealed record SessionDto(
+    string Id,
+    bool Current,
+    string? AuthType,
+    string? Ip,
+    string? UserAgent);
+
+/// <summary>SPEC-158: PAT mascarado.</summary>
+public sealed record PatDto(
+    Guid Id,
+    string Name,
+    string Prefix,
+    IReadOnlyList<string> Scopes,
+    DateTimeOffset CreatedAt,
+    DateTimeOffset? LastUsedAt,
+    DateTimeOffset? ExpiresAt);
+
+/// <summary>SPEC-158: PAT criado — token cru exibido uma única vez.</summary>
+public sealed record CreatedPatDto(
+    Guid Id,
+    string Token,
+    string Name,
+    IReadOnlyList<string> Scopes,
+    DateTimeOffset? ExpiresAt);
+
+/// <summary>SPEC-158: preferências de notificação.</summary>
+public sealed record NotificationPrefsDto(
+    bool RunFinished,
+    bool RunFailed,
+    string? WebhookUrl);

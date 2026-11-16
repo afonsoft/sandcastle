@@ -2239,6 +2239,69 @@ namespace Sandcastle.Infrastructure.Persistence.Migrations
                     b.ToTable("organizations", (string)null);
                 });
 
+            modelBuilder.Entity("Sandcastle.Infrastructure.Persistence.PersonalAccessTokenRecord", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("TEXT")
+                        .HasColumnName("id");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("TEXT")
+                        .HasColumnName("created_at");
+
+                    b.Property<DateTimeOffset?>("ExpiresAt")
+                        .HasColumnType("TEXT")
+                        .HasColumnName("expires_at");
+
+                    b.Property<DateTimeOffset?>("LastUsedAt")
+                        .HasColumnType("TEXT")
+                        .HasColumnName("last_used_at");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(120)
+                        .HasColumnType("TEXT")
+                        .HasColumnName("name");
+
+                    b.Property<string>("Prefix")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("TEXT")
+                        .HasColumnName("prefix");
+
+                    b.Property<DateTimeOffset?>("RevokedAt")
+                        .HasColumnType("TEXT")
+                        .HasColumnName("revoked_at");
+
+                    b.Property<string>("ScopesJson")
+                        .IsRequired()
+                        .HasColumnType("TEXT")
+                        .HasColumnName("scopes_json");
+
+                    b.Property<string>("TokenHash")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("TEXT")
+                        .HasColumnName("token_hash");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("TEXT")
+                        .HasColumnName("user_id");
+
+                    b.HasKey("Id")
+                        .HasName("pk_personal_access_tokens");
+
+                    b.HasIndex("TokenHash")
+                        .IsUnique()
+                        .HasDatabaseName("ix_personal_access_tokens_token_hash");
+
+                    b.HasIndex("UserId")
+                        .HasDatabaseName("ix_personal_access_tokens_user_id");
+
+                    b.ToTable("personal_access_tokens", (string)null);
+                });
+
             modelBuilder.Entity("Sandcastle.Infrastructure.Persistence.PlanRecord", b =>
                 {
                     b.Property<Guid>("Id")
@@ -2723,6 +2786,10 @@ namespace Sandcastle.Infrastructure.Persistence.Migrations
                         .HasColumnType("TEXT")
                         .HasColumnName("id");
 
+                    b.Property<string>("AvatarUrl")
+                        .HasColumnType("TEXT")
+                        .HasColumnName("avatar_url");
+
                     b.Property<DateTimeOffset>("CreatedAt")
                         .HasColumnType("TEXT")
                         .HasColumnName("created_at");
@@ -2755,6 +2822,10 @@ namespace Sandcastle.Infrastructure.Persistence.Migrations
                     b.Property<bool>("OnboardingDone")
                         .HasColumnType("INTEGER")
                         .HasColumnName("onboarding_done");
+
+                    b.Property<string>("PasswordHash")
+                        .HasColumnType("TEXT")
+                        .HasColumnName("password_hash");
 
                     b.Property<string>("PreferencesJson")
                         .HasColumnType("TEXT")

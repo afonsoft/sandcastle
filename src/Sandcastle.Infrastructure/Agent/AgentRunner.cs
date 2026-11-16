@@ -2088,6 +2088,18 @@ public sealed class AgentRunner(
                     .IAttentionBus>()?.PublishChanged();
             }
         }
+
+        // SPEC-158 RF-004: webhook de notificação do dono da conversa no
+        // término/falha da run — fire-and-forget, nunca bloqueia o loop.
+        if (status is "finished" or Error
+            && Guid.TryParse(conv.CreatedByUserId, out var ownerId)
+            && services.GetService<Application.Identity
+                .IUserNotificationService>() is { } notifier)
+        {
+            _ = notifier.NotifyRunStateAsync(ownerId, conv.Id,
+                status == Error ? "run_failed" : "run_finished",
+                conv.Title, CancellationToken.None);
+        }
     }
 
     private static JsonElement? TryParseJson(string? json)

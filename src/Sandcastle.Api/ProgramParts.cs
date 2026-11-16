@@ -106,13 +106,22 @@ internal static class ProgramParts
     {
         var authProvider = builder.Configuration["Auth:Provider"] ?? "none";
         var authBuilder = builder.Services.AddAuthentication("smart")
-            .AddPolicyScheme("smart", "cookie or apikey", o =>
+            .AddPolicyScheme("smart", "cookie, apikey or pat", o =>
                 o.ForwardDefaultSelector = ctx =>
-                    ctx.Request.Headers.Authorization.ToString()
-                        .StartsWith("Bearer sk-",
+                {
+                    var authz = ctx.Request.Headers.Authorization.ToString();
+                    return authz.StartsWith("Bearer sk-",
+                            StringComparison.OrdinalIgnoreCase)
+                        || authz.StartsWith("Bearer svc_",
                             StringComparison.OrdinalIgnoreCase)
                         ? Auth.ApiKeyAuthenticationHandler.SchemeName
-                        : AuthEndpoints.CookieScheme)
+                        : authz.StartsWith("Bearer "
+                                + Application.Identity
+                                    .IPersonalAccessTokenService.TokenPrefix,
+                            StringComparison.OrdinalIgnoreCase)
+                        ? Auth.PatAuthenticationHandler.SchemeName
+                        : AuthEndpoints.CookieScheme;
+                })
             .AddCookie(AuthEndpoints.CookieScheme, o =>
             {
                 o.Cookie.Name = "sandcastle_auth";
@@ -141,7 +150,12 @@ internal static class ProgramParts
             .AddScheme<Microsoft.AspNetCore.Authentication
                     .AuthenticationSchemeOptions,
                 Auth.ApiKeyAuthenticationHandler>(
-                Auth.ApiKeyAuthenticationHandler.SchemeName, _ => { });
+                Auth.ApiKeyAuthenticationHandler.SchemeName, _ => { })
+            // SPEC-158 RF-001: bearer sc_pat_* (personal access tokens).
+            .AddScheme<Microsoft.AspNetCore.Authentication
+                    .AuthenticationSchemeOptions,
+                Auth.PatAuthenticationHandler>(
+                Auth.PatAuthenticationHandler.SchemeName, _ => { });
 
         if (authProvider.Equals("oidc", StringComparison.OrdinalIgnoreCase))
         {
@@ -320,6 +334,28 @@ internal static class ProgramParts
 
         app.UseAuthentication();
         app.UseAuthorization();
+        // SPEC-158: PAT com escopo read-only não executa métodos mutantes.
+        app.Use(async (ctx, next) =>
+        {
+            if (ctx.User.FindFirst("auth_type")?.Value == "pat"
+                && !Microsoft.AspNetCore.Http.HttpMethods.IsGet(
+                    ctx.Request.Method)
+                && !Microsoft.AspNetCore.Http.HttpMethods.IsHead(
+                    ctx.Request.Method)
+                && !Microsoft.AspNetCore.Http.HttpMethods.IsOptions(
+                    ctx.Request.Method)
+                && !(ctx.User.FindFirst("scope")?.Value ?? string.Empty)
+                    .Split(' ', StringSplitOptions.RemoveEmptyEntries)
+                    .Contains("write"))
+            {
+                ctx.Response.StatusCode = StatusCodes.Status403Forbidden;
+                await ctx.Response.WriteAsJsonAsync(
+                    new { detail = "insufficient_scope" });
+                return;
+            }
+
+            await next();
+        });
         // SPEC-36/59: rate limit por ator+bucket — depois do auth p/ claims.
         app.UseMiddleware<Middleware.ApiRateLimitMiddleware>();
         // SPEC-113 RF-003: habilita upgrade WS — router e o proxy

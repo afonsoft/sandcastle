@@ -545,6 +545,15 @@ public static class DependencyInjection
             Sandcastle.Infrastructure.Identity.UserService>();
         services.AddScoped<Sandcastle.Application.Identity.IApiKeyService,
             Sandcastle.Infrastructure.Identity.ApiKeyService>();
+        // SPEC-158: personal access tokens + webhooks de notificação.
+        services.AddScoped<
+            Sandcastle.Application.Identity.IPersonalAccessTokenService,
+            Sandcastle.Infrastructure.Identity.PersonalAccessTokenService>();
+        services.AddScoped<
+            Sandcastle.Application.Identity.IUserNotificationService,
+            Sandcastle.Infrastructure.Notifications
+                .UserNotificationService>();
+        services.AddHttpClient("user-notify");
         services.AddScoped<Sandcastle.Application.Identity.IServiceUserService,
             Sandcastle.Infrastructure.Identity.ServiceUserService>();
         // SPEC-63: knowledge pipeline.

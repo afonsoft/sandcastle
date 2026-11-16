@@ -47,6 +47,31 @@
                     @onclick='() => _tab = "outposts"'>
                 @L["settings.outposts"]
             </button>
+            @* SPEC-158: conta, tokens, notificações, manutenção. *@
+            <button type="button" role="tab"
+                    aria-selected="@(_tab == "account")"
+                    class="settings-tab @(_tab == "account" ? "active" : "")"
+                    @onclick='() => _tab = "account"'>
+                @L["settings.account"]
+            </button>
+            <button type="button" role="tab"
+                    aria-selected="@(_tab == "tokens")"
+                    class="settings-tab @(_tab == "tokens" ? "active" : "")"
+                    @onclick='() => _tab = "tokens"'>
+                @L["settings.tokens"]
+            </button>
+            <button type="button" role="tab"
+                    aria-selected="@(_tab == "notifications")"
+                    class="settings-tab @(_tab == "notifications" ? "active" : "")"
+                    @onclick='() => _tab = "notifications"'>
+                @L["settings.notifications"]
+            </button>
+            <button type="button" role="tab"
+                    aria-selected="@(_tab == "maintenance")"
+                    class="settings-tab @(_tab == "maintenance" ? "active" : "")"
+                    @onclick='() => _tab = "maintenance"'>
+                @L["settings.maintenance"]
+            </button>
             <a class="settings-tab settings-tab-link" href="/settings/skills">
                 @L["skills.title"] →
             </a>
@@ -455,6 +480,22 @@
                         <button class="danger" @onclick="() => DeleteSecretAsync(name)">@L["common.delete"]</button>
                     </div>
                 }
+            }
+            else if (_tab == "account")
+            {
+                <AccountPanel />
+            }
+            else if (_tab == "tokens")
+            {
+                <TokensPanel />
+            }
+            else if (_tab == "notifications")
+            {
+                <NotificationsPanel />
+            }
+            else if (_tab == "maintenance")
+            {
+                <MaintenancePanel />
             }
         </div>
     </div>
