@@ -3033,6 +3033,59 @@ namespace Sandcastle.Infrastructure.Persistence.Migrations
                     b.ToTable("wiki_runs", (string)null);
                 });
 
+            modelBuilder.Entity("Sandcastle.Infrastructure.Persistence.WorkspaceItemRecord", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("TEXT")
+                        .HasColumnName("id");
+
+                    b.Property<string>("BodyJson")
+                        .IsRequired()
+                        .HasColumnType("TEXT")
+                        .HasColumnName("body_json");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("TEXT")
+                        .HasColumnName("created_at");
+
+                    b.Property<string>("Kind")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("TEXT")
+                        .HasColumnName("kind");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("TEXT")
+                        .HasColumnName("name");
+
+                    b.Property<Guid?>("OrgId")
+                        .HasColumnType("TEXT")
+                        .HasColumnName("org_id");
+
+                    b.Property<string>("OwnerId")
+                        .HasMaxLength(64)
+                        .HasColumnType("TEXT")
+                        .HasColumnName("owner_id");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("TEXT")
+                        .HasColumnName("updated_at");
+
+                    b.HasKey("Id")
+                        .HasName("pk_workspace_items");
+
+                    b.HasIndex("OrgId", "Kind")
+                        .HasDatabaseName("ix_workspace_items_org_id_kind");
+
+                    b.HasIndex("OwnerId", "Kind")
+                        .HasDatabaseName("ix_workspace_items_owner_id_kind");
+
+                    b.ToTable("workspace_items", (string)null);
+                });
+
             modelBuilder.Entity("Sandcastle.Infrastructure.Refactors.RefactorBatchRecord", b =>
                 {
                     b.Property<Guid>("Id")

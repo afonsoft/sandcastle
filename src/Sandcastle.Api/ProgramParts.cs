@@ -386,6 +386,7 @@ internal static class ProgramParts
         app.MapKnowledgeEndpoints();
         app.MapBrowserProfileEndpoints();
         app.MapAlertEndpoints(); // SPEC-151: alert integrations
+        app.MapWorkspaceEndpoints(); // SPEC-157: workspace items
         app.MapEvalEndpoints(); // SPEC-152: benchmark/eval harness
         app.MapOutpostEndpoints(); // SPEC-153: outposts self-hosted
         app.MapHub<ConversationHub>("/hubs/conversations");

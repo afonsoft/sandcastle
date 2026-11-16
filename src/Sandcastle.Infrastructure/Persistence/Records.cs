@@ -185,6 +185,24 @@ public sealed class OrgMemberRecord
     public DateTimeOffset CreatedAt { get; set; }
 }
 
+/// <summary>
+/// SPEC-157: artefato reutilizável do workspace — prompt salvo, preset de
+/// modelo ou context file. <see cref="Kind"/> = prompt|model_preset|
+/// context_file; <see cref="BodyJson"/> é o payload validado por kind.
+/// OwnerId nulo + OrgId preenchido = item de org (admin-editable).
+/// </summary>
+public sealed class WorkspaceItemRecord
+{
+    public required Guid Id { get; set; }
+    public string? OwnerId { get; set; }
+    public Guid? OrgId { get; set; }
+    public required string Kind { get; set; }
+    public required string Name { get; set; }
+    public required string BodyJson { get; set; }
+    public DateTimeOffset CreatedAt { get; set; }
+    public DateTimeOffset UpdatedAt { get; set; }
+}
+
 /// <summary>Pending org invitation token.</summary>
 public sealed class OrgInvitationRecord
 {

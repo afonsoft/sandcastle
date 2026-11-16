@@ -1211,6 +1211,7 @@
         "type": "object"
       },
       "JsonElement": {},
+      "JsonNode": {},
       "McpServerConfig": {
         "description": "Flat-map config de um servidor MCP (paridade SDK upstream \u2014 sem wrapper\n\u0060.mcp.json\u0060). Serializado como JSON em \u0060mcp_servers.config_json\u0060.",
         "properties": {
@@ -2796,6 +2797,44 @@
         "required": [
           "event"
         ],
+        "type": "object"
+      },
+      "WorkspaceItemRequest": {
+        "description": "Payload de create/update de workspace item.",
+        "properties": {
+          "body": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/JsonNode",
+                "description": "Payload por kind."
+              }
+            ]
+          },
+          "kind": {
+            "description": "prompt | model_preset | context_file.",
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "name": {
+            "description": "Nome do item.",
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "scope": {
+            "description": "personal (default) | org.",
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        },
         "type": "object"
       },
       "WriteFileRequest": {
@@ -13737,6 +13776,165 @@
         ]
       }
     },
+    "/api/v1/workspace/items": {
+      "get": {
+        "parameters": [
+          {
+            "in": "query",
+            "name": "kind",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "scope",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          }
+        },
+        "summary": "GET /api/v1/workspace/items/",
+        "tags": [
+          "Workspace"
+        ]
+      },
+      "post": {
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/WorkspaceItemRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          }
+        },
+        "summary": "POST /api/v1/workspace/items/",
+        "tags": [
+          "Workspace"
+        ]
+      }
+    },
+    "/api/v1/workspace/items/{id}": {
+      "delete": {
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          }
+        },
+        "summary": "DELETE /api/v1/workspace/items/{id:guid}",
+        "tags": [
+          "Workspace"
+        ]
+      },
+      "put": {
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/WorkspaceItemRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          }
+        },
+        "summary": "PUT /api/v1/workspace/items/{id:guid}",
+        "tags": [
+          "Workspace"
+        ]
+      }
+    },
+    "/api/v1/workspace/tools": {
+      "get": {
+        "parameters": [
+          {
+            "in": "query",
+            "name": "conversationId",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          }
+        },
+        "summary": "GET /api/v1/workspace/tools",
+        "tags": [
+          "Workspace"
+        ]
+      }
+    },
     "/framework-assets/{stem}/{ext}": {
       "get": {
         "parameters": [
@@ -14343,6 +14541,9 @@
     },
     {
       "name": "Scans"
+    },
+    {
+      "name": "Workspace"
     },
     {
       "name": "FrameworkAssetsEndpoints"

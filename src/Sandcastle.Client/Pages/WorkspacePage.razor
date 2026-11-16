@@ -1,0 +1,167 @@
+@page "/workspace"
+@using Sandcastle.Client.Services
+@using System.Text.Json
+@inject SandcastleApiClient Api
+@inject LocalizationService L
+@inject NavigationManager Nav
+
+<PageTitle>@L["workspace.title"] · Sandcastle</PageTitle>
+
+<div class="settings-wrap">
+    <h1>@L["workspace.title"]</h1>
+    <p class="sub" style="color:var(--sc-fg-dim)">@L["workspace.hint"]</p>
+
+    <div class="tab-bar" role="tablist" aria-label="@L["workspace.title"]">
+        <button role="tab" class="@Active("prompts")"
+                aria-selected="@(Current == "prompts")"
+                @onclick='() => Nav.NavigateTo("/workspace?tab=prompts")'>
+            @L["workspace.tab_prompts"]
+        </button>
+        <button role="tab" class="@Active("presets")"
+                aria-selected="@(Current == "presets")"
+                @onclick='() => Nav.NavigateTo("/workspace?tab=presets")'>
+            @L["workspace.tab_presets"]
+        </button>
+        <button role="tab" class="@Active("context")"
+                aria-selected="@(Current == "context")"
+                @onclick='() => Nav.NavigateTo("/workspace?tab=context")'>
+            @L["workspace.tab_context"]
+        </button>
+        <button role="tab" class="@Active("tools")"
+                aria-selected="@(Current == "tools")"
+                @onclick='() => Nav.NavigateTo("/workspace?tab=tools")'>
+            @L["workspace.tab_tools"]
+        </button>
+    </div>
+
+    @if (Current == "tools")
+    {
+        @if (_tools is null)
+        {
+            <p class="sub">@L["workspace.loading"]</p>
+        }
+        else
+        {
+            <table class="table">
+                <thead><tr>
+                    <th>@L["workspace.tools_server"]</th>
+                    <th>@L["workspace.tools_tool"]</th>
+                    <th>@L["workspace.tools_desc"]</th>
+                </tr></thead>
+                <tbody>
+                @foreach (var row in _tools)
+                {
+                    <tr>
+                        <td><span class="badge">@row.Server</span></td>
+                        <td><code>@row.Name</code></td>
+                        <td style="color:var(--sc-fg-dim)">@row.Description</td>
+                    </tr>
+                }
+                </tbody>
+            </table>
+        }
+    }
+    else
+    {
+        <p class="sub"><a href="/workspace/@Current/new">
+            @L["workspace.new"]</a></p>
+        @if (_items is null)
+        {
+            <p class="sub">@L["workspace.loading"]</p>
+        }
+        else if (_items.Count == 0)
+        {
+            <p class="sub">@L["workspace.empty"]</p>
+        }
+        else
+        {
+            <table class="table">
+                <thead><tr>
+                    <th>@L["workspace.col_name"]</th>
+                    <th>@L["workspace.col_scope"]</th>
+                    <th>@L["workspace.col_updated"]</th>
+                    <th></th>
+                </tr></thead>
+                <tbody>
+                @foreach (var i in _items)
+                {
+                    <tr>
+                        <td><a href="/workspace/@Current/@i.Id">@i.Name</a></td>
+                        <td><span class="badge @ScopeClass(i)">
+                            @(i.Scope == "org"
+                                ? L["workspace.scope_org"]
+                                : L["workspace.scope_personal"])</span></td>
+                        <td style="color:var(--sc-fg-dim)">@i.UpdatedAt.ToString("g")</td>
+                        <td><button class="btn" @onclick="() => DeleteAsync(i)">
+                            @L["workspace.delete"]</button></td>
+                    </tr>
+                }
+                </tbody>
+            </table>
+        }
+    }
+</div>
+
+@code {
+    [SupplyParameterFromQuery(Name = "tab")]
+    public string? Tab { get; set; }
+
+    private string Current => Tab switch
+    {
+        "prompts" or "presets" or "context" or "tools" => Tab!,
+        _ => "prompts",
+    };
+
+    private string Active(string t) =>
+        Current == t ? "tab active" : "tab";
+
+    private IReadOnlyList<WorkspaceItemDto>? _items;
+    private List<ToolRow>? _tools;
+
+    private sealed record ToolRow(string Server, string Name, string? Description);
+
+    protected override async Task OnParametersSetAsync()
+    {
+        _items = null;
+        _tools = null;
+        if (Current == "tools")
+        {
+            var el = await Api.GetWorkspaceToolsAsync();
+            var rows = new List<ToolRow>();
+            if (el.TryGetProperty("tools", out var t)
+                && t.ValueKind == JsonValueKind.Array)
+            {
+                foreach (var x in t.EnumerateArray())
+                {
+                    rows.Add(new ToolRow(
+                        x.GetProperty("server").GetString() ?? "",
+                        x.GetProperty("name").GetString() ?? "",
+                        x.TryGetProperty("description", out var d)
+                            ? d.GetString() : null));
+                }
+            }
+            _tools = rows;
+        }
+        else
+        {
+            var kind = Current switch
+            {
+                "presets" => "model_preset",
+                "context" => "context_file",
+                _ => "prompt",
+            };
+            _items = await Api.ListWorkspaceItemsAsync(kind);
+        }
+    }
+
+    private string ScopeClass(WorkspaceItemDto i) =>
+        i.Scope == "org" ? "" : "badge-dim";
+
+    private async Task DeleteAsync(WorkspaceItemDto i)
+    {
+        if (await Api.DeleteWorkspaceItemAsync(i.Id))
+        {
+            _items = _items!.Where(x => x.Id != i.Id).ToList();
+        }
+    }
+}
