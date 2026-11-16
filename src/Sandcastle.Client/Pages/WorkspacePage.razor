@@ -154,7 +154,7 @@
         }
     }
 
-    private string ScopeClass(WorkspaceItemDto i) =>
+    private static string ScopeClass(WorkspaceItemDto i) =>
         i.Scope == "org" ? "" : "badge-dim";
 
     private async Task DeleteAsync(WorkspaceItemDto i)

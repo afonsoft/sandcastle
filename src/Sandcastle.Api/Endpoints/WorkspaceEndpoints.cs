@@ -161,6 +161,31 @@ public static class WorkspaceEndpoints
         return Results.Ok(ToDto(item));
     }
 
+    /// <summary>Guard de escrita: dono pessoal ou admin da org.</summary>
+    private static async Task<IResult?> EnsureWritableAsync(
+        WorkspaceItemRecord item, AuthUser user,
+        IEffectiveOrgResolver orgs, AppDbContext db,
+        HttpContext http, CancellationToken ct)
+    {
+        if (item.OwnerId != null)
+        {
+            return item.OwnerId == user.UserId.ToString()
+                ? null
+                : SandcastleProblemFactory.Create(http, 403, Forbidden);
+        }
+        var org = await orgs.ResolveAsync(user, null, ct);
+        if (org is null || item.OrgId != org.OrgId)
+            return SandcastleProblemFactory.Create(http, 403, Forbidden);
+        var role = await db.OrgMembers
+            .Where(m => m.OrgId == item.OrgId && m.UserId == user.UserId)
+            .Select(m => m.Role).FirstOrDefaultAsync(ct);
+        return role is RoleName.Owner or RoleName.Admin
+            ? null
+            : SandcastleProblemFactory.Create(http, 403, Forbidden);
+    }
+
+    private const string Forbidden = "forbidden";
+
     private static async Task<IResult> UpdateItemAsync(
         Guid id, [FromBody] WorkspaceItemRequest req,
         ICurrentUserAccessor current, IEffectiveOrgResolver orgs,
@@ -173,23 +198,9 @@ public static class WorkspaceEndpoints
         var item = await db.WorkspaceItems.FindAsync([id], ct);
         if (item is null) return Results.NotFound();
 
-        if (item.OwnerId != null)
-        {
-            if (item.OwnerId != user.UserId.ToString())
-                return SandcastleProblemFactory.Create(http, 403, "forbidden");
-        }
-        else
-        {
-            var org = await orgs.ResolveAsync(user, null, ct);
-            if (org is null || item.OrgId != org.OrgId)
-                return SandcastleProblemFactory.Create(http, 403, "forbidden");
-            var role = await db.OrgMembers
-                .Where(m => m.OrgId == item.OrgId && m.UserId == user.UserId)
-                .Select(m => m.Role).FirstOrDefaultAsync(ct);
-            if (role is not (RoleName.Owner or RoleName.Admin))
-                return SandcastleProblemFactory.Create(
-                    http, 403, "org admin required");
-        }
+        if (await EnsureWritableAsync(item, user, orgs, db, http, ct)
+            is { } denied)
+            return denied;
 
         if (!string.IsNullOrWhiteSpace(req.Name)
             && req.Name.Length <= 200)
@@ -221,23 +232,9 @@ public static class WorkspaceEndpoints
             return SandcastleProblemFactory.Create(http, 401, "auth required");
         var item = await db.WorkspaceItems.FindAsync([id], ct);
         if (item is null) return Results.NotFound();
-        if (item.OwnerId != null)
-        {
-            if (item.OwnerId != user.UserId.ToString())
-                return SandcastleProblemFactory.Create(http, 403, "forbidden");
-        }
-        else
-        {
-            var org = await orgs.ResolveAsync(user, null, ct);
-            if (org is null || item.OrgId != org.OrgId)
-                return SandcastleProblemFactory.Create(http, 403, "forbidden");
-            var role = await db.OrgMembers
-                .Where(m => m.OrgId == item.OrgId && m.UserId == user.UserId)
-                .Select(m => m.Role).FirstOrDefaultAsync(ct);
-            if (role is not (RoleName.Owner or RoleName.Admin))
-                return SandcastleProblemFactory.Create(
-                    http, 403, "org admin required");
-        }
+        if (await EnsureWritableAsync(item, user, orgs, db, http, ct)
+            is { } denied)
+            return denied;
         db.WorkspaceItems.Remove(item);
         await db.SaveChangesAsync(ct);
         await audit.RecordAsync(
