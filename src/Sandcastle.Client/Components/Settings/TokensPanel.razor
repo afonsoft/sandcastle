@@ -94,7 +94,7 @@
     private async Task ReloadAsync()
     {
         try { _tokens = (await Api.ListPatTokensAsync()).ToList(); }
-        catch (Exception) { }
+        catch (Exception) { /* best-effort load; panel keeps last state */ }
     }
 
     private async Task CreateAsync()

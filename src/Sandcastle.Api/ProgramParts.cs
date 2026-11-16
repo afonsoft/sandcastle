@@ -107,21 +107,8 @@ internal static class ProgramParts
         var authProvider = builder.Configuration["Auth:Provider"] ?? "none";
         var authBuilder = builder.Services.AddAuthentication("smart")
             .AddPolicyScheme("smart", "cookie, apikey or pat", o =>
-                o.ForwardDefaultSelector = ctx =>
-                {
-                    var authz = ctx.Request.Headers.Authorization.ToString();
-                    return authz.StartsWith("Bearer sk-",
-                            StringComparison.OrdinalIgnoreCase)
-                        || authz.StartsWith("Bearer svc_",
-                            StringComparison.OrdinalIgnoreCase)
-                        ? Auth.ApiKeyAuthenticationHandler.SchemeName
-                        : authz.StartsWith("Bearer "
-                                + Application.Identity
-                                    .IPersonalAccessTokenService.TokenPrefix,
-                            StringComparison.OrdinalIgnoreCase)
-                        ? Auth.PatAuthenticationHandler.SchemeName
-                        : AuthEndpoints.CookieScheme;
-                })
+                o.ForwardDefaultSelector = ctx => SelectAuthScheme(
+                    ctx.Request.Headers.Authorization.ToString()))
             .AddCookie(AuthEndpoints.CookieScheme, o =>
             {
                 o.Cookie.Name = "sandcastle_auth";
@@ -213,6 +200,27 @@ internal static class ProgramParts
                     ],
                     AuthEndpoints.CookieScheme));
         };
+    }
+
+    private static string SelectAuthScheme(string authz)
+    {
+        if (authz.StartsWith("Bearer sk-", StringComparison.OrdinalIgnoreCase)
+            || authz.StartsWith("Bearer svc_",
+                StringComparison.OrdinalIgnoreCase))
+        {
+            return Auth.ApiKeyAuthenticationHandler.SchemeName;
+        }
+
+        if (authz.StartsWith(
+                "Bearer "
+                    + Application.Identity
+                        .IPersonalAccessTokenService.TokenPrefix,
+                StringComparison.OrdinalIgnoreCase))
+        {
+            return Auth.PatAuthenticationHandler.SchemeName;
+        }
+
+        return AuthEndpoints.CookieScheme;
     }
 
     /// <summary>Middleware pipeline (ordem importa).</summary>

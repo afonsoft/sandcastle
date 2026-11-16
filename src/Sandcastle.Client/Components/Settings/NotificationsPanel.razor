@@ -52,7 +52,7 @@
                 _webhookUrl = p.WebhookUrl;
             }
         }
-        catch (Exception) { }
+        catch (Exception) { /* best-effort load; panel keeps last state */ }
     }
 
     private async Task SaveAsync()

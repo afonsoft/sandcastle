@@ -120,7 +120,7 @@ public sealed class UserNotificationService(
                     url, (int)res.StatusCode, attempt + 1);
             }
             catch (Exception ex) when (ex is not OperationCanceledException
-                || ct.IsCancellationRequested is false)
+                || !ct.IsCancellationRequested)
             {
                 logger.LogWarning(ex,
                     "user webhook {Url} attempt {N} failed", url, attempt + 1);

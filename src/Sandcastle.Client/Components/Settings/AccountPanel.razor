@@ -98,9 +98,9 @@
             _email = Auth.User?.Email;
             _displayName = Auth.User?.DisplayName;
         }
-        catch (Exception) { }
+        catch (Exception) { /* best-effort load; panel keeps last state */ }
         try { _sessions = (await Api.ListSessionsAsync()).ToList(); }
-        catch (Exception) { }
+        catch (Exception) { /* best-effort load; panel keeps last state */ }
     }
 
     private async Task SaveProfileAsync()
