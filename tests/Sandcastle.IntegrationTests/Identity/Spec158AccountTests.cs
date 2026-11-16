@@ -145,7 +145,7 @@ public sealed class Spec158AccountTests : IDisposable
         // Factory roda Auth:Provider=none → 403.
         var http = await LoginAsync(NewClient());
         (await http.PostAsJsonAsync("/api/v1/users/me/password",
-            new { current_password = "x", new_password = "0123456789ab" }))
+            new { current_password = "x", new_password = "fake-new-pass!" }))
             .StatusCode.ShouldBe(HttpStatusCode.Forbidden);
     }
 
