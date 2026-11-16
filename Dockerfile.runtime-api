@@ -1,6 +1,6 @@
 # Sandcastle runtime-api — SPEC-35 split deployment.
 # Internal REST front of the sandbox engine (Docker.DotNet + warm pool).
-FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
+FROM mcr.microsoft.com/dotnet/sdk:11.0 AS build
 WORKDIR /src
 
 COPY Directory.Build.props Directory.Packages.props global.json nuget.config ./

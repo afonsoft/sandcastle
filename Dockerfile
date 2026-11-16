@@ -1,5 +1,5 @@
 # Sandcastle — build multi-stage (app em :8080, compose expoe :3032)
-FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
+FROM mcr.microsoft.com/dotnet/sdk:11.0 AS build
 WORKDIR /src
 
 # Restore (camada cacheada): props + todos os csproj
