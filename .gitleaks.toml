@@ -35,6 +35,8 @@
   #   (`signature256 is null`) — identificador, não segredo.
   # - sk-live-* são fixtures fake do teste Spec134UserLlmKeyEndpointsTests.cs
   #   que entraram no histórico via PR #377 (o scan roda `gitleaks git`).
+  # - 0123456789ab é fixture fake do teste Spec158AccountTests.cs
+  #   (new_password de teste) que entrou no histórico via PR #483.
   id = "generic-api-key"
   [rules.allowlist]
     description = "RFC 6238 public test vector + test fixtures + identifier names (não são credenciais)"
@@ -44,4 +46,5 @@
       '''signature256''',
       '''sk-live-abcdef1234''',
       '''sk-live-wxyz''',
+      '''0123456789ab''',
     ]
