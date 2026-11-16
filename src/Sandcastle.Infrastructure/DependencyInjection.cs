@@ -722,6 +722,10 @@ public static class DependencyInjection
         services.AddSingleton<
             Sandcastle.Application.Agent.IAgentPromptContributor,
             Sandcastle.Infrastructure.Agent.SystemPrompt
+                .UserContextFilesContributor>();
+        services.AddSingleton<
+            Sandcastle.Application.Agent.IAgentPromptContributor,
+            Sandcastle.Infrastructure.Agent.SystemPrompt
                 .MemoryDigestContributor>();
         services.AddSingleton<
             Sandcastle.Application.Agent.IAgentPromptContributor,

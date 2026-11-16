@@ -26,6 +26,14 @@ public sealed class AgentPromptContext
     public IReadOnlyList<Domain.Skills.Skill>? Skills { get; init; }
 
     /// <summary>
+    /// SPEC-157 RF-004: context files anexados do workspace —
+    /// <c>(filename, text, truncated)</c> já truncado em 8KB por arquivo.
+    /// </summary>
+    public IReadOnlyList<(string Filename, string Text, bool Truncated)>?
+        UserContextFiles
+    { get; init; }
+
+    /// <summary>
     /// Rendered <c>## Repository context</c> markdown (SPEC-25) — quoted
     /// repo instructions, never privileged.
     /// </summary>

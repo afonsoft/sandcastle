@@ -234,6 +234,34 @@ public sealed class SkillsContributor : IAgentPromptContributor
 }
 
 /// <summary>
+/// SPEC-157 RF-004: context files anexados — seção
+/// <c>## user_context_files</c> com flag de truncamento por arquivo.
+/// </summary>
+public sealed class UserContextFilesContributor : IAgentPromptContributor
+{
+    /// <inheritdoc />
+    public int Order => 55;
+
+    /// <inheritdoc />
+    public Task<IReadOnlyList<string>> ContributeAsync(
+        AgentPromptContext ctx)
+    {
+        if (ctx.UserContextFiles is not { Count: > 0 })
+        {
+            return Task.FromResult<IReadOnlyList<string>>([]);
+        }
+        var sb = new StringBuilder("## user_context_files");
+        foreach (var (filename, text, truncated) in ctx.UserContextFiles)
+        {
+            sb.Append("\n\n### ").Append(filename);
+            if (truncated) sb.Append(" (truncated)");
+            sb.Append("\n").Append(text);
+        }
+        return Task.FromResult<IReadOnlyList<string>>([sb.ToString()]);
+    }
+}
+
+/// <summary>
 /// Block 6 — org-memory digest (SPEC-90 RF-002; SPEC-30 RF-003). Emitted
 /// only when <see cref="AgentPromptContext.MemoryDigestFactory"/> is
 /// wired — when the digest already travels inside

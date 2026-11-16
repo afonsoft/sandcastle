@@ -11,6 +11,16 @@
     {
         <option value="@Current">@Current</option>
     }
+    @* SPEC-157 RF-004: presets do workspace aplicam model(+provider). *@
+    @if (_presets.Count > 0)
+    {
+        <optgroup label="@L["model.presets"]">
+            @foreach (var pr in _presets)
+            {
+                <option value="@pr.Model">@pr.Name (@pr.Model)</option>
+            }
+        </optgroup>
+    }
     @foreach (var m in _models)
     {
         <option value="@m">@m</option>
@@ -28,6 +38,30 @@
     [Parameter] public EventCallback<string> OnSwitch { get; set; }
 
     private List<string> _models = [];
+    private List<Preset> _presets = [];
+
+    private sealed record Preset(string Name, string Model);
+
+    /// <summary>
+    /// SPEC-157: preset aplica provider+model — provider é resolvido
+    /// pelo gateway a partir do model id (agent_type vale na criação
+    /// de novas conversas, não switchável em runtime).
+    /// </summary>
+    private async Task LoadPresetsAsync()
+    {
+        try
+        {
+            var items = await Api.ListWorkspaceItemsAsync("model_preset");
+            _presets = items
+                .Select(i => new Preset(
+                    i.Name,
+                    i.Body.TryGetProperty("model", out var m)
+                        ? m.GetString() ?? "" : ""))
+                .Where(p => p.Model.Length > 0)
+                .ToList();
+        }
+        catch (Exception) { /* presets opcionais */ }
+    }
 
     protected override async Task OnInitializedAsync()
     {
@@ -47,6 +81,7 @@
             {
                 Current = def;
             }
+            await LoadPresetsAsync();
         }
         catch (HttpRequestException) { /* descoberta degradada — só atual */ }
     }

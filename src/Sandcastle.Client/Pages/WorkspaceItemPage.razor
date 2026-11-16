@@ -1,0 +1,159 @@
+@page "/workspace/{Kind}/{Id}"
+@using System.Text.Json.Nodes
+@using Sandcastle.Client.Services
+@inject SandcastleApiClient Api
+@inject LocalizationService L
+@inject NavigationManager Nav
+
+<PageTitle>@L["workspace.editor_title"] · Sandcastle</PageTitle>
+
+<div class="settings-wrap">
+    <h1>@(_isNew ? L["workspace.new"] : L["workspace.editor_title"])</h1>
+    <p class="sub"><a href="/workspace?tab=@Kind">← @L["workspace.title"]</a></p>
+
+    @if (_error is not null)
+    {
+        <p style="color:var(--sc-danger, #c33)">@_error</p>
+    }
+
+    <div>
+        <label class="field">
+            <span>@L["workspace.col_name"]</span>
+            <input @bind="_name" maxlength="200" />
+        </label>
+
+        @if (KindKey == "prompt" || KindKey == "context_file")
+        {
+            <label class="field">
+                <span>@L["workspace.body_text"]</span>
+                <textarea @bind="_text" rows="10"></textarea>
+            </label>
+            @if (KindKey == "context_file")
+            {
+                <label class="field">
+                    <span>@L["workspace.body_filename"]</span>
+                    <input @bind="_filename" />
+                </label>
+            }
+            @if (KindKey == "prompt")
+            {
+                <div class="settings-section">
+                    <h3>@L["workspace.preview"]</h3>
+                    <pre style="color:var(--sc-fg-dim)">@_text</pre>
+                </div>
+            }
+        }
+        else
+        {
+            <label class="field">
+                <span>Provider</span>
+                <input @bind="_provider" />
+            </label>
+            <label class="field">
+                <span>Model</span>
+                <input @bind="_model" />
+            </label>
+            <label class="field">
+                <span>Agent type</span>
+                <input @bind="_agentType" />
+            </label>
+        }
+
+        @if (_canOrg)
+        {
+            <label class="field">
+                <input type="checkbox" @bind="_orgScope" />
+                <span>@L["workspace.scope_org"]</span>
+            </label>
+        }
+
+        <button class="btn primary" @onclick="SaveAsync">
+            @L["workspace.save"]</button>
+    </div>
+</div>
+
+@code {
+    [Parameter] public string Kind { get; set; } = "";
+    [Parameter] public string Id { get; set; } = "";
+
+    private string KindKey => Kind switch
+    {
+        "prompts" => "prompt",
+        "presets" => "model_preset",
+        "context" => "context_file",
+        _ => Kind,
+    };
+
+    private bool _isNew;
+    private bool _canOrg;
+    private string _name = "";
+    private string _text = "";
+    private string _filename = "";
+    private string _provider = "";
+    private string _model = "";
+    private string _agentType = "";
+    private bool _orgScope;
+    private string? _error;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        _isNew = Id == "new";
+        _canOrg = _isNew;
+        if (_isNew) return;
+        var items = await Api.ListWorkspaceItemsAsync(KindKey);
+        var item = items.FirstOrDefault(i => i.Id.ToString() == Id);
+        if (item is null) { _error = "not found"; return; }
+        _name = item.Name;
+        _orgScope = item.Scope == "org";
+        var b = item.Body;
+        if (KindKey == "model_preset")
+        {
+            _provider = b.TryGetProperty("provider", out var p) ? p.GetString() ?? "" : "";
+            _model = b.TryGetProperty("model", out var m) ? m.GetString() ?? "" : "";
+            _agentType = b.TryGetProperty("agent_type", out var a) ? a.GetString() ?? "" : "";
+        }
+        else
+        {
+            _text = b.TryGetProperty("text", out var t) ? t.GetString() ?? "" : "";
+            _filename = b.TryGetProperty("filename", out var f) ? f.GetString() ?? "" : "";
+        }
+    }
+
+    private JsonObject BuildBody()
+    {
+        if (KindKey == "model_preset")
+        {
+            var o = new JsonObject
+            {
+                ["provider"] = _provider,
+                ["model"] = _model,
+            };
+            if (!string.IsNullOrWhiteSpace(_agentType))
+                o["agent_type"] = _agentType;
+            return o;
+        }
+        var body = new JsonObject { ["text"] = _text };
+        if (KindKey == "context_file")
+            body["filename"] = _filename;
+        return body;
+    }
+
+    private async Task SaveAsync()
+    {
+        var body = BuildBody();
+        if (_isNew)
+        {
+            var created = await Api.CreateWorkspaceItemAsync(
+                KindKey, _name, body, _orgScope ? "org" : null);
+            if (created is null) { _error = "save failed"; return; }
+            Nav.NavigateTo($"/workspace?tab={Kind}");
+        }
+        else if (Guid.TryParse(Id, out var id))
+        {
+            var updated = await Api.UpdateWorkspaceItemAsync(
+                id, _name, body);
+            if (updated is null) { _error = "save failed"; return; }
+            Nav.NavigateTo($"/workspace?tab={Kind}");
+        }
+    }
+}

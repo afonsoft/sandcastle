@@ -1733,6 +1733,58 @@ public sealed class SandcastleApiClient(HttpClient http)
             && Guid.TryParse(c.GetString(), out var conv)
             ? conv : null;
     }
+    /// <summary>SPEC-157: lista workspace items (filtros opcionais).</summary>
+    public async Task<IReadOnlyList<WorkspaceItemDto>> ListWorkspaceItemsAsync(
+        string? kind = null, CancellationToken ct = default)
+    {
+        var url = "/api/v1/workspace/items"
+            + (kind is not null ? $"?kind={kind}" : "");
+        return await http.GetFromJsonAsync<List<WorkspaceItemDto>>(
+            url, Json, ct) ?? [];
+    }
+
+    /// <summary>SPEC-157: cria workspace item.</summary>
+    public async Task<WorkspaceItemDto?> CreateWorkspaceItemAsync(
+        string kind, string name, object body, string? scope = null,
+        CancellationToken ct = default)
+    {
+        var resp = await http.PostAsJsonAsync(
+            "/api/v1/workspace/items",
+            new { kind, name, body, scope }, Json, ct);
+        return resp.IsSuccessStatusCode
+            ? await resp.Content.ReadFromJsonAsync<WorkspaceItemDto>(Json, ct)
+            : null;
+    }
+
+    /// <summary>SPEC-157: atualiza nome/body.</summary>
+    public async Task<WorkspaceItemDto?> UpdateWorkspaceItemAsync(
+        Guid id, string? name, object? body,
+        CancellationToken ct = default)
+    {
+        var resp = await http.PutAsJsonAsync(
+            $"/api/v1/workspace/items/{id}",
+            new { name, body }, Json, ct);
+        return resp.IsSuccessStatusCode
+            ? await resp.Content.ReadFromJsonAsync<WorkspaceItemDto>(Json, ct)
+            : null;
+    }
+
+    /// <summary>SPEC-157: deleta item.</summary>
+    public async Task<bool> DeleteWorkspaceItemAsync(
+        Guid id, CancellationToken ct = default) =>
+        (await http.DeleteAsync($"/api/v1/workspace/items/{id}", ct))
+            .IsSuccessStatusCode;
+
+    /// <summary>SPEC-157: catálogo de servidores+tools MCP.</summary>
+    public async Task<JsonElement> GetWorkspaceToolsAsync(
+        Guid? conversationId = null, CancellationToken ct = default)
+    {
+        var url = "/api/v1/workspace/tools"
+            + (conversationId is { } c ? $"?conversation_id={c}" : "");
+        return await http.GetFromJsonAsync<JsonElement>(url, ct);
+    }
+
+
 }
 
 /// <summary>SPEC-147 RF-004: resposta de <c>/usage/budget</c>.</summary>
@@ -1935,3 +1987,7 @@ public sealed record OutpostInfoDto(
 public sealed record OutpostEnrollDto(
     Guid OutpostId, string EnrollToken,
     string ConnectUrl, string DockerCommand);
+/// <summary>SPEC-157: workspace item (prompt/preset/context_file).</summary>
+public sealed record WorkspaceItemDto(
+    Guid Id, string Kind, string Name, string Scope,
+    DateTimeOffset UpdatedAt, JsonElement Body);

@@ -36,7 +36,27 @@
                            aria-label="@L["composer.attach"]" />
             </label>
         }
+        @* SPEC-157 RF-004: prompt picker — insere prompt salvo do workspace. *@
+        @if (_prompts.Count > 0)
+        {
+            <button class="icon-btn" title="@L["composer.prompts"]"
+                    aria-label="@L["composer.prompts"]"
+                    @onclick="() => _promptOpen = !_promptOpen">
+                <Icon Name="box" Size="16" />
+            </button>
+        }
         <div class="composer-field">
+            @if (_promptOpen)
+            {
+                <div class="popup" role="listbox" aria-label="@L["composer.prompts"]">
+                    @foreach (var pr in _prompts)
+                    {
+                        <button class="popup-item" @onclick="() => PickPrompt(pr)">
+                            <Icon Name="box" Size="13" /> @pr.Name
+                        </button>
+                    }
+                </div>
+            }
             @if (_mentionOpen && _mentionItems.Count > 0)
             {
                 <div class="popup" role="listbox" aria-label="@L["composer.files"]">
@@ -112,6 +132,28 @@
 
     private ElementReference _ta;
     private string _text = "";
+    private bool _promptOpen;
+    private List<WorkspaceItemDto> _prompts = [];
+
+    private void PickPrompt(WorkspaceItemDto pr)
+    {
+        if (pr.Body.TryGetProperty("text", out var t)
+            && t.GetString() is { } body)
+        {
+            _text = _text.Length > 0 ? _text + "\n" + body : body;
+        }
+        _promptOpen = false;
+    }
+
+    private async Task LoadPromptsAsync()
+    {
+        try
+        {
+            _prompts = (await Api.ListWorkspaceItemsAsync("prompt"))
+                .ToList();
+        }
+        catch (Exception) { /* picker opcional */ }
+    }
     private bool _mentionOpen, _slashOpen;
     private string _mentionQuery = "", _slashQuery = "";
     private int _idx;
@@ -132,6 +174,10 @@
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
+        if (firstRender)
+        {
+            await LoadPromptsAsync();
+        }
         if (!firstRender || !_firstRender) { return; }
         _firstRender = false;
         try

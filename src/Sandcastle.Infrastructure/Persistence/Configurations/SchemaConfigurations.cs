@@ -339,3 +339,20 @@ public sealed class UserLlmKeyConfiguration : IEntityTypeConfiguration<UserLlmKe
         b.HasKey(e => new { e.UserId, e.Provider });
     }
 }
+
+/// <inheritdoc />
+public sealed class WorkspaceItemConfiguration
+    : IEntityTypeConfiguration<WorkspaceItemRecord>
+{
+    /// <inheritdoc />
+    public void Configure(EntityTypeBuilder<WorkspaceItemRecord> b)
+    {
+        b.ToTable("workspace_items");
+        b.HasKey(e => e.Id);
+        b.Property(e => e.Kind).HasMaxLength(20);
+        b.Property(e => e.OwnerId).HasMaxLength(64);
+        b.Property(e => e.Name).HasMaxLength(200);
+        b.HasIndex(e => new { e.OwnerId, e.Kind });
+        b.HasIndex(e => new { e.OrgId, e.Kind });
+    }
+}

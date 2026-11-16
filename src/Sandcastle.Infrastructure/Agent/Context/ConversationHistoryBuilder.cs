@@ -1,5 +1,7 @@
 using System.Text.Json;
 
+using Microsoft.EntityFrameworkCore;
+
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
@@ -172,6 +174,43 @@ public sealed class ConversationHistoryBuilder(IServiceProvider services)
                 skills, loaded.RepoSkills, lastUserText);
         }
 
+        // SPEC-157 RF-004: context files do workspace — anexos do dono
+        // da conversa (e itens da org efetiva) viram seção
+        // user_context_files, 8KB por arquivo.
+        IReadOnlyList<(string Filename, string Text, bool Truncated)>?
+            userContextFiles = null;
+        if (conv.CreatedByUserId is { } wkOwner
+            && services.GetService<Persistence.AppDbContext>()
+                is { } wdb)
+        {
+            const int MaxContextFileBytes = 8 * 1024;
+            var rows = await wdb.WorkspaceItems
+                .Where(i => i.Kind == "context_file"
+                    && (i.OwnerId == wkOwner
+                        || (conv.OrgId != null && i.OrgId == conv.OrgId)))
+                .ToListAsync(ct);
+            var files =
+                new List<(string Filename, string Text, bool Truncated)>(rows.Count);
+            foreach (var it in rows)
+            {
+                using var doc = JsonDocument.Parse(it.BodyJson);
+                var text = doc.RootElement
+                    .GetProperty("text").GetString() ?? "";
+                var filename = doc.RootElement
+                    .TryGetProperty("filename", out var fn)
+                    ? fn.GetString() ?? it.Name : it.Name;
+                var truncated = false;
+                if (System.Text.Encoding.UTF8.GetByteCount(text)
+                    > MaxContextFileBytes)
+                {
+                    text = text[..MaxContextFileBytes];
+                    truncated = true;
+                }
+                files.Add((filename, text, truncated));
+            }
+            if (files.Count > 0) userContextFiles = files;
+        }
+
         // SPEC-90 RF-008: prompt composto por contributors via DI
         // (ordem/falha toleradas pelo composer). Sem composer
         // registrado (testes com provider manual), cai no conjunto
@@ -185,6 +224,7 @@ public sealed class ConversationHistoryBuilder(IServiceProvider services)
                 SelectedRepositories = MountedRepositories(conv, h.All),
                 Tools = tools.All.Select(t => t.Schema).ToList(),
                 Skills = skills,
+                UserContextFiles = userContextFiles,
                 RepoContext = repoContext,
                 Ct = ct,
                 SubagentCatalog =

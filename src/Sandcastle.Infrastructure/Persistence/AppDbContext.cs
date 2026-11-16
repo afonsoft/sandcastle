@@ -139,6 +139,10 @@ public class AppDbContext : DbContext, IDataProtectionKeyContext
     public DbSet<ConversationContextNoteRecord> ContextNotes =>
         Set<ConversationContextNoteRecord>();
 
+    /// <summary>SPEC-157: workspace items (prompts/presets/context files).</summary>
+    public DbSet<WorkspaceItemRecord> WorkspaceItems =>
+        Set<WorkspaceItemRecord>();
+
     /// <summary>SPEC-134: BYOK — provider keys por usuário.</summary>
     public DbSet<UserLlmKeyRecord> UserLlmKeys => Set<UserLlmKeyRecord>();
 
