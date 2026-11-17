@@ -976,14 +976,14 @@
   "composer.mic_not_supported": "\u6b64\u6d4f\u89c8\u5668\u4e0d\u652f\u6301\u8bed\u97f3\u8f93\u5165",
   "composer.mic_no_speech": "\u672a\u68c0\u6d4b\u5230\u8bed\u97f3",
   "composer.mic_error": "\u8bed\u97f3\u8f93\u5165\u9519\u8bef",
-  "automations.tab_list": "",
-  "automations.tab_calendar": "",
-  "automations.cal_prev": "",
-  "automations.cal_next": "",
-  "automations.cal_today": "",
-  "automations.cal_empty": "",
-  "automations.cal_scheduled": "",
+  "automations.tab_list": "\u5217\u8868",
+  "automations.tab_calendar": "\u65e5\u5386",
+  "automations.cal_prev": "\u4e0a\u4e2a\u6708",
+  "automations.cal_next": "\u4e0b\u4e2a\u6708",
+  "automations.cal_today": "\u4eca\u5929",
+  "automations.cal_empty": "\u6b64\u4e2d\u6ca1\u6709\u5b89\u6392",
+  "automations.cal_scheduled": "\u5df2\u5b89\u6392",
   "automations.cal_more": " {{count}} ",
-  "automations.cal_load_failed": "",
-  "automations.cal_open_conversation": ""
+  "automations.cal_load_failed": "\u65e0\u6cd5\u52a0\u8f7d\u8ba1\u5212",
+  "automations.cal_open_conversation": "\u6253\u5f00"
 }
