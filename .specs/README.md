@@ -168,4 +168,4 @@ Aprovadas em 2026-11-10 pelo usuário — Epic acompanha no GitHub.
 | 157 | workspace-config | Completed | #455 · PRs #473/#478 |
 | 158 | account-settings | Completed | #456 · PR #483 |
 | 159 | composer-voice-stt | Completed | #457 · PR #485 |
-| 160 | automations-calendar | Approved | #458 |
+| 160 | automations-calendar | Completed | #458 · PR #487 |
