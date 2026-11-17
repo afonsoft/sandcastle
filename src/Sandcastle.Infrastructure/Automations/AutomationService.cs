@@ -6,6 +6,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
+using Sandcastle.Application.Agent;
 using Sandcastle.Application.Automations;
 using Sandcastle.Application.Conversations;
 using Sandcastle.Application.Events;
@@ -59,7 +60,9 @@ public sealed class AutomationService(
         r.ConsecutiveFailures,
         CircuitOpen: !r.Enabled
             && r.ConsecutiveFailures >= _options.CircuitBreakerThreshold,
-        r.MisfirePolicy);
+        r.MisfirePolicy,
+        // SPEC-162: cron + timezone + approval preset.
+        r.TimeZoneId, r.CronExpression, r.ApprovalPreset);
 
     private static AutomationRunInfo ToRunInfo(AutomationRunRecord r) => new(
         r.Id, r.AutomationId, r.StartedAt, r.FinishedAt, r.Status,
@@ -100,7 +103,7 @@ public sealed class AutomationService(
 
         if (!AutomationScheduleKinds.All.Contains(scheduleKind ?? ""))
         {
-            return "schedule_kind must be interval|daily|weekly|once";
+            return "schedule_kind must be interval|daily|weekly|once|cron";
         }
 
         switch (scheduleKind)
@@ -120,6 +123,60 @@ public sealed class AutomationService(
 
         return null;
     }
+
+    /// <summary>
+    /// SPEC-162 RF-001/RF-004: valida os campos avançados do schedule —
+    /// cron obrigatório e parseável para kind=cron; approval preset no
+    /// conjunto fechado. Timezone IANA inválido é tolerado (fallback UTC
+    /// no cálculo — guardrail do tick).
+    /// </summary>
+    private static string? ValidateScheduleAdvanced(
+        string scheduleKind, string? cronExpression,
+        string? approvalPreset)
+    {
+        if (scheduleKind == AutomationScheduleKinds.Cron
+            && string.IsNullOrWhiteSpace(cronExpression))
+        {
+            return "cron_expression required for cron schedule";
+        }
+
+        if (scheduleKind == AutomationScheduleKinds.Cron
+            && !AutomationSchedule.IsValidCronExpression(cronExpression))
+        {
+            return "cron_expression is not a valid 5-field cron";
+        }
+
+        if (approvalPreset is not null
+            && !AutomationApprovalPresets.All.Contains(approvalPreset))
+        {
+            return "approval_preset must be allow|allow-readonly|plan";
+        }
+
+        return null;
+    }
+
+    /// <summary>Tools de escrita que viram ask no preset allow-readonly.</summary>
+    private static readonly IReadOnlyList<AgentPermissionRule>
+        ReadOnlyWriteRules =
+    [
+        new("file_write", PermissionDecision.Ask),
+        new("file_edit", PermissionDecision.Ask),
+        new("git_commit", PermissionDecision.Ask),
+    ];
+
+    /// <summary>
+    /// SPEC-162 RF-004: mapeia o approval preset para modo/permissões da
+    /// conversa — só restringe (nunca amplia além do default do usuário).
+    /// </summary>
+    private static (string? Mode,
+        IReadOnlyList<AgentPermissionRule>? Permissions)
+        MapApprovalPreset(string? preset) => preset switch
+        {
+            AutomationApprovalPresets.AllowReadonly =>
+                (null, ReadOnlyWriteRules),
+            AutomationApprovalPresets.Plan => ("plan", null),
+            _ => (null, null),
+        };
 
     /// <summary>
     /// SPEC-143: config persistida de uma automation kind=scan — repos +
@@ -257,7 +314,8 @@ public sealed class AutomationService(
         var next = a.Enabled
             ? AutomationSchedule.ComputeNextRun(
                 a.ScheduleKind, a.ScheduleTimeUtc, a.IntervalMinutes,
-                a.Weekday, a.NextRunAt, now)
+                a.Weekday, a.NextRunAt, now,
+                a.CronExpression, a.TimeZoneId)
             : null;
         a.NextRunAt = next is { } n
             ? ApplyScheduleJitter(a, n, now)
@@ -311,6 +369,20 @@ public sealed class AutomationService(
 
         var misfirePolicy = req.MisfirePolicy?.Trim().ToLowerInvariant()
             ?? AutomationMisfirePolicies.RunOnce;
+        // SPEC-162: cron/timezone/approval preset.
+        var cronExpression = kind == AutomationScheduleKinds.Cron
+            ? req.CronExpression?.Trim()
+            : null;
+        var timeZoneId = string.IsNullOrWhiteSpace(req.TimeZoneId)
+            ? "UTC"
+            : req.TimeZoneId.Trim();
+        var approvalPreset = req.ApprovalPreset?.Trim().ToLowerInvariant();
+        var advancedError = ValidateScheduleAdvanced(
+            kind, cronExpression, approvalPreset);
+        if (advancedError is not null)
+        {
+            return (null, advancedError);
+        }
 
         var now = DateTimeOffset.UtcNow;
         var rec = new AutomationRecord
@@ -325,6 +397,9 @@ public sealed class AutomationService(
             Kind = autoKind,
             ScanConfigJson = scanConfig,
             MisfirePolicy = misfirePolicy,
+            TimeZoneId = timeZoneId,
+            CronExpression = cronExpression,
+            ApprovalPreset = approvalPreset,
             ScheduleKind = kind,
             ScheduleTimeUtc = req.ScheduleTimeUtc,
             IntervalMinutes = req.IntervalMinutes ?? 0,
@@ -367,6 +442,23 @@ public sealed class AutomationService(
             return (null, error);
         }
 
+        // SPEC-162: cron/timezone/approval preset (merge com o gravado).
+        var cronExpression = kind == AutomationScheduleKinds.Cron
+            ? (req.CronExpression ?? rec.CronExpression)?.Trim()
+            : null;
+        var timeZoneId = req.TimeZoneId is { } tz && !string.IsNullOrWhiteSpace(tz)
+            ? tz.Trim()
+            : rec.TimeZoneId;
+        var approvalPreset = req.ApprovalPreset is not null
+            ? req.ApprovalPreset.Trim().ToLowerInvariant()
+            : rec.ApprovalPreset;
+        var advancedError = ValidateScheduleAdvanced(
+            kind, cronExpression, approvalPreset);
+        if (advancedError is not null)
+        {
+            return (null, advancedError);
+        }
+
         if (req.Name is not null) { rec.Name = req.Name.Trim(); }
         if (req.Prompt is not null) { rec.Prompt = req.Prompt; }
         if (req.LlmModel is not null) { rec.LlmModel = req.LlmModel; }
@@ -391,6 +483,9 @@ public sealed class AutomationService(
         rec.ScheduleKind = kind;
         rec.ScheduleTimeUtc = time;
         rec.IntervalMinutes = interval;
+        rec.TimeZoneId = timeZoneId;
+        rec.CronExpression = cronExpression;
+        rec.ApprovalPreset = approvalPreset;
         if (req.Weekday is not null) { rec.Weekday = req.Weekday; }
         if (req.NextRunAt is not null) { rec.NextRunAt = req.NextRunAt; }
         if (req.MisfirePolicy is not null)
@@ -635,11 +730,14 @@ public sealed class AutomationService(
             return;
         }
 
+        // SPEC-162 RF-004: approval preset → permissões/modo da conversa.
+        var (mode, permissions) = MapApprovalPreset(rec.ApprovalPreset);
         var task = await conversations.CreateForUserAsync(
             ownerId, rec.OrgId,
             new CreateConversationRequest(
                 new InitialMessage("user", [rec.Prompt], Run: true),
-                rec.SelectedRepository, null, rec.LlmModel, null),
+                rec.SelectedRepository, null, rec.LlmModel, null,
+                Mode: mode, Permissions: permissions),
             ct);
         run.ConversationId = task.AppConversationId;
         run.FinishedAt = DateTimeOffset.UtcNow;

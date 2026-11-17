@@ -305,11 +305,6 @@
           "SQLitePCLRaw.core": "2.1.13"
         }
       },
-      "Microsoft.DotNet.HotReload.WebAssembly.Browser": {
-        "type": "Transitive",
-        "resolved": "10.0.114",
-        "contentHash": "/5vjMWPo2tTac0g8x6hh0fMu2OwU7rnUGhTeOtn52IwYzjLUGNWTde/jatpkNOsoufdZpgkpTdMV6EibfEoSTA=="
-      },
       "Microsoft.EntityFrameworkCore": {
         "type": "Transitive",
         "resolved": "10.0.14",
@@ -916,6 +911,7 @@
       "sandcastle.application": {
         "type": "Project",
         "dependencies": {
+          "Cronos": "[0.13.0, )",
           "Sandcastle.Domain": "[1.0.0, )"
         }
       },
@@ -937,7 +933,6 @@
           "Markdig": "[1.6.0, )",
           "Microsoft.AspNetCore.Components.WebAssembly": "[10.0.14, )",
           "Microsoft.AspNetCore.SignalR.Client": "[10.0.14, )",
-          "Microsoft.DotNet.HotReload.WebAssembly.Browser": "[10.0.114, )",
           "Sandcastle.Application": "[1.0.0, )"
         }
       },
@@ -1007,6 +1002,12 @@
         "dependencies": {
           "AWSSDK.Core": "[4.0.102.19, 5.0.0)"
         }
+      },
+      "Cronos": {
+        "type": "CentralTransitive",
+        "requested": "[0.13.0, )",
+        "resolved": "0.13.0",
+        "contentHash": "Nkve+Yi0+ol3ntSBRHeW0ka9cJQ8vndSUvvkXqF9LVqwpoqWueyxu/HS275r98RDOmF7/mzRnZW5XXUBXob+TA=="
       },
       "Docker.DotNet.Enhanced": {
         "type": "CentralTransitive",

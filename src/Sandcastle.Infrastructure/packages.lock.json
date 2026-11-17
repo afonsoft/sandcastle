@@ -572,6 +572,7 @@
       "sandcastle.application": {
         "type": "Project",
         "dependencies": {
+          "Cronos": "[0.13.0, )",
           "Sandcastle.Domain": "[1.0.0, )"
         }
       },
@@ -591,6 +592,12 @@
           "Sandcastle.Application": "[1.0.0, )",
           "Ulid": "[1.4.1, )"
         }
+      },
+      "Cronos": {
+        "type": "CentralTransitive",
+        "requested": "[0.13.0, )",
+        "resolved": "0.13.0",
+        "contentHash": "Nkve+Yi0+ol3ntSBRHeW0ka9cJQ8vndSUvvkXqF9LVqwpoqWueyxu/HS275r98RDOmF7/mzRnZW5XXUBXob+TA=="
       },
       "KubernetesClient": {
         "type": "CentralTransitive",

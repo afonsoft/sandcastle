@@ -302,6 +302,11 @@ namespace Sandcastle.Infrastructure.Persistence.Migrations
                         .HasColumnType("TEXT")
                         .HasColumnName("id");
 
+                    b.Property<string>("ApprovalPreset")
+                        .HasMaxLength(20)
+                        .HasColumnType("TEXT")
+                        .HasColumnName("approval_preset");
+
                     b.Property<int>("ConsecutiveFailures")
                         .HasColumnType("INTEGER")
                         .HasColumnName("consecutive_failures");
@@ -314,6 +319,11 @@ namespace Sandcastle.Infrastructure.Persistence.Migrations
                         .IsRequired()
                         .HasColumnType("TEXT")
                         .HasColumnName("created_by_user_id");
+
+                    b.Property<string>("CronExpression")
+                        .HasMaxLength(128)
+                        .HasColumnType("TEXT")
+                        .HasColumnName("cron_expression");
 
                     b.Property<bool>("Enabled")
                         .HasColumnType("INTEGER")
@@ -385,6 +395,14 @@ namespace Sandcastle.Infrastructure.Persistence.Migrations
                     b.Property<string>("SelectedRepository")
                         .HasColumnType("TEXT")
                         .HasColumnName("selected_repository");
+
+                    b.Property<string>("TimeZoneId")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(64)
+                        .HasColumnType("TEXT")
+                        .HasDefaultValue("UTC")
+                        .HasColumnName("time_zone_id");
 
                     b.Property<DateTimeOffset>("UpdatedAt")
                         .HasColumnType("TEXT")

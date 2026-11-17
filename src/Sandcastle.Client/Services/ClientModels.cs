@@ -201,7 +201,10 @@ public sealed record AutomationItem(
     string? LlmModel, string? SelectedRepository, string ScheduleKind,
     string? ScheduleTimeUtc, int IntervalMinutes, int? Weekday,
     bool Enabled, DateTimeOffset? NextRunAt, DateTimeOffset? LastRunAt,
-    DateTimeOffset CreatedAt, DateTimeOffset UpdatedAt);
+    DateTimeOffset CreatedAt, DateTimeOffset UpdatedAt,
+    // SPEC-162: cron + timezone IANA + approval preset.
+    string? TimeZoneId = null, string? CronExpression = null,
+    string? ApprovalPreset = null);
 
 /// <summary>SPEC-160: entrada do calendário de automations.</summary>
 public sealed record AutomationScheduleEntry(

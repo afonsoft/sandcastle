@@ -6,4 +6,7 @@
   <ItemGroup>
     <ProjectReference Include="../Sandcastle.Domain/Sandcastle.Domain.csproj" />
   </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="Cronos" />
+  </ItemGroup>
 </Project>

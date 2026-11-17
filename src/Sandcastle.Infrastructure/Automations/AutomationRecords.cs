@@ -50,6 +50,18 @@ public sealed class AutomationRecord : IOrgScoped
     public int ConsecutiveFailures { get; set; }
     /// <summary>SPEC-161 RF-002: <c>skip|run-once</c> (default run-once).</summary>
     public string MisfirePolicy { get; set; } = AutomationMisfirePolicies.RunOnce;
+    /// <summary>
+    /// SPEC-162: fuso IANA da agenda (default <c>UTC</c>) — daily/weekly/
+    /// cron calculam nele; interval ignora.
+    /// </summary>
+    public string TimeZoneId { get; set; } = "UTC";
+    /// <summary>SPEC-162: expressão cron de 5 campos (kind=cron).</summary>
+    public string? CronExpression { get; set; }
+    /// <summary>
+    /// SPEC-162 RF-004: <c>allow|allow-readonly|plan</c> — preset de
+    /// aprovação aplicado à conversa disparada (null = default).
+    /// </summary>
+    public string? ApprovalPreset { get; set; }
     /// <summary>Próximo disparo UTC (null = sem agenda ativa).</summary>
     public DateTimeOffset? NextRunAt { get; set; }
     /// <summary>Espelho em ticks — SQLite não ordena DateTimeOffset.</summary>
@@ -121,6 +133,10 @@ public sealed class AutomationRecordConfiguration
         b.HasIndex(e => e.CreatedByUserId);
         b.Property(e => e.MisfirePolicy).HasMaxLength(20)
             .HasDefaultValue(AutomationMisfirePolicies.RunOnce);
+        b.Property(e => e.TimeZoneId).HasMaxLength(64)
+            .HasDefaultValue("UTC");
+        b.Property(e => e.CronExpression).HasMaxLength(128);
+        b.Property(e => e.ApprovalPreset).HasMaxLength(20);
     }
 }
 

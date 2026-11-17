@@ -212,6 +212,18 @@
       "AutomationUpsertRequest": {
         "description": "Body JSON do CRUD de automations (snake_case).",
         "properties": {
+          "approval_preset": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "cron_expression": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
           "enabled": {
             "type": [
               "null",
@@ -298,6 +310,12 @@
             ]
           },
           "selected_repository": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "time_zone_id": {
             "type": [
               "null",
               "string"

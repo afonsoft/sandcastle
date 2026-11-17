@@ -207,7 +207,9 @@ public static class AutomationEndpoints
             // SPEC-143: kind=scan + scan config.
             r.Kind, r.Repositories, r.ScanProfile, r.ScanEffort,
             // SPEC-161: misfire policy.
-            r.MisfirePolicy);
+            r.MisfirePolicy,
+            // SPEC-162: cron + timezone + approval preset.
+            r.TimeZoneId, r.CronExpression, r.ApprovalPreset);
 
     private static object ToDto(AutomationInfo a) => new
     {
@@ -241,6 +243,10 @@ public static class AutomationEndpoints
         consecutive_failures = a.ConsecutiveFailures,
         circuit_open = a.CircuitOpen,
         misfire_policy = a.MisfirePolicy,
+        // SPEC-162: cron + timezone + approval preset.
+        time_zone_id = a.TimeZoneId,
+        cron_expression = a.CronExpression,
+        approval_preset = a.ApprovalPreset,
     };
 
     private static object ToRunDto(AutomationRunInfo r) => new
@@ -352,7 +358,9 @@ public static class AutomationEndpoints
                 var next = AutomationSchedule.NextRuns(
                     a.ScheduleKind, a.ScheduleTimeUtc,
                     a.IntervalMinutes, a.Weekday, a.NextRunAt,
-                    from.Value, to.Value);
+                    from.Value, to.Value,
+                    cronExpression: a.CronExpression,
+                    timeZoneId: a.TimeZoneId);
                 runsByAutomation.TryGetValue(a.Id, out var ar);
                 return new
                 {
@@ -431,4 +439,7 @@ public sealed record AutomationUpsertRequest(
     string? Kind = null, IReadOnlyList<string>? Repositories = null,
     string? ScanProfile = null, string? ScanEffort = null,
     // SPEC-161: misfire policy skip|run-once.
-    string? MisfirePolicy = null);
+    string? MisfirePolicy = null,
+    // SPEC-162: cron + timezone IANA + approval preset.
+    string? TimeZoneId = null, string? CronExpression = null,
+    string? ApprovalPreset = null);

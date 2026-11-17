@@ -11,11 +11,13 @@ public static class AutomationScheduleKinds
     public const string Weekly = "weekly";
     /// <summary>Execução única — desabilita após disparar.</summary>
     public const string Once = "once";
+    /// <summary>Expressão cron de 5 campos + <c>TimeZoneId</c> (SPEC-162).</summary>
+    public const string Cron = "cron";
 
     /// <summary>Todos os kinds válidos.</summary>
     public static readonly IReadOnlySet<string> All =
         new HashSet<string>(StringComparer.Ordinal)
-        { Interval, Daily, Weekly, Once };
+        { Interval, Daily, Weekly, Once, Cron };
 }
 
 /// <summary>Automation kinds aceitos (SPEC-143 RF-004).</summary>
@@ -30,6 +32,22 @@ public static class AutomationKinds
     /// <summary>Todos os kinds válidos.</summary>
     public static readonly IReadOnlySet<string> All =
         new HashSet<string>(StringComparer.Ordinal) { Task, Scan };
+}
+
+/// <summary>Approval presets da conversa disparada (SPEC-162 RF-004).</summary>
+public static class AutomationApprovalPresets
+{
+    /// <summary>Default do usuário (sem regras extras).</summary>
+    public const string Allow = "allow";
+    /// <summary>Ask em tools de escrita (file_write/file_edit/git_commit).</summary>
+    public const string AllowReadonly = "allow-readonly";
+    /// <summary>Conversa criada em plan mode.</summary>
+    public const string Plan = "plan";
+
+    /// <summary>Todos os presets válidos.</summary>
+    public static readonly IReadOnlySet<string> All =
+        new HashSet<string>(StringComparer.Ordinal)
+        { Allow, AllowReadonly, Plan };
 }
 
 /// <summary>Misfire policies aceitas (SPEC-161 RF-002).</summary>
@@ -58,7 +76,10 @@ public sealed record AutomationInfo(
     string? Kind = null, string? ScanConfigJson = null,
     // SPEC-161: circuit breaker + misfire policy.
     int ConsecutiveFailures = 0, bool CircuitOpen = false,
-    string? MisfirePolicy = null);
+    string? MisfirePolicy = null,
+    // SPEC-162: cron + timezone + approval preset.
+    string? TimeZoneId = null, string? CronExpression = null,
+    string? ApprovalPreset = null);
 
 /// <summary>Run de uma automation (SPEC-47 RF-002/RF-003).</summary>
 public sealed record AutomationRunInfo(
@@ -85,7 +106,10 @@ public sealed record AutomationUpsert(
     string? Kind = null, IReadOnlyList<string>? Repositories = null,
     string? ScanProfile = null, string? ScanEffort = null,
     // SPEC-161 RF-002: skip|run-once (default run-once).
-    string? MisfirePolicy = null);
+    string? MisfirePolicy = null,
+    // SPEC-162: cron + timezone IANA + approval preset.
+    string? TimeZoneId = null, string? CronExpression = null,
+    string? ApprovalPreset = null);
 
 /// <summary>
 /// Cálculo do próximo disparo (UTC) — puro e testável
@@ -101,17 +125,29 @@ public static class AutomationSchedule
     public static DateTimeOffset? ComputeNextRun(
         string scheduleKind, string? scheduleTimeUtc,
         int? intervalMinutes, int? weekday,
-        DateTimeOffset? storedNextRunAt, DateTimeOffset now)
+        DateTimeOffset? storedNextRunAt, DateTimeOffset now,
+        string? cronExpression = null, string? timeZoneId = null)
     {
         var utc = now.ToUniversalTime();
+        if (scheduleKind == AutomationScheduleKinds.Cron)
+        {
+            return NextCron(utc, cronExpression, timeZoneId);
+        }
+
+        // SPEC-162 RF-003: daily/weekly calculam no fuso da automation
+        // (interval ignora timezone — já é relativo a UTC).
+        var zone = scheduleKind is AutomationScheduleKinds.Daily
+            or AutomationScheduleKinds.Weekly
+            ? ResolveTimeZone(timeZoneId)
+            : null;
         return scheduleKind switch
         {
             AutomationScheduleKinds.Interval =>
                 utc.AddMinutes(Math.Max(1, intervalMinutes ?? 0)),
             AutomationScheduleKinds.Daily =>
-                NextDaily(utc, scheduleTimeUtc),
+                NextDaily(utc, scheduleTimeUtc, zone),
             AutomationScheduleKinds.Weekly =>
-                NextWeekly(utc, weekday ?? 0, scheduleTimeUtc),
+                NextWeekly(utc, weekday ?? 0, scheduleTimeUtc, zone),
             // Execução única: mantém o horário já armazenado enquanto
             // futuro; depois de disparar devolve null e nunca reagenda.
             AutomationScheduleKinds.Once =>
@@ -120,33 +156,103 @@ public static class AutomationSchedule
         };
     }
 
+    /// <summary>
+    /// SPEC-162 RF-001: valida a expressão cron (5 campos, Cronos).
+    /// </summary>
+    public static bool IsValidCronExpression(string? expression)
+    {
+        if (string.IsNullOrWhiteSpace(expression))
+        {
+            return false;
+        }
+
+        try
+        {
+            Cronos.CronExpression.Parse(expression.Trim());
+            return true;
+        }
+        catch (Cronos.CronFormatException)
+        {
+            return false;
+        }
+    }
+
+    /// <summary>
+    /// SPEC-162: resolve o <paramref name="timeZoneId"/> IANA; inválido
+    /// ou vazio cai em UTC (guardrail — nunca derruba o tick).
+    /// </summary>
+    public static TimeZoneInfo ResolveTimeZone(string? timeZoneId)
+    {
+        if (string.IsNullOrWhiteSpace(timeZoneId))
+        {
+            return TimeZoneInfo.Utc;
+        }
+
+        try
+        {
+            return TimeZoneInfo.FindSystemTimeZoneById(
+                timeZoneId.Trim());
+        }
+        catch (Exception ex) when (ex is TimeZoneNotFoundException
+            or InvalidTimeZoneException)
+        {
+            return TimeZoneInfo.Utc;
+        }
+    }
+
+    private static DateTimeOffset? NextCron(
+        DateTimeOffset nowUtc, string? expression, string? timeZoneId)
+    {
+        if (!IsValidCronExpression(expression))
+        {
+            return null;
+        }
+
+        var cron = Cronos.CronExpression.Parse(expression!.Trim());
+        return cron.GetNextOccurrence(
+            nowUtc, ResolveTimeZone(timeZoneId));
+    }
+
     private static DateTimeOffset? NextDaily(
-        DateTimeOffset now, string? timeOfDay)
+        DateTimeOffset now, string? timeOfDay, TimeZoneInfo? zone)
     {
         if (!TryParseTime(timeOfDay, out var time))
         {
             return null;
         }
 
-        var candidate = new DateTimeOffset(now.Year, now.Month, now.Day,
-            time.Hour, time.Minute, 0, TimeSpan.Zero);
-        return candidate <= now ? candidate.AddDays(1) : candidate;
+        var tz = zone ?? TimeZoneInfo.Utc;
+        var localNow = TimeZoneInfo.ConvertTime(now, tz);
+        var candidateLocal = localNow.Date + time.ToTimeSpan();
+        var candidate = TimeZoneInfo.ConvertTimeToUtc(
+            candidateLocal, tz);
+        return candidate <= now
+            ? TimeZoneInfo.ConvertTimeToUtc(
+                candidateLocal.AddDays(1), tz)
+            : candidate;
     }
 
     private static DateTimeOffset? NextWeekly(
-        DateTimeOffset now, int weekday, string? timeOfDay)
+        DateTimeOffset now, int weekday, string? timeOfDay,
+        TimeZoneInfo? zone)
     {
         if (!TryParseTime(timeOfDay, out var time))
         {
             return null;
         }
 
+        var tz = zone ?? TimeZoneInfo.Utc;
+        var localNow = TimeZoneInfo.ConvertTime(now, tz);
         var day = (DayOfWeek)Math.Clamp(weekday, 0, 6);
-        var candidate = new DateTimeOffset(now.Year, now.Month, now.Day,
-            time.Hour, time.Minute, 0, TimeSpan.Zero);
-        candidate = candidate.AddDays(
-            ((int)day - (int)now.DayOfWeek + 7) % 7);
-        return candidate <= now ? candidate.AddDays(7) : candidate;
+        var candidateLocal = localNow.Date + time.ToTimeSpan();
+        candidateLocal = candidateLocal.AddDays(
+            ((int)day - (int)localNow.DayOfWeek + 7) % 7);
+        var candidate = TimeZoneInfo.ConvertTimeToUtc(
+            candidateLocal, tz);
+        return candidate <= now
+            ? TimeZoneInfo.ConvertTimeToUtc(
+                candidateLocal.AddDays(7), tz)
+            : candidate;
     }
 
     private static bool TryParseTime(string? value, out TimeOnly time) =>
@@ -162,14 +268,16 @@ public static class AutomationSchedule
         string scheduleKind, string? scheduleTimeUtc,
         int? intervalMinutes, int? weekday,
         DateTimeOffset? storedNextRunAt,
-        DateTimeOffset from, DateTimeOffset to, int max = 200)
+        DateTimeOffset from, DateTimeOffset to, int max = 200,
+        string? cronExpression = null, string? timeZoneId = null)
     {
         var runs = new List<DateTimeOffset>();
         var cursor = from.ToUniversalTime();
         var until = to.ToUniversalTime();
         while (runs.Count < max
             && ComputeNextRun(scheduleKind, scheduleTimeUtc,
-                intervalMinutes, weekday, storedNextRunAt, cursor)
+                intervalMinutes, weekday, storedNextRunAt, cursor,
+                cronExpression, timeZoneId)
                 is { } next)
         {
             if (next > until) { break; }
