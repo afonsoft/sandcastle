@@ -1147,6 +1147,17 @@ public sealed class SandcastleApiClient(HttpClient http)
         await http.GetFromJsonAsync<List<AutomationItem>>(
             "/api/v1/automations", Json, ct) ?? [];
 
+    /// <summary>SPEC-160: agenda projetada + runs reais na janela.</summary>
+    public async Task<IReadOnlyList<AutomationScheduleEntry>>
+        GetAutomationScheduleAsync(
+            DateTimeOffset from, DateTimeOffset to,
+            CancellationToken ct = default) =>
+        await http.GetFromJsonAsync<List<AutomationScheduleEntry>>(
+            "/api/v1/automations/schedule"
+            + $"?from={Uri.EscapeDataString(from.UtcDateTime.ToString("O"))}"
+            + $"&to={Uri.EscapeDataString(to.UtcDateTime.ToString("O"))}",
+            Json, ct) ?? [];
+
     /// <summary>Detalhe de uma automation (null se 404).</summary>
     public Task<AutomationItem?> GetAutomationAsync(
         Guid id, CancellationToken ct = default) =>

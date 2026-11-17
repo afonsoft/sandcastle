@@ -57,6 +57,11 @@ public static class AutomationEndpoints
             .RequireAuthorization()
             .RequireScope(AutomationsRead);
 
+        // SPEC-160 RF-001: agenda projetada + runs reais no intervalo.
+        g.MapGet("/schedule", GetScheduleAsync)
+            .RequireAuthorization()
+            .RequireScope(AutomationsRead);
+
         g.MapPost("/{id:guid}/hooks", PostIdGuidHooksAsync).RequireAuthorization()
             .RequireScope(AutomationsWrite);
 
@@ -289,6 +294,81 @@ public static class AutomationEndpoints
                     u.UserId, from, to, take ?? 50, ct))
                 .Select(ToRunDto).ToList());
 
+    }
+
+    /// <summary>
+    /// SPEC-160: <c>GET /automations/schedule?from&amp;to</c> — por
+    /// automação com agenda: <c>next_runs[]</c> (projetados server-side)
+    /// + <c>runs[]</c> reais do intervalo. 400 se janela >62d ou
+    /// from&gt;to; automação sem schedule não aparece.
+    /// </summary>
+    private static async Task<IResult> GetScheduleAsync(
+        DateTimeOffset? from, DateTimeOffset? to, HttpContext ctx,
+        ICurrentUserAccessor current, IAutomationService svc,
+        CancellationToken ct)
+    {
+        if (current.User is not { } u)
+        {
+            return Results.Unauthorized();
+        }
+
+        if (from is null || to is null)
+        {
+            return SandcastleProblemFactory.Create(
+                ctx, 400, "from and to are required");
+        }
+
+        if (from > to)
+        {
+            return SandcastleProblemFactory.Create(
+                ctx, 400, "from must be <= to");
+        }
+
+        if (to.Value - from.Value > TimeSpan.FromDays(62))
+        {
+            return SandcastleProblemFactory.Create(
+                ctx, 400, "interval too large (max 62 days)");
+        }
+
+        var automations = await svc.ListAsync(u.UserId, ct);
+        var runs = await svc.ListAllRunsAsync(
+            u.UserId, from, to, 1000, ct);
+        var runsByAutomation = runs
+            .GroupBy(r => r.AutomationId)
+            .ToDictionary(x => x.Key, x => x.ToList());
+
+        var result = automations
+            .Where(a => a.Enabled)
+            .Select(a =>
+            {
+                var next = AutomationSchedule.NextRuns(
+                    a.ScheduleKind, a.ScheduleTimeUtc,
+                    a.IntervalMinutes, a.Weekday, a.NextRunAt,
+                    from.Value, to.Value);
+                runsByAutomation.TryGetValue(a.Id, out var ar);
+                return new
+                {
+                    automation_id = a.Id,
+                    name = a.Name,
+                    next_runs = next,
+                    runs = (ar ?? []).Select(r => new
+                    {
+                        id = r.Id,
+                        status = r.Status,
+                        started_at = r.StartedAt,
+                        duration_ms = r.FinishedAt is { } f
+                            ? (long?)(f - r.StartedAt)
+                                .TotalMilliseconds
+                            : null,
+                        conversation_id = r.ConversationId,
+                    }).ToList(),
+                };
+            })
+            .Where(x => x.next_runs.Count > 0
+                || x.runs.Count > 0)
+            .ToList();
+
+        return Results.Ok(result);
     }
 
     private static async Task<IResult> PostIdGuidHooksAsync(Guid id, HttpContext ctx, ICurrentUserAccessor current, IAutomationService svc, CancellationToken ct)

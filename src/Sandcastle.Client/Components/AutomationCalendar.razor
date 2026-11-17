@@ -1,0 +1,211 @@
+@using System.Globalization
+@using Sandcastle.Client.Services
+@inject SandcastleApiClient Api
+@inject LocalizationService L
+@inject ToastService Toasts
+
+@* SPEC-160 RF-002: grade mensal (CSS grid, sem lib nova) — chips por
+   status para runs reais + marcadores next_runs; painel lateral com
+   detalhe do dia selecionado. *@
+
+<div class="cal-wrap">
+    <div class="cal-head">
+        <button class="icon-btn" @onclick="PrevMonth"
+                aria-label="@L["automations.cal_prev"]">‹</button>
+        <h2>@MonthTitle</h2>
+        <button class="icon-btn" @onclick="NextMonth"
+                aria-label="@L["automations.cal_next"]">›</button>
+        <button @onclick="GoToday">@L["automations.cal_today"]</button>
+    </div>
+
+    @if (_entries is null)
+    {
+        <p><em>@L["common.loading"]</em></p>
+    }
+    else if (_days.Count == 0)
+    {
+        <p>@L["automations.cal_empty"]</p>
+    }
+    else
+    {
+        <div class="cal-main">
+            <div class="cal-grid" role="grid" aria-label="@MonthTitle">
+                @foreach (var d in WeekdayNames)
+                {
+                    <div class="cal-wday" role="columnheader">@d</div>
+                }
+                @foreach (var cell in _cells)
+                {
+                    var day = cell;
+                    <button class="cal-day @(day.Month == _month.Month ? "" : "cal-out") @(day == TodayDate ? "cal-today" : "") @(day == _selected ? "cal-selected" : "")"
+                            role="gridcell"
+                            aria-label="@day.ToString("D", Culture)"
+                            @onclick="() => _selected = day">
+                        <span class="cal-num">@day.Day</span>
+                        @if (_days.TryGetValue(day, out var items))
+                        {
+                            @foreach (var it in items.Take(3))
+                            {
+                                <span class="cal-chip @it.Css">@it.Name</span>
+                            }
+                            @if (items.Count > 3)
+                            {
+                                <span class="cal-chip cal-more">
+                                    @L.T("automations.cal_more", ("count", (items.Count - 3).ToString()))
+                                </span>
+                            }
+                        }
+                    </button>
+                }
+            </div>
+
+            <aside class="cal-side" aria-label="@_selected.ToString("D", Culture)">
+                <h3>@_selected.ToString("d", Culture)</h3>
+                @if (_days.TryGetValue(_selected, out var sel))
+                {
+                    <ul>
+                        @foreach (var it in sel.OrderBy(x => x.When))
+                        {
+                            <li>
+                                <span class="badge @it.BadgeCss">@it.StatusLabel</span>
+                                <a href="/automations/@it.AutomationId">@it.Name</a>
+                                <span>@it.When.LocalDateTime.ToString("t", Culture)</span>
+                                @if (it.ConversationId is { } cid)
+                                {
+                                    <a href="/conversations/@cid">
+                                        @L["automations.cal_open_conversation"]
+                                    </a>
+                                }
+                            </li>
+                        }
+                    </ul>
+                }
+                else
+                {
+                    <p>@L["automations.cal_empty"]</p>
+                }
+            </aside>
+        </div>
+    }
+</div>
+
+@code {
+    private sealed record CalItem(
+        Guid AutomationId, string Name, string StatusLabel,
+        string Css, string BadgeCss, DateTimeOffset When,
+        Guid? ConversationId);
+
+    private DateOnly _month = DateOnly.FromDateTime(DateTime.Now);
+    private DateOnly _selected = DateOnly.FromDateTime(DateTime.Now);
+    private IReadOnlyList<AutomationScheduleEntry>? _entries;
+    private Dictionary<DateOnly, List<CalItem>> _days = [];
+    private List<DateOnly> _cells = [];
+
+    private CultureInfo Culture => new(L.Language);
+    private DateOnly TodayDate => DateOnly.FromDateTime(DateTime.Now);
+    private string MonthTitle =>
+        _month.ToDateTime(TimeOnly.MinValue).ToString("MMMM yyyy", Culture);
+
+    private IReadOnlyList<string> WeekdayNames
+    {
+        get
+        {
+            var fmt = Culture.DateTimeFormat;
+            var first = (int)fmt.FirstDayOfWeek;
+            return Enumerable.Range(0, 7)
+                .Select(i => fmt.AbbreviatedDayNames[(first + i) % 7])
+                .ToList();
+        }
+    }
+
+    /// <inheritdoc />
+    protected override async Task OnInitializedAsync() => await Reload();
+
+    private async Task PrevMonth()
+    {
+        _month = _month.AddMonths(-1);
+        await Reload();
+    }
+
+    private async Task NextMonth()
+    {
+        _month = _month.AddMonths(1);
+        await Reload();
+    }
+
+    private async Task GoToday()
+    {
+        _month = TodayDate;
+        _selected = TodayDate;
+        await Reload();
+    }
+
+    private async Task Reload()
+    {
+        _entries = null;
+        _days = [];
+        BuildCells();
+        try
+        {
+            var from = _cells[0].ToDateTime(TimeOnly.MinValue);
+            var to = _cells[^1].ToDateTime(TimeOnly.MaxValue);
+            _entries = await Api.GetAutomationScheduleAsync(from, to);
+            Index();
+        }
+        catch (HttpRequestException)
+        {
+            Toasts.Error(L["automations.cal_load_failed"]);
+            _entries = [];
+        }
+    }
+
+    /// <summary>Células 6×7 da grade começando no primeiro dia da semana.</summary>
+    private void BuildCells()
+    {
+        var first = new DateOnly(_month.Year, _month.Month, 1);
+        var offset = ((int)first.DayOfWeek
+            - (int)Culture.DateTimeFormat.FirstDayOfWeek + 7) % 7;
+        var start = first.AddDays(-offset);
+        _cells = Enumerable.Range(0, 42).Select(start.AddDays).ToList();
+    }
+
+    private void Index()
+    {
+        _days = [];
+        foreach (var e in _entries ?? [])
+        {
+            foreach (var r in e.Runs)
+            {
+                Add(r.StartedAt, new CalItem(
+                    e.AutomationId, e.Name, r.Status,
+                    $"cal-{r.Status}", BadgeFor(r.Status), r.StartedAt,
+                    r.ConversationId));
+            }
+            foreach (var n in e.NextRuns)
+            {
+                Add(n, new CalItem(
+                    e.AutomationId, e.Name,
+                    L["automations.cal_scheduled"],
+                    "cal-next", "badge-dim", n, null));
+            }
+        }
+    }
+
+    private static string BadgeFor(string status) => status switch
+    {
+        "succeeded" => "finished",
+        "failed" => "error",
+        "running" => "running",
+        _ => "badge-dim",
+    };
+
+    private void Add(DateTimeOffset when, CalItem item)
+    {
+        var day = DateOnly.FromDateTime(when.LocalDateTime);
+        if (!_days.TryGetValue(day, out var list))
+        {
+            _days[day] = list = [];
+        }
+        list.Add(item);
+    }
+}

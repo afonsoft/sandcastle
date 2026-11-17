@@ -203,6 +203,17 @@ public sealed record AutomationItem(
     bool Enabled, DateTimeOffset? NextRunAt, DateTimeOffset? LastRunAt,
     DateTimeOffset CreatedAt, DateTimeOffset UpdatedAt);
 
+/// <summary>SPEC-160: entrada do calendário de automations.</summary>
+public sealed record AutomationScheduleEntry(
+    Guid AutomationId, string Name,
+    IReadOnlyList<DateTimeOffset> NextRuns,
+    IReadOnlyList<AutomationScheduleRun> Runs);
+
+/// <summary>SPEC-160: run real dentro da janela do calendário.</summary>
+public sealed record AutomationScheduleRun(
+    Guid Id, string Status, DateTimeOffset StartedAt,
+    long? DurationMs, Guid? ConversationId);
+
 /// <summary>SPEC-47: execução registrada de uma automation.</summary>
 public sealed record AutomationRunItem(
     Guid Id, Guid AutomationId, DateTimeOffset StartedAt,
