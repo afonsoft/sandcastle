@@ -10,7 +10,25 @@
 <h1>@L["automations.title"]</h1>
 <p>@L["automations.subtitle"]</p>
 
-@if (_items is null)
+@* SPEC-160 RF-002: calendário vira tab dentro de /automations. *@
+<div class="tab-bar" role="tablist" aria-label="@L["automations.title"]">
+    <button role="tab" class="@(Current == "list" ? "active" : "")"
+            aria-selected="@(Current == "list")"
+            @onclick='() => Nav.NavigateTo("/automations?tab=list")'>
+        @L["automations.tab_list"]
+    </button>
+    <button role="tab" class="@(Current == "calendar" ? "active" : "")"
+            aria-selected="@(Current == "calendar")"
+            @onclick='() => Nav.NavigateTo("/automations?tab=calendar")'>
+        @L["automations.tab_calendar"]
+    </button>
+</div>
+
+@if (Current == "calendar")
+{
+    <Sandcastle.Client.Components.AutomationCalendar />
+}
+else if (_items is null)
 {
     <p><em>@L["common.loading"]</em></p>
 }
@@ -61,6 +79,8 @@ else
     </table>
 }
 
+@if (Current == "list")
+{
 <h2>@L["automations.new"]</h2>
 <div>
     <input aria-label="@L["automations.name_placeholder"]" placeholder="@L["automations.name_placeholder"]" @bind="_name" />
@@ -96,8 +116,15 @@ else
         <p class="text-danger">@_error</p>
     }
 </div>
+}
 
 @code {
+    /// <summary>SPEC-160: deep-link ?tab=list|calendar.</summary>
+    [SupplyParameterFromQuery(Name = "tab")]
+    public string? Tab { get; set; }
+
+    private string Current => Tab == "calendar" ? "calendar" : "list";
+
     private List<AutomationItem>? _items;
     private List<AutomationItem> _upcoming = [];
     private string? _name, _prompt, _time, _error;
@@ -107,8 +134,15 @@ else
     /// <inheritdoc />
     protected override async Task OnInitializedAsync() => await Reload();
 
+    /// <summary>Recarrega ao voltar do tab calendar (query muda sem init).</summary>
+    protected override async Task OnParametersSetAsync()
+    {
+        if (Current == "list" && _items is null) { await Reload(); }
+    }
+
     private async Task Reload()
     {
+        if (Current == "calendar") { return; }
         _items = (await Api.ListAutomationsAsync()).ToList();
         _upcoming = _items
             .Where(a => a.Enabled && a.NextRunAt is not null)

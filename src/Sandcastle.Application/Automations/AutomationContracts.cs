@@ -131,6 +131,33 @@ public static class AutomationSchedule
     private static bool TryParseTime(string? value, out TimeOnly time) =>
         TimeOnly.TryParseExact(value, "HH:mm", System.Globalization.CultureInfo.InvariantCulture,
         System.Globalization.DateTimeStyles.None, out time);
+
+    /// <summary>
+    /// SPEC-160 RF-001: projeta todos os disparos previstos da agenda em
+    /// [<paramref name="from"/>, <paramref name="to"/>] (UTC), iterando
+    /// <see cref="ComputeNextRun"/> — sem recomputar cron no client.
+    /// </summary>
+    public static IReadOnlyList<DateTimeOffset> NextRuns(
+        string scheduleKind, string? scheduleTimeUtc,
+        int? intervalMinutes, int? weekday,
+        DateTimeOffset? storedNextRunAt,
+        DateTimeOffset from, DateTimeOffset to, int max = 200)
+    {
+        var runs = new List<DateTimeOffset>();
+        var cursor = from.ToUniversalTime();
+        var until = to.ToUniversalTime();
+        while (runs.Count < max
+            && ComputeNextRun(scheduleKind, scheduleTimeUtc,
+                intervalMinutes, weekday, storedNextRunAt, cursor)
+                is { } next)
+        {
+            if (next > until) { break; }
+            if (runs.Count > 0 && next <= runs[^1]) { break; }
+            runs.Add(next);
+            cursor = next.AddTicks(1);
+        }
+        return runs;
+    }
 }
 
 /// <summary>
