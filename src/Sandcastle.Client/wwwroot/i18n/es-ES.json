@@ -968,5 +968,12 @@
   "workspace.title": "Workspace",
   "workspace.tools_desc": "Descripción",
   "workspace.tools_server": "Servidor",
-  "workspace.tools_tool": "Tool"
+  "workspace.tools_tool": "Tool",
+  "composer.voice_dictate": "Dictar",
+  "composer.voice_stop": "Detener dictado",
+  "composer.voice_listening": "Escuchando…",
+  "composer.mic_denied": "Acceso al micrófono denegado",
+  "composer.mic_not_supported": "La entrada de voz no es compatible con este navegador",
+  "composer.mic_no_speech": "No se detectó voz",
+  "composer.mic_error": "Error en la entrada de voz"
 }

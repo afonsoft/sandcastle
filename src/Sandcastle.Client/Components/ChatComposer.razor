@@ -90,6 +90,11 @@
                       @onkeydown="OnKey" disabled="@Sending"
                       aria-label="@L["composer.message"]" class="composer-ta"></textarea>
         </div>
+        @* SPEC-159: ditado por voz — texto vai pro input editável. *@
+        <VoiceButton Disabled="@Sending"
+                     OnDictationStarted="OnVoiceStart"
+                     OnTranscript="OnVoiceTranscriptAsync"
+                     OnError="OnVoiceErrorAsync" />
         <button class="primary send-btn" @onclick="SendAsync"
                 disabled="@(Sending || string.IsNullOrWhiteSpace(_text))"
                 aria-label="@L["composer.send"]">
@@ -132,7 +137,35 @@
 
     private ElementReference _ta;
     private string _text = "";
+    private string _voiceBase = "";
     private bool _promptOpen;
+
+    /// <summary>SPEC-159 RF-003: transcript concatena ao texto base
+    /// capturado no início do ditado (não substitui, não envia).</summary>
+    private void OnVoiceStart() => _voiceBase = _text;
+
+    private async Task OnVoiceTranscriptAsync(string text)
+    {
+        var sep = _voiceBase.Length > 0
+            && !_voiceBase.EndsWith(' ') ? " " : "";
+        _text = _voiceBase + sep + text;
+        await OnTextChanged();
+        StateHasChanged();
+    }
+
+    private void OnVoiceErrorAsync(string code)
+    {
+        var key = code switch
+        {
+            "not-allowed" or "service-not-allowed"
+                => "composer.mic_denied",
+            "unsupported" or "language-not-supported"
+                => "composer.mic_not_supported",
+            "no-speech" => "composer.mic_no_speech",
+            _ => "composer.mic_error",
+        };
+        Toasts.Warn(L[key]);
+    }
     private List<WorkspaceItemDto> _prompts = [];
 
     private void PickPrompt(WorkspaceItemDto pr)

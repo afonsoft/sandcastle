@@ -968,5 +968,12 @@
   "workspace.title": "Espace de travail",
   "workspace.tools_desc": "Description",
   "workspace.tools_server": "Serveur",
-  "workspace.tools_tool": "Outil"
+  "workspace.tools_tool": "Outil",
+  "composer.voice_dictate": "Dicter",
+  "composer.voice_stop": "Arrêter la dictée",
+  "composer.voice_listening": "Écoute…",
+  "composer.mic_denied": "Accès au microphone refusé",
+  "composer.mic_not_supported": "La saisie vocale n’est pas prise en charge par ce navigateur",
+  "composer.mic_no_speech": "Aucune parole détectée",
+  "composer.mic_error": "Erreur de saisie vocale"
 }

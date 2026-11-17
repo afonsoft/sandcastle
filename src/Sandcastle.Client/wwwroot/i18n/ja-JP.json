@@ -968,5 +968,12 @@
   "workspace.title": "ワークスペース",
   "workspace.tools_desc": "説明",
   "workspace.tools_server": "サーバー",
-  "workspace.tools_tool": "ツール"
+  "workspace.tools_tool": "ツール",
+  "composer.voice_dictate": "音声入力",
+  "composer.voice_stop": "音声入力を停止",
+  "composer.voice_listening": "聞き取り中…",
+  "composer.mic_denied": "マイクへのアクセスが拒否されました",
+  "composer.mic_not_supported": "このブラウザは音声入力に対応していません",
+  "composer.mic_no_speech": "音声が検出されませんでした",
+  "composer.mic_error": "音声入力エラー"
 }
