@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
+using Sandcastle.Application.Automations;
 using Sandcastle.Infrastructure.Persistence;
 
 namespace Sandcastle.Infrastructure.Automations;
@@ -45,6 +46,10 @@ public sealed class AutomationRecord : IOrgScoped
     public int? Weekday { get; set; }
     /// <summary>Ligada/desligada (once desliga após disparar).</summary>
     public bool Enabled { get; set; }
+    /// <summary>SPEC-161: falhas consecutivas (circuit breaker).</summary>
+    public int ConsecutiveFailures { get; set; }
+    /// <summary>SPEC-161 RF-002: <c>skip|run-once</c> (default run-once).</summary>
+    public string MisfirePolicy { get; set; } = AutomationMisfirePolicies.RunOnce;
     /// <summary>Próximo disparo UTC (null = sem agenda ativa).</summary>
     public DateTimeOffset? NextRunAt { get; set; }
     /// <summary>Espelho em ticks — SQLite não ordena DateTimeOffset.</summary>
@@ -76,6 +81,8 @@ public sealed class AutomationRunRecord
     public Guid? ConversationId { get; set; }
     /// <summary>Erro (quota, start-task negado, …).</summary>
     public string? Error { get; set; }
+    /// <summary>SPEC-161 RF-002: disparo recuperado fora da graça de misfire.</summary>
+    public bool Missed { get; set; }
 }
 
 /// <summary>
@@ -112,6 +119,8 @@ public sealed class AutomationRecordConfiguration
         // scheduler varre (Enabled, NextRunAtTicks) a cada tick.
         b.HasIndex(e => new { e.Enabled, e.NextRunAtTicks });
         b.HasIndex(e => e.CreatedByUserId);
+        b.Property(e => e.MisfirePolicy).HasMaxLength(20)
+            .HasDefaultValue(AutomationMisfirePolicies.RunOnce);
     }
 }
 

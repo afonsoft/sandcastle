@@ -2,7 +2,9 @@ using System.Security.Cryptography;
 using System.Text;
 
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 
 using Sandcastle.Application.Automations;
 using Sandcastle.Application.Conversations;
@@ -27,29 +29,42 @@ public sealed class AutomationService(
     IAuditService? audit = null,
     ILogger<AutomationService>? logger = null,
     // SPEC-143: kind=scan dispara IScanService (não conversa solta).
-    Application.Scans.IScanService? scans = null) : IAutomationService
+    Application.Scans.IScanService? scans = null,
+    // SPEC-161: limites do scheduler + dispatch paralelo + notificação
+    // do circuit breaker (todos opcionais — testes constroem direto).
+    IOptions<AutomationOptions>? options = null,
+    IServiceScopeFactory? scopes = null,
+    IUserNotificationService? notifications = null) : IAutomationService
 {
+    private readonly AutomationOptions _options =
+        options?.Value ?? new AutomationOptions();
     /// <summary>Tamanho máximo do prompt (SPEC-47 RF-003).</summary>
     public const int MaxPromptChars = 8192;
 
     /// <summary>Intervalo mínimo aceito (minutos).</summary>
     public const int MinIntervalMinutes = 5;
 
-    private static AutomationInfo ToInfo(AutomationRecord r) => new(
+    private AutomationInfo ToInfo(AutomationRecord r) => new(
         r.Id, r.OrgId, r.CreatedByUserId, r.Name, r.Prompt, r.LlmModel,
         r.SelectedRepository, r.ScheduleKind, r.ScheduleTimeUtc,
         r.IntervalMinutes, r.Weekday, r.Enabled, r.NextRunAt, r.LastRunAt,
-        r.CreatedAt, r.UpdatedAt, r.Kind, r.ScanConfigJson);
+        r.CreatedAt, r.UpdatedAt, r.Kind, r.ScanConfigJson,
+        // SPEC-161: circuit_open é derivado (desabilitado + limiar).
+        r.ConsecutiveFailures,
+        CircuitOpen: !r.Enabled
+            && r.ConsecutiveFailures >= _options.CircuitBreakerThreshold,
+        r.MisfirePolicy);
 
     private static AutomationRunInfo ToRunInfo(AutomationRunRecord r) => new(
         r.Id, r.AutomationId, r.StartedAt, r.FinishedAt, r.Status,
-        r.ConversationId, r.Error);
+        r.ConversationId, r.Error, r.Missed);
 
     /// <summary>Validação de upsert (SPEC-47 RF-003 + SPEC-143 kind).</summary>
     public static string? Validate(
         string? name, string? prompt, string? scheduleKind,
         string? scheduleTimeUtc, int? intervalMinutes,
-        DateTimeOffset? nextRunAt, string? kind = null)
+        DateTimeOffset? nextRunAt, string? kind = null,
+        string? misfirePolicy = null)
     {
         if (string.IsNullOrWhiteSpace(name))
         {
@@ -59,6 +74,12 @@ public sealed class AutomationService(
         if (kind is not null && !AutomationKinds.All.Contains(kind))
         {
             return "kind must be task|scan";
+        }
+
+        if (misfirePolicy is not null
+            && !AutomationMisfirePolicies.All.Contains(misfirePolicy))
+        {
+            return "misfire_policy must be skip|run-once";
         }
 
         if (string.IsNullOrWhiteSpace(prompt))
@@ -191,12 +212,45 @@ public sealed class AutomationService(
             profile, effort).ToJson(), null);
     }
 
+    /// <summary>
+    /// SPEC-161 RF-005: jitter de ±5% no próximo disparo recorrente
+    /// (interval/daily/weekly) para evitar thundering herd. Determinístico
+    /// — seed = automation id + ticks do disparo calculado — então testes
+    /// e reagendamentos do mesmo instante são estáveis. <c>once</c> nunca
+    /// recebe jitter (o horário é escolha explícita do usuário).
+    /// </summary>
+    internal static DateTimeOffset ApplyScheduleJitter(
+        AutomationRecord a, DateTimeOffset next, DateTimeOffset now)
+    {
+        if (a.ScheduleKind == AutomationScheduleKinds.Once)
+        {
+            return next;
+        }
+
+        // ±5% do período até o disparo (não dos ticks absolutos — senão
+        // o jitter seria de anos). Determinístico por (id, next).
+        var periodSeconds = (next - now).TotalSeconds;
+        if (periodSeconds <= 0)
+        {
+            return next;
+        }
+
+        var seed = a.Id.GetHashCode() ^ next.UtcTicks.GetHashCode();
+        var rng = new Random(seed);
+        var deltaSeconds = periodSeconds * 0.05
+            * (rng.NextDouble() * 2.0 - 1.0);
+        return next.AddSeconds(deltaSeconds);
+    }
+
     private static void Reschedule(AutomationRecord a, DateTimeOffset now)
     {
-        a.NextRunAt = a.Enabled
+        var next = a.Enabled
             ? AutomationSchedule.ComputeNextRun(
                 a.ScheduleKind, a.ScheduleTimeUtc, a.IntervalMinutes,
                 a.Weekday, a.NextRunAt, now)
+            : null;
+        a.NextRunAt = next is { } n
+            ? ApplyScheduleJitter(a, n, now)
             : null;
     }
 
@@ -233,7 +287,7 @@ public sealed class AutomationService(
             ?? AutomationKinds.Task;
         var error = Validate(req.Name, req.Prompt, kind,
             req.ScheduleTimeUtc, req.IntervalMinutes, req.NextRunAt,
-            autoKind);
+            autoKind, req.MisfirePolicy?.Trim().ToLowerInvariant());
         if (error is not null)
         {
             return (null, error);
@@ -244,6 +298,9 @@ public sealed class AutomationService(
         {
             return (null, scanErr);
         }
+
+        var misfirePolicy = req.MisfirePolicy?.Trim().ToLowerInvariant()
+            ?? AutomationMisfirePolicies.RunOnce;
 
         var now = DateTimeOffset.UtcNow;
         var rec = new AutomationRecord
@@ -257,6 +314,7 @@ public sealed class AutomationService(
             SelectedRepository = req.SelectedRepository,
             Kind = autoKind,
             ScanConfigJson = scanConfig,
+            MisfirePolicy = misfirePolicy,
             ScheduleKind = kind,
             ScheduleTimeUtc = req.ScheduleTimeUtc,
             IntervalMinutes = req.IntervalMinutes ?? 0,
@@ -292,7 +350,8 @@ public sealed class AutomationService(
         var next = req.NextRunAt ?? rec.NextRunAt;
         var error = Validate(
             req.Name ?? rec.Name, req.Prompt ?? rec.Prompt, kind, time,
-            interval, next, autoKind);
+            interval, next, autoKind,
+            req.MisfirePolicy?.Trim().ToLowerInvariant());
         if (error is not null)
         {
             return (null, error);
@@ -324,7 +383,18 @@ public sealed class AutomationService(
         rec.IntervalMinutes = interval;
         if (req.Weekday is not null) { rec.Weekday = req.Weekday; }
         if (req.NextRunAt is not null) { rec.NextRunAt = req.NextRunAt; }
-        if (req.Enabled is not null) { rec.Enabled = req.Enabled.Value; }
+        if (req.MisfirePolicy is not null)
+        {
+            rec.MisfirePolicy = req.MisfirePolicy.Trim().ToLowerInvariant();
+        }
+
+        // SPEC-161 RF-004: re-enable manual zera o circuit breaker.
+        if (req.Enabled == true && !rec.Enabled)
+        {
+            rec.ConsecutiveFailures = 0;
+        }
+
+        rec.Enabled = req.Enabled ?? rec.Enabled;
         rec.UpdatedAt = DateTimeOffset.UtcNow;
         Reschedule(rec, rec.UpdatedAt);
         await db.SaveChangesAsync(ct);
@@ -364,17 +434,22 @@ public sealed class AutomationService(
             return (null, false);
         }
 
+        // SPEC-161 RF-004: disparo manual zera o circuit breaker.
+        rec.ConsecutiveFailures = 0;
         var run = await FireAsync(rec, actor: "user", ip: null, ct);
         return (ToRunInfo(run), run.Status != "skipped");
     }
 
     /// <summary>
     /// Núcleo do disparo: guard de concorrência + start-task como owner
-    /// + run row + reagenda + audit (SPEC-47 RF-002/RF-006).
+    /// + run row + reagenda + audit (SPEC-47 RF-002/RF-006). SPEC-161:
+    /// retry de falhas transitórias (RF-003) e circuit breaker (RF-004)
+    /// acontecem antes do save final — <paramref name="missed"/> marca
+    /// runs recuperados de misfire (RF-002).
     /// </summary>
     internal async Task<AutomationRunRecord> FireAsync(
         AutomationRecord rec, string actor, string? ip,
-        CancellationToken ct)
+        CancellationToken ct, bool missed = false)
     {
         var now = DateTimeOffset.UtcNow;
 
@@ -407,69 +482,51 @@ public sealed class AutomationService(
             StartedAt = now,
             StartedAtTicks = now.UtcTicks,
             Status = "running",
+            Missed = missed,
         };
         db.AutomationRuns.Add(run);
-        try
+
+        // SPEC-161 RF-003: retry só para falhas transitórias; erro
+        // permanente (quota/validação) falha na hora — nunca retry duplo
+        // de LLM. O run é criado uma vez; as tentativas acontecem aqui.
+        var maxAttempts = Math.Max(1, _options.MaxTransientAttempts);
+        for (var attempt = 1; ; attempt++)
         {
-            var ownerId = Guid.Parse(rec.CreatedByUserId);
-            if (rec.Kind == AutomationKinds.Scan && scans is not null)
+            try
             {
-                // SPEC-143: kind=scan → POST /scans equivalente. O run
-                // resolve imediato (succeeded) — o scan tem lifecycle
-                // próprio (queued → running → completed).
-                var cfg = AutomationScanConfig.Parse(rec.ScanConfigJson)
-                    ?? throw new InvalidOperationException(
-                        "scan automation missing scan_config_json");
-                var (created, scanErr) = await scans.CreateAsync(
-                    new Application.Scans.CreateScanRequest(
-                        cfg.Repositories, rec.Prompt,
-                        cfg.Profile, cfg.Effort),
-                    ownerId, rec.OrgId,
-                    Application.Scans.ScanTriggers.Automation, ct);
-                if (created is null)
+                await FireCoreAsync(rec, run, ct);
+                break;
+            }
+            catch (Exception ex) when (!AutomationFailureClassifier
+                .IsHostCancellation(ex, ct))
+            {
+                var transient = attempt < maxAttempts
+                    && AutomationFailureClassifier.IsTransient(ex);
+                if (!transient)
                 {
-                    throw new InvalidOperationException(
-                        scanErr ?? "scan creation failed");
+                    run.Status = "failed";
+                    run.FinishedAt = DateTimeOffset.UtcNow;
+                    // RF-006: quota negada → error=quota prefixado.
+                    run.Error = ex is PlanLimitExceededException
+                        ? $"quota: {ex.Message}"
+                        : ex.Message;
+                    logger?.LogWarning(ex,
+                        "automation {Id} fire failed (attempt {Attempt})",
+                        rec.Id, attempt);
+                    break;
                 }
 
-                run.ConversationId = created.CoordinatorConversationId;
-                run.Status = "succeeded";
-                run.FinishedAt = DateTimeOffset.UtcNow;
+                logger?.LogInformation(ex,
+                    "automation {Id} transient failure (attempt {Attempt}) — retrying",
+                    rec.Id, attempt);
+                await Task.Delay(RetryDelay(attempt), ct);
             }
-            else
-            {
-                var task = await conversations.CreateForUserAsync(
-                    ownerId, rec.OrgId,
-                    new CreateConversationRequest(
-                        new InitialMessage("user", [rec.Prompt], Run: true),
-                        rec.SelectedRepository, null, rec.LlmModel, null),
-                    ct);
-                run.ConversationId = task.AppConversationId;
-                run.FinishedAt = DateTimeOffset.UtcNow;
+        }
 
-                // SPEC-47 RF-006: origem automation:{id} no stream da
-                // conversa.
-                if (run.ConversationId is { } convId)
-                {
-                    await events.AppendAsync(convId, new AgentDiagnosticEvent
-                    {
-                        Severity = "info",
-                        Code = "automation",
-                        Message =
-                            $"fired by automation:{rec.Id} ({rec.Name})",
-                    }, CancellationToken.None);
-                }
-            }
-        }
-        catch (Exception ex) when (ex is not OperationCanceledException)
-        {
-            run.Status = "failed";
-            run.FinishedAt = DateTimeOffset.UtcNow;
-            // RF-006: quota negada → error=quota prefixado.
-            run.Error = ex is PlanLimitExceededException
-                ? $"quota: {ex.Message}"
-                : ex.Message;
-        }
+        // SPEC-161 RF-004: breaker conta o desfecho imediato (falha de
+        // criação ou sucesso de scan); runs task ficam running e o
+        // reconcile aplica o desfecho final da conversa.
+        var circuitOpened = ApplyBreakerOutcome(rec, run.Status);
 
         rec.LastRunAt = now;
         // once → esgota após o primeiro disparo.
@@ -510,7 +567,127 @@ public sealed class AutomationService(
                 }, cancellationToken: CancellationToken.None);
         }
 
+        // SPEC-161 RF-004: circuit aberto → audit + notificação ao dono.
+        if (circuitOpened && audit is not null)
+        {
+            await audit.RecordAsync("automation_circuit_open",
+                actorUserId: rec.CreatedByUserId, orgId: rec.OrgId,
+                targetType: "automation", targetId: rec.Id.ToString(),
+                ip: ip, metadata: new
+                {
+                    rec.Name,
+                    rec.ConsecutiveFailures,
+                    threshold = _options.CircuitBreakerThreshold,
+                }, cancellationToken: CancellationToken.None);
+        }
+
+        if (circuitOpened && notifications is not null
+            && Guid.TryParse(rec.CreatedByUserId, out var ownerId))
+        {
+            await notifications.NotifyAutomationDisabledAsync(
+                ownerId, rec.Id, rec.Name, rec.ConsecutiveFailures,
+                CancellationToken.None);
+        }
+
         return run;
+    }
+
+    /// <summary>
+    /// Tentativa única de disparo (scan ou conversa start-task) — lança
+    /// em falha; o retry é decidido pelo caller (RF-003).
+    /// </summary>
+    private async Task FireCoreAsync(
+        AutomationRecord rec, AutomationRunRecord run, CancellationToken ct)
+    {
+        var ownerId = Guid.Parse(rec.CreatedByUserId);
+        if (rec.Kind == AutomationKinds.Scan && scans is not null)
+        {
+            // SPEC-143: kind=scan → POST /scans equivalente. O run
+            // resolve imediato (succeeded) — o scan tem lifecycle
+            // próprio (queued → running → completed).
+            var cfg = AutomationScanConfig.Parse(rec.ScanConfigJson)
+                ?? throw new InvalidOperationException(
+                    "scan automation missing scan_config_json");
+            var (created, scanErr) = await scans.CreateAsync(
+                new Application.Scans.CreateScanRequest(
+                    cfg.Repositories, rec.Prompt,
+                    cfg.Profile, cfg.Effort),
+                ownerId, rec.OrgId,
+                Application.Scans.ScanTriggers.Automation, ct);
+            if (created is null)
+            {
+                throw new InvalidOperationException(
+                    scanErr ?? "scan creation failed");
+            }
+
+            run.ConversationId = created.CoordinatorConversationId;
+            run.Status = "succeeded";
+            run.FinishedAt = DateTimeOffset.UtcNow;
+            return;
+        }
+
+        var task = await conversations.CreateForUserAsync(
+            ownerId, rec.OrgId,
+            new CreateConversationRequest(
+                new InitialMessage("user", [rec.Prompt], Run: true),
+                rec.SelectedRepository, null, rec.LlmModel, null),
+            ct);
+        run.ConversationId = task.AppConversationId;
+        run.FinishedAt = DateTimeOffset.UtcNow;
+
+        // SPEC-47 RF-006: origem automation:{id} no stream da conversa.
+        if (run.ConversationId is { } convId)
+        {
+            await events.AppendAsync(convId, new AgentDiagnosticEvent
+            {
+                Severity = "info",
+                Code = "automation",
+                Message = $"fired by automation:{rec.Id} ({rec.Name})",
+            }, CancellationToken.None);
+        }
+    }
+
+    /// <summary>
+    /// SPEC-161 RF-003: backoff exponencial + jitter full —
+    /// <c>base × 2^(attempt-1)</c> com teto, randomizado em [0, teto].
+    /// </summary>
+    private TimeSpan RetryDelay(int attempt)
+    {
+        var capMs = Math.Min(
+            _options.RetryBaseDelayMs * Math.Pow(2, attempt - 1),
+            _options.RetryMaxDelayMs);
+        return TimeSpan.FromMilliseconds(
+            Random.Shared.NextDouble() * capMs);
+    }
+
+    /// <summary>
+    /// SPEC-161 RF-004: aplica o desfecho ao contador do breaker.
+    /// Retorna <see langword="true"/> quando o circuito abre nesta
+    /// transição (threshold atingido e automation ainda habilitada).
+    /// </summary>
+    private bool ApplyBreakerOutcome(AutomationRecord rec, string outcome)
+    {
+        if (outcome == "succeeded")
+        {
+            rec.ConsecutiveFailures = 0;
+            return false;
+        }
+
+        if (outcome != "failed")
+        {
+            return false;
+        }
+
+        rec.ConsecutiveFailures++;
+        if (rec.Enabled
+            && rec.ConsecutiveFailures >= _options.CircuitBreakerThreshold)
+        {
+            rec.Enabled = false;
+            rec.NextRunAt = null;
+            return true;
+        }
+
+        return false;
     }
 
     /// <inheritdoc />
@@ -639,47 +816,123 @@ public sealed class AutomationService(
     }
 
     /// <inheritdoc />
-    public async Task TickAsync(DateTimeOffset now, CancellationToken ct)
+    public async Task FireScheduledAsync(
+        Guid automationId, DateTimeOffset now, CancellationToken ct)
     {
-        var ticks = now.UtcTicks;
-        var due = await db.Automations
-            .Where(a => a.Enabled && a.NextRunAtTicks != null
-                && a.NextRunAtTicks <= ticks)
-            .ToListAsync(ct);
-        foreach (var a in due)
-        {
-            await FireDueAsync(a, now, ct);
-        }
-
-        await ReconcileRunningAsync(ct);
-    }
-
-    private async Task FireDueAsync(
-        AutomationRecord a, DateTimeOffset now, CancellationToken ct)
-    {
+        AutomationRecord? rec = null;
         try
         {
-            await FireAsync(a, actor: "schedule", ip: null, ct);
+            rec = await db.Automations.FirstOrDefaultAsync(
+                a => a.Id == automationId && a.Enabled, ct);
+            if (rec is null)
+            {
+                return;
+            }
+
+            // SPEC-161 RF-002: misfire — NextRunAt além da graça.
+            var graceTicks = TimeSpan
+                .FromSeconds(_options.MisfireGraceSec).Ticks;
+            var isMissed = rec.NextRunAtTicks is { } due
+                && now.UtcTicks - due > graceTicks;
+            if (isMissed
+                && rec.MisfirePolicy == AutomationMisfirePolicies.Skip)
+            {
+                // Política skip: registra run skipped/missed sem disparar
+                // conversa e reagenda do now.
+                var skipped = new AutomationRunRecord
+                {
+                    Id = Guid.NewGuid(),
+                    AutomationId = rec.Id,
+                    StartedAt = now,
+                    StartedAtTicks = now.UtcTicks,
+                    FinishedAt = now,
+                    Status = "skipped",
+                    Missed = true,
+                    Error = "missed schedule (misfire_policy=skip)",
+                };
+                db.AutomationRuns.Add(skipped);
+                Reschedule(rec, now);
+                rec.UpdatedAt = DateTimeOffset.UtcNow;
+                await db.SaveChangesAsync(ct);
+                logger?.LogInformation(
+                    "automation {Id} misfire skipped (policy=skip)", rec.Id);
+                return;
+            }
+
+            await FireAsync(rec, actor: "schedule", ip: null, ct,
+                missed: isMissed);
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
         {
-            // Falha numa automation não bloqueia as demais (RF-005 NFR).
+            // Falha numa automation não bloqueia as demais (RF-005 NFR) —
+            // reagenda do now para não entrar em hot-loop no próximo tick.
             logger?.LogWarning(ex,
-                "automation {Id} tick fire failed", a.Id);
+                "automation {Id} tick fire failed", automationId);
             try
             {
-                a.NextRunAt = AutomationSchedule.ComputeNextRun(
-                    a.ScheduleKind, a.ScheduleTimeUtc,
-                    a.IntervalMinutes, a.Weekday, a.NextRunAt, now);
-                await db.SaveChangesAsync(ct);
+                if (rec is not null)
+                {
+                    Reschedule(rec, now);
+                    rec.UpdatedAt = DateTimeOffset.UtcNow;
+                    await db.SaveChangesAsync(ct);
+                }
             }
             catch (Exception inner)
                 when (inner is not OperationCanceledException)
             {
                 logger?.LogWarning(inner,
-                    "automation {Id} reschedule failed", a.Id);
+                    "automation {Id} reschedule failed", automationId);
             }
         }
+    }
+
+    /// <inheritdoc />
+    public async Task TickAsync(DateTimeOffset now, CancellationToken ct)
+    {
+        var ticks = now.UtcTicks;
+        var dueIds = await db.Automations.AsNoTracking()
+            .Where(a => a.Enabled && a.NextRunAtTicks != null
+                && a.NextRunAtTicks <= ticks)
+            .Select(a => a.Id)
+            .ToListAsync(ct);
+
+        // SPEC-161 RF-001: dispatch paralelo limitado — cada automação
+        // roda no próprio scope/DbContext (EF não é thread-safe). Sem
+        // scope factory (testes unitários) cai no caminho sequencial.
+        if (scopes is null || dueIds.Count <= 1)
+        {
+            foreach (var id in dueIds)
+            {
+                await FireScheduledAsync(id, now, ct);
+            }
+        }
+        else
+        {
+            var maxConcurrent = Math.Max(1, _options.MaxConcurrent);
+            await Parallel.ForEachAsync(dueIds,
+                new ParallelOptions
+                {
+                    MaxDegreeOfParallelism = maxConcurrent,
+                    CancellationToken = ct,
+                },
+                async (id, token) =>
+                    await FireScheduledInScopeAsync(id, now, token));
+        }
+
+        await ReconcileRunningAsync(ct);
+    }
+
+    /// <summary>
+    /// SPEC-161 RF-001: dispara uma devida em scope próprio (DbContext
+    /// isolado por automação — EF Core não permite uso concorrente do
+    /// mesmo contexto).
+    /// </summary>
+    private async Task FireScheduledInScopeAsync(
+        Guid automationId, DateTimeOffset now, CancellationToken ct)
+    {
+        await using var scope = scopes!.CreateAsyncScope();
+        var svc = scope.ServiceProvider.GetRequiredService<IAutomationService>();
+        await svc.FireScheduledAsync(automationId, now, ct);
     }
 
     // Reconcile: runs running → status da conversa linkada.
@@ -699,6 +952,10 @@ public sealed class AutomationService(
             .Select(c => new { c.Id, c.ExecutionStatus })
             .ToDictionaryAsync(x => x.Id, x => x.ExecutionStatus, ct);
         var changed = false;
+        // SPEC-161 RF-004: desfecho final da conversa alimenta o breaker —
+        // no máximo um run running por automation (overlap guard), então
+        // um outcome por automation por tick.
+        var outcomes = new Dictionary<Guid, string>();
         foreach (var r in running)
         {
             if (r.ConversationId is not { } cid
@@ -726,11 +983,84 @@ public sealed class AutomationService(
             {
                 r.Error = $"conversation {st.ToLowerInvariant()}";
             }
+
+            outcomes[r.AutomationId] = done;
             changed = true;
         }
         if (changed)
         {
             await db.SaveChangesAsync(ct);
+        }
+
+        if (outcomes.Count > 0)
+        {
+            await ApplyReconciledOutcomesAsync(outcomes, ct);
+        }
+    }
+
+    /// <summary>
+    /// SPEC-161 RF-004: aplica os desfechos reconciliados ao breaker de
+    /// cada automation — sucesso zera, falha incrementa e, no limiar,
+    /// desabilita + audit <c>automation_circuit_open</c> + notificação.
+    /// </summary>
+    private async Task ApplyReconciledOutcomesAsync(
+        IReadOnlyDictionary<Guid, string> outcomes, CancellationToken ct)
+    {
+        var automations = await db.Automations
+            .Where(a => outcomes.Keys.Contains(a.Id))
+            .ToListAsync(ct);
+        var opened = new List<AutomationRecord>();
+        var dirty = false;
+        foreach (var a in automations)
+        {
+            if (!outcomes.TryGetValue(a.Id, out var outcome))
+            {
+                continue;
+            }
+
+            if (ApplyBreakerOutcome(a, outcome))
+            {
+                opened.Add(a);
+            }
+
+            dirty = true;
+        }
+
+        if (!dirty)
+        {
+            return;
+        }
+
+        foreach (var a in automations)
+        {
+            a.UpdatedAt = DateTimeOffset.UtcNow;
+        }
+
+        await db.SaveChangesAsync(ct);
+
+        foreach (var a in opened)
+        {
+            if (audit is not null)
+            {
+                await audit.RecordAsync("automation_circuit_open",
+                    actorUserId: a.CreatedByUserId, orgId: a.OrgId,
+                    targetType: "automation", targetId: a.Id.ToString(),
+                    metadata: new
+                    {
+                        a.Name,
+                        a.ConsecutiveFailures,
+                        threshold = _options.CircuitBreakerThreshold,
+                        source = "reconcile",
+                    }, cancellationToken: CancellationToken.None);
+            }
+
+            if (notifications is not null
+                && Guid.TryParse(a.CreatedByUserId, out var ownerId))
+            {
+                await notifications.NotifyAutomationDisabledAsync(
+                    ownerId, a.Id, a.Name, a.ConsecutiveFailures,
+                    CancellationToken.None);
+            }
         }
     }
 

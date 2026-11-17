@@ -239,6 +239,12 @@
               "string"
             ]
           },
+          "misfire_policy": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
           "name": {
             "type": [
               "null",
