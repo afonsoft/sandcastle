@@ -1,0 +1,140 @@
+@using Sandcastle.Client.Services
+@inject SandcastleApiClient Api
+@inject ToastService Toasts
+@inject LocalizationService L
+@inject IJSRuntime JS
+
+@* SPEC-158 RF-003: personal access tokens (sc_pat_*). *@
+<h3>@L["settings.tokens"]</h3>
+
+@if (_created is not null)
+{
+    @* Token cru exibido uma única vez — nunca persistido. *@
+    <div class="settings-section">
+        <h4>@L["settings.tokens.created"]</h4>
+        <div class="field">
+            <label for="pat-raw">@L["settings.tokens.copy_now"]</label>
+            <input id="pat-raw" type="text" value="@_created.Token" readonly />
+        </div>
+        <button type="button" class="badge"
+                @onclick="() => CopyAsync(_created.Token)">
+            @L["common.copy"]
+        </button>
+    </div>
+}
+
+<div class="settings-section">
+    <h4>@L["settings.tokens.new"]</h4>
+    <div class="field">
+        <label for="pat-name">@L["settings.tokens.name"]</label>
+        <input id="pat-name" type="text" @bind="_name" maxlength="120" />
+    </div>
+    <div class="field">
+        <label for="pat-expiry">@L["settings.tokens.expires_in_days"]</label>
+        <input id="pat-expiry" type="number" min="0" @bind="_expiresInDays"
+               placeholder="@L["settings.tokens.no_expiry"]" />
+    </div>
+    <div class="field">
+        <label for="pat-scope">@L["settings.tokens.scopes"]</label>
+        <select id="pat-scope" @bind="_scope">
+            <option value="read">read</option>
+            <option value="read write">read + write</option>
+        </select>
+    </div>
+    <button type="button" class="badge" @onclick="CreateAsync"
+            disabled="@(_busy || string.IsNullOrWhiteSpace(_name))">
+        @L["settings.tokens.create"]
+    </button>
+</div>
+
+<div class="settings-section">
+    <table class="table">
+        <thead>
+            <tr>
+                <th>@L["settings.tokens.name"]</th>
+                <th>token</th>
+                <th>@L["settings.tokens.scopes"]</th>
+                <th>@L["settings.tokens.last_used"]</th>
+                <th></th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var t in _tokens)
+            {
+                <tr>
+                    <td>@t.Name</td>
+                    <td><code>@t.Prefix…</code></td>
+                    <td>@string.Join(" ", t.Scopes)</td>
+                    <td>@(t.LastUsedAt?.LocalDateTime.ToString("g") ?? "—")</td>
+                    <td>
+                        <button type="button" class="badge badge-dim"
+                                @onclick="() => RevokeAsync(t.Id)">
+                            @L["settings.tokens.revoke"]
+                        </button>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+</div>
+
+@code {
+    private List<PatDto> _tokens = [];
+    private CreatedPatDto? _created;
+    private string? _name;
+    private int? _expiresInDays;
+    private string _scope = "read";
+    private bool _busy;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await ReloadAsync();
+    }
+
+    private async Task ReloadAsync()
+    {
+        try { _tokens = (await Api.ListPatTokensAsync()).ToList(); }
+        catch (Exception) { /* best-effort load; panel keeps last state */ }
+    }
+
+    private async Task CreateAsync()
+    {
+        _busy = true;
+        try
+        {
+            var scopes = _scope.Split(' ',
+                StringSplitOptions.RemoveEmptyEntries);
+            var (pat, error) = await Api.CreatePatTokenAsync(
+                _name!.Trim(), scopes,
+                _expiresInDays is > 0 ? _expiresInDays : null);
+            if (pat is null)
+            {
+                Toasts.Error(error ?? L["settings.tokens.create_failed"]);
+                return;
+            }
+
+            _created = pat;
+            _name = null;
+            await ReloadAsync();
+        }
+        finally { _busy = false; }
+    }
+
+    private async Task RevokeAsync(Guid id)
+    {
+        if (await Api.DeletePatTokenAsync(id))
+        {
+            await ReloadAsync();
+        }
+        else
+        {
+            Toasts.Error(L["settings.tokens.create_failed"]);
+        }
+    }
+
+    private async Task CopyAsync(string text)
+    {
+        await JS.InvokeVoidAsync("navigator.clipboard.writeText", text);
+        Toasts.Success(L["common.copied"]);
+    }
+}

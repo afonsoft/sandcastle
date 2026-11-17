@@ -1,0 +1,103 @@
+@using Sandcastle.Client.Services
+@inject SandcastleApiClient Api
+@inject ToastService Toasts
+@inject LocalizationService L
+
+@* SPEC-158 RF-004: toggles de notificação + webhook HTTPS. *@
+<h3>@L["settings.notifications"]</h3>
+
+<div class="settings-section">
+    <div class="field">
+        <label for="ntf-finished">
+            <input id="ntf-finished" type="checkbox" @bind="_runFinished" />
+            @L["settings.notifications.run_finished"]
+        </label>
+    </div>
+    <div class="field">
+        <label for="ntf-failed">
+            <input id="ntf-failed" type="checkbox" @bind="_runFailed" />
+            @L["settings.notifications.run_failed"]
+        </label>
+    </div>
+    <div class="field">
+        <label for="ntf-webhook">@L["settings.notifications.webhook_url"]</label>
+        <input id="ntf-webhook" type="url" @bind="_webhookUrl"
+               placeholder="https://…" />
+    </div>
+    <button type="button" class="badge" @onclick="SaveAsync"
+            disabled="@_busy">
+        @L["common.save"]
+    </button>
+    <button type="button" class="badge badge-dim" @onclick="TestAsync"
+            disabled="@(_busy || string.IsNullOrWhiteSpace(_webhookUrl))">
+        @L["settings.notifications.send_test"]
+    </button>
+</div>
+
+@code {
+    private bool _runFinished;
+    private bool _runFailed;
+    private string? _webhookUrl;
+    private bool _busy;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            var p = await Api.GetNotificationPrefsAsync();
+            if (p is not null)
+            {
+                _runFinished = p.RunFinished;
+                _runFailed = p.RunFailed;
+                _webhookUrl = p.WebhookUrl;
+            }
+        }
+        catch (Exception) { /* best-effort load; panel keeps last state */ }
+    }
+
+    private async Task SaveAsync()
+    {
+        _busy = true;
+        try
+        {
+            var (ok, error) = await Api.UpdateNotificationPrefsAsync(
+                _runFinished, _runFailed, _webhookUrl);
+            if (ok)
+            {
+                Toasts.Success(L["settings.notifications.saved"]);
+            }
+            else
+            {
+                Toasts.Error(error ?? L["settings.notifications.save_failed"]);
+            }
+        }
+        finally { _busy = false; }
+    }
+
+    private async Task TestAsync()
+    {
+        _busy = true;
+        try
+        {
+            var saved = await Api.UpdateNotificationPrefsAsync(
+                _runFinished, _runFailed, _webhookUrl);
+            if (!saved.Ok)
+            {
+                Toasts.Error(saved.Error
+                    ?? L["settings.notifications.save_failed"]);
+                return;
+            }
+
+            var (ok, error) = await Api.SendNotificationTestAsync();
+            if (ok)
+            {
+                Toasts.Success(L["settings.notifications.test_sent"]);
+            }
+            else
+            {
+                Toasts.Error(error ?? L["settings.notifications.test_failed"]);
+            }
+        }
+        finally { _busy = false; }
+    }
+}

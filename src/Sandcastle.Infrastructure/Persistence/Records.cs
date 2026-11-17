@@ -115,6 +115,10 @@ public sealed class UserRecord
     public required Guid Id { get; set; }
     public required string Email { get; set; }
     public string? DisplayName { get; set; }
+    /// <summary>SPEC-158: avatar por URL (sem upload).</summary>
+    public string? AvatarUrl { get; set; }
+    /// <summary>SPEC-158: hash PBKDF2 da senha local (provider local).</summary>
+    public string? PasswordHash { get; set; }
     public string? RolesJson { get; set; }
     public string? CurrentOrgId { get; set; }
     public DateTimeOffset? DisabledAt { get; set; }
@@ -201,6 +205,26 @@ public sealed class WorkspaceItemRecord
     public required string BodyJson { get; set; }
     public DateTimeOffset CreatedAt { get; set; }
     public DateTimeOffset UpdatedAt { get; set; }
+}
+
+/// <summary>
+/// SPEC-158: personal access token — <c>sc_pat_*</c>, hash-only at rest
+/// (SHA-256). <see cref="ScopesJson"/> = ["read"|"write"]; escopo
+/// <c>read</c> sozinho bloqueia métodos mutantes.
+/// </summary>
+public sealed class PersonalAccessTokenRecord
+{
+    public required Guid Id { get; set; }
+    public required Guid UserId { get; set; }
+    public required string Name { get; set; }
+    /// <summary>Prefixo público exibido mascarado (ex.: sc_pat_ab12).</summary>
+    public required string Prefix { get; set; }
+    public required string TokenHash { get; set; }
+    public required string ScopesJson { get; set; }
+    public DateTimeOffset CreatedAt { get; set; }
+    public DateTimeOffset? LastUsedAt { get; set; }
+    public DateTimeOffset? ExpiresAt { get; set; }
+    public DateTimeOffset? RevokedAt { get; set; }
 }
 
 /// <summary>Pending org invitation token.</summary>

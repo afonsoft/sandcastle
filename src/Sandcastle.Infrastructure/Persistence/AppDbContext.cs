@@ -139,6 +139,10 @@ public class AppDbContext : DbContext, IDataProtectionKeyContext
     public DbSet<ConversationContextNoteRecord> ContextNotes =>
         Set<ConversationContextNoteRecord>();
 
+    /// <summary>SPEC-158: personal access tokens (sc_pat_*).</summary>
+    public DbSet<PersonalAccessTokenRecord> PersonalAccessTokens =>
+        Set<PersonalAccessTokenRecord>();
+
     /// <summary>SPEC-157: workspace items (prompts/presets/context files).</summary>
     public DbSet<WorkspaceItemRecord> WorkspaceItems =>
         Set<WorkspaceItemRecord>();
