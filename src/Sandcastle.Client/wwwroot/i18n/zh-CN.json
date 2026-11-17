@@ -968,5 +968,12 @@
   "workspace.title": "工作区",
   "workspace.tools_desc": "描述",
   "workspace.tools_server": "服务器",
-  "workspace.tools_tool": "工具"
+  "workspace.tools_tool": "工具",
+  "composer.voice_dictate": "语音输入",
+  "composer.voice_stop": "停止语音输入",
+  "composer.voice_listening": "正在聆听…",
+  "composer.mic_denied": "麦克风访问被拒绝",
+  "composer.mic_not_supported": "此浏览器不支持语音输入",
+  "composer.mic_no_speech": "未检测到语音",
+  "composer.mic_error": "语音输入错误"
 }
