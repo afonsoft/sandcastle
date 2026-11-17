@@ -1,5 +1,6 @@
 using System.Net;
 using System.Net.Http.Json;
+using System.Text;
 using System.Text.Json;
 
 using Microsoft.AspNetCore.Hosting;
@@ -180,5 +181,30 @@ public sealed class Spec158AccountTests : IDisposable
             .ShouldBe("acct@x.test");
         doc.TryGetProperty("personal_access_tokens", out _)
             .ShouldBeTrue();
+    }
+
+    [Fact]
+    public async Task Null_Body_Returns_400_Not_500()
+    {
+        // Schemathesis nightly (#417): corpo `null` não pode virar 500.
+        var http = await LoginAsync(NewClient());
+
+        foreach (var (method, url) in new (string, string)[]
+        {
+            ("PATCH", "/api/v1/users/me"),
+            ("POST", "/api/v1/users/me/password"),
+            ("POST", "/api/v1/users/me/tokens"),
+            ("PUT", "/api/v1/users/me/notification-prefs"),
+        })
+        {
+            using var req = new HttpRequestMessage(new HttpMethod(method), url)
+            {
+                Content = new StringContent("null",
+                    Encoding.UTF8, "application/json"),
+            };
+            var res = await http.SendAsync(req);
+            res.StatusCode.ShouldBe(HttpStatusCode.BadRequest,
+                $"{method} {url} must reject non-object body");
+        }
     }
 }
