@@ -6,3 +6,8 @@
 id = "GHSA-vfj7-8cjw-p6xm"
 ignoreUntil = 2027-04-19
 reason = "braces is a dev-only transitive of @tailwindcss/cli — used for CSS build-time globbing on our own trusted patterns, never shipped to the browser; no fixed upstream version exists (advisory covers <=3.0.3)"
+
+[[IgnoredVulns]]
+id = "GHSA-fc5q-39xc-vjpf"
+ignoreUntil = 2027-05-17
+reason = "picomatch is a dev-only transitive of micromatch (via @tailwindcss/cli) — used for CSS build-time globbing on our own trusted patterns, never shipped to the browser; no fixed upstream version exists (advisory covers <=4.0.7)"
