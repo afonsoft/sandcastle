@@ -44,6 +44,12 @@ public sealed class AutomationService(
     /// <summary>Intervalo mínimo aceito (minutos).</summary>
     public const int MinIntervalMinutes = 5;
 
+    /// <summary>Status de run falho (constante p/ Sonar S1192).</summary>
+    private const string RunStatusFailed = "failed";
+
+    /// <summary>targetType de audit das automations (S1192).</summary>
+    private const string AuditTargetAutomation = "automation";
+
     private AutomationInfo ToInfo(AutomationRecord r) => new(
         r.Id, r.OrgId, r.CreatedByUserId, r.Name, r.Prompt, r.LlmModel,
         r.SelectedRepository, r.ScheduleKind, r.ScheduleTimeUtc,
@@ -235,10 +241,14 @@ public sealed class AutomationService(
             return next;
         }
 
-        var seed = a.Id.GetHashCode() ^ next.UtcTicks.GetHashCode();
-        var rng = new Random(seed);
-        var deltaSeconds = periodSeconds * 0.05
-            * (rng.NextDouble() * 2.0 - 1.0);
+        // SHA-256 do seed → double determinístico em [0,1). Evita
+        // System.Random (S2245) e mantém o jitter estável por (id,
+        // next) — testes e reagendamentos do mesmo instante coincidem.
+        var hash = SHA256.HashData(Encoding.UTF8.GetBytes(
+            $"{a.Id:N}:{next.UtcTicks}"));
+        var unit = BitConverter.ToUInt64(hash, 0)
+            / (double)ulong.MaxValue;
+        var deltaSeconds = periodSeconds * 0.05 * (unit * 2.0 - 1.0);
         return next.AddSeconds(deltaSeconds);
     }
 
@@ -490,7 +500,7 @@ public sealed class AutomationService(
         // permanente (quota/validação) falha na hora — nunca retry duplo
         // de LLM. O run é criado uma vez; as tentativas acontecem aqui.
         var maxAttempts = Math.Max(1, _options.MaxTransientAttempts);
-        for (var attempt = 1; ; attempt++)
+        for (var attempt = 1; attempt <= maxAttempts; attempt++)
         {
             try
             {
@@ -500,11 +510,10 @@ public sealed class AutomationService(
             catch (Exception ex) when (!AutomationFailureClassifier
                 .IsHostCancellation(ex, ct))
             {
-                var transient = attempt < maxAttempts
-                    && AutomationFailureClassifier.IsTransient(ex);
-                if (!transient)
+                if (attempt >= maxAttempts
+                    || !AutomationFailureClassifier.IsTransient(ex))
                 {
-                    run.Status = "failed";
+                    run.Status = RunStatusFailed;
                     run.FinishedAt = DateTimeOffset.UtcNow;
                     // RF-006: quota negada → error=quota prefixado.
                     run.Error = ex is PlanLimitExceededException
@@ -546,7 +555,7 @@ public sealed class AutomationService(
         {
             await audit.RecordAsync("automation_fired",
                 actorUserId: actor == "user" ? rec.CreatedByUserId : null,
-                orgId: rec.OrgId, targetType: "automation",
+                orgId: rec.OrgId, targetType: AuditTargetAutomation,
                 targetId: rec.Id.ToString(), ip: ip,
                 metadata: new
                 {
@@ -572,7 +581,7 @@ public sealed class AutomationService(
         {
             await audit.RecordAsync("automation_circuit_open",
                 actorUserId: rec.CreatedByUserId, orgId: rec.OrgId,
-                targetType: "automation", targetId: rec.Id.ToString(),
+                targetType: AuditTargetAutomation, targetId: rec.Id.ToString(),
                 ip: ip, metadata: new
                 {
                     rec.Name,
@@ -673,7 +682,7 @@ public sealed class AutomationService(
             return false;
         }
 
-        if (outcome != "failed")
+        if (outcome != RunStatusFailed)
         {
             return false;
         }
@@ -969,7 +978,7 @@ public sealed class AutomationService(
                 nameof(ConversationExecutionStatus.Finished) => "succeeded",
                 nameof(ConversationExecutionStatus.Error)
                     or nameof(ConversationExecutionStatus.Archived) =>
-                    "failed",
+                    RunStatusFailed,
                 _ => null,
             };
             if (done is null)
@@ -979,7 +988,7 @@ public sealed class AutomationService(
 
             r.Status = done;
             r.FinishedAt ??= DateTimeOffset.UtcNow;
-            if (done == "failed" && r.Error is null)
+            if (done == RunStatusFailed && r.Error is null)
             {
                 r.Error = $"conversation {st.ToLowerInvariant()}";
             }
@@ -1044,7 +1053,7 @@ public sealed class AutomationService(
             {
                 await audit.RecordAsync("automation_circuit_open",
                     actorUserId: a.CreatedByUserId, orgId: a.OrgId,
-                    targetType: "automation", targetId: a.Id.ToString(),
+                    targetType: AuditTargetAutomation, targetId: a.Id.ToString(),
                     metadata: new
                     {
                         a.Name,
