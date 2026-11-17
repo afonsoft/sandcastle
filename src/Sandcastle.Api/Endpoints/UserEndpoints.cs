@@ -108,6 +108,12 @@ public static class UserEndpoints
                 return Results.Unauthorized();
             }
 
+            if (body.ValueKind != JsonValueKind.Object)
+            {
+                return Results.BadRequest(
+                    new { detail = "body must be a JSON object" });
+            }
+
             var rec = await db.Users.FindAsync([user.UserId], ct);
             if (rec is null)
             {
@@ -169,6 +175,12 @@ public static class UserEndpoints
             if (user is null)
             {
                 return Results.Unauthorized();
+            }
+
+            if (body.ValueKind != JsonValueKind.Object)
+            {
+                return Results.BadRequest(
+                    new { detail = "body must be a JSON object" });
             }
 
             if (!string.Equals(config["Auth:Provider"], "local",
@@ -286,6 +298,12 @@ public static class UserEndpoints
                 return Results.Unauthorized();
             }
 
+            if (body.ValueKind != JsonValueKind.Object)
+            {
+                return Results.BadRequest(
+                    new { detail = "body must be a JSON object" });
+            }
+
             var name = body.TryGetProperty("name", out var n)
                 && n.ValueKind == JsonValueKind.String
                 ? n.GetString()!.Trim() : null;
@@ -376,6 +394,12 @@ public static class UserEndpoints
             if (user is null)
             {
                 return Results.Unauthorized();
+            }
+
+            if (body.ValueKind != JsonValueKind.Object)
+            {
+                return Results.BadRequest(
+                    new { detail = "body must be a JSON object" });
             }
 
             var rec = await db.Users.FindAsync([user.UserId], ct);
