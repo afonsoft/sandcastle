@@ -37,4 +37,13 @@ public interface IUserNotificationService
     /// </summary>
     Task<(bool Ok, string? Error)> SendTestAsync(
         string webhookUrl, CancellationToken ct);
+
+    /// <summary>
+    /// SPEC-161 RF-004: avisa o dono que uma automation foi desabilitada
+    /// pelo circuit breaker (evento <c>automation_disabled</c>). Nunca
+    /// lança — fire-and-forget; sem webhook configurado, no-op.
+    /// </summary>
+    Task NotifyAutomationDisabledAsync(
+        Guid userId, Guid automationId, string automationName,
+        int consecutiveFailures, CancellationToken ct);
 }

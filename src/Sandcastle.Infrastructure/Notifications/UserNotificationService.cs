@@ -96,6 +96,40 @@ public sealed class UserNotificationService(
         }
     }
 
+    /// <inheritdoc />
+    public async Task NotifyAutomationDisabledAsync(
+        Guid userId, Guid automationId, string automationName,
+        int consecutiveFailures, CancellationToken ct)
+    {
+        try
+        {
+            var prefsJson = await db.Users
+                .Where(u => u.Id == userId)
+                .Select(u => u.PreferencesJson)
+                .FirstOrDefaultAsync(ct);
+            var prefs = ReadPrefs(prefsJson);
+            if (prefs.WebhookUrl is null)
+            {
+                return;
+            }
+
+            await PostAsync(prefs.WebhookUrl, new
+            {
+                @event = "automation_disabled",
+                automation_id = automationId,
+                name = automationName,
+                consecutive_failures = consecutiveFailures,
+                ts = DateTimeOffset.UtcNow,
+            }, ct);
+        }
+        catch (Exception ex)
+        {
+            logger.LogWarning(ex,
+                "automation_disabled notification falhou (user {UserId})",
+                userId);
+        }
+    }
+
     private async Task<bool> PostAsync(
         string url, object payload, CancellationToken ct)
     {

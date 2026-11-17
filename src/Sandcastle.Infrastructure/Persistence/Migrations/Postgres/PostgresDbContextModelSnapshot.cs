@@ -311,6 +311,10 @@ namespace Sandcastle.Infrastructure.Persistence.Migrations.Postgres
                         .HasColumnType("uuid")
                         .HasColumnName("id");
 
+                    b.Property<int>("ConsecutiveFailures")
+                        .HasColumnType("integer")
+                        .HasColumnName("consecutive_failures");
+
                     b.Property<DateTimeOffset>("CreatedAt")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("created_at");
@@ -343,6 +347,14 @@ namespace Sandcastle.Infrastructure.Persistence.Migrations.Postgres
                     b.Property<string>("LlmModel")
                         .HasColumnType("text")
                         .HasColumnName("llm_model");
+
+                    b.Property<string>("MisfirePolicy")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasDefaultValue("run-once")
+                        .HasColumnName("misfire_policy");
 
                     b.Property<string>("Name")
                         .IsRequired()
@@ -425,6 +437,10 @@ namespace Sandcastle.Infrastructure.Persistence.Migrations.Postgres
                     b.Property<DateTimeOffset?>("FinishedAt")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("finished_at");
+
+                    b.Property<bool>("Missed")
+                        .HasColumnType("boolean")
+                        .HasColumnName("missed");
 
                     b.Property<DateTimeOffset>("StartedAt")
                         .HasColumnType("timestamp with time zone")

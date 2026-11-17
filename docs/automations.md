@@ -9,21 +9,59 @@ conversa iniciada pela UI.
 
 | Tabela | Conteúdo |
 |---|---|
-| `automations` | name, prompt (≤8KB), llm_model?, selected_repository?, schedule (kind/time/interval/weekday), enabled, next_run_at(+ticks), last_run_at |
-| `automation_runs` | started/finished/status(`running\|succeeded\|failed\|skipped`), conversation_id, error |
+| `automations` | name, prompt (≤8KB), llm_model?, selected_repository?, schedule (kind/time/interval/weekday), enabled, next_run_at(+ticks), last_run_at, **misfire_policy**, **consecutive_failures** |
+| `automation_runs` | started/finished/status(`running\|succeeded\|failed\|skipped`), conversation_id, error, **missed** |
 | `automation_hooks` | token sha256 (o token em claro é exibido **uma vez**), last_used_at |
 
 `schedule_kind`: `interval` (minutos ≥5), `daily`/`weekly` (`HH:mm` UTC,
 weekday 0–6), `once` (desarma após disparar). `ComputeNextRun` é puro e
 coberto por tabela-verdade.
 
+### Robustez do scheduler (SPEC-161)
+
+- **Paralelismo**: tick dispara devidas em paralelo limitado por
+  `Automation:MaxConcurrent` (default 4); cada automation roda no próprio
+  scope/DbContext — uma falha nunca bloqueia as demais.
+- **Jitter determinístico ±5%** no `next_run_at` de schedules recorrentes
+  (seed = id + ticks do disparo) para evitar thundering herd; `once`
+  nunca recebe jitter.
+- **Retry transitório**: falhas de `HttpRequestException`,
+  `TaskCanceledException`, `TimeoutException`/`IOException` retentam até
+  `Automation:MaxTransientAttempts` (default 3) com backoff exponencial +
+  jitter. Falhas permanentes (validação, quota/plano) nunca retentam.
+- **Circuit breaker**: `Automation:CircuitBreakerThreshold` falhas
+  consecutivas (default 5) desabilitam a automation
+  (`enabled=false`, `next_run_at=null`), gravam audit
+  `automation_circuit_open` e notificam por webhook
+  (`automation_disabled`). Sucesso zera o contador; `run-now` e
+  re-enable manual também.
+- **Misfire policy** (`misfire_policy: skip|run-once`, default
+  `run-once`): se o servidor ficou fora além da graça
+  `Automation:MisfireGraceSec` (default 300s), `skip` grava run
+  `skipped` + `missed=true` sem disparar; `run-once` dispara uma única
+  vez com `missed=true` e reagenda a partir de agora. Runs manuais e
+  hooks nunca recebem jitter nem são afetados pela política.
+
+Configuração (`Automation:*`):
+
+| Key | Default | Efeito |
+|---|---|---|
+| `MaxConcurrent` | 4 | paralelismo máximo do dispatch |
+| `MisfireGraceSec` | 300 | tolerância p/ atraso antes de misfire |
+| `MaxTransientAttempts` | 3 | tentativas para falhas transitórias |
+| `RetryBaseDelayMs` / `RetryMaxDelayMs` | 500 / 8000 | backoff exponencial + jitter |
+| `CircuitBreakerThreshold` | 5 | falhas consecutivas antes de desabilitar |
+
 ## Scheduler
 
 `AutomationScheduler` (BackgroundService) ticka a cada 30s sob lock
-distribuído — uma réplica por vez dispara as automations devidas e
-reconcilia runs `running` com o `ExecutionStatus` da conversa linkada
-(`Finished→succeeded`, `Error/Archived→failed`). Falha em uma automation
-não bloqueia as demais.
+distribuído — uma réplica por vez dispara as automations devidas em
+paralelo (cap `Automation:MaxConcurrent`, um scope/DbContext por
+automation) e reconcilia runs `running` com o `ExecutionStatus` da
+conversa linkada (`Finished→succeeded`, `Error/Archived→failed`),
+aplicando os resultados ao circuit breaker. Não há fila persistente de
+dispatch: quem atrasa é recuperado pela misfire policy na próxima
+disponibilidade. Falha em uma automation não bloqueia as demais.
 
 ## API
 

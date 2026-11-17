@@ -302,6 +302,10 @@ namespace Sandcastle.Infrastructure.Persistence.Migrations
                         .HasColumnType("TEXT")
                         .HasColumnName("id");
 
+                    b.Property<int>("ConsecutiveFailures")
+                        .HasColumnType("INTEGER")
+                        .HasColumnName("consecutive_failures");
+
                     b.Property<DateTimeOffset>("CreatedAt")
                         .HasColumnType("TEXT")
                         .HasColumnName("created_at");
@@ -334,6 +338,14 @@ namespace Sandcastle.Infrastructure.Persistence.Migrations
                     b.Property<string>("LlmModel")
                         .HasColumnType("TEXT")
                         .HasColumnName("llm_model");
+
+                    b.Property<string>("MisfirePolicy")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(20)
+                        .HasColumnType("TEXT")
+                        .HasDefaultValue("run-once")
+                        .HasColumnName("misfire_policy");
 
                     b.Property<string>("Name")
                         .IsRequired()
@@ -416,6 +428,10 @@ namespace Sandcastle.Infrastructure.Persistence.Migrations
                     b.Property<DateTimeOffset?>("FinishedAt")
                         .HasColumnType("TEXT")
                         .HasColumnName("finished_at");
+
+                    b.Property<bool>("Missed")
+                        .HasColumnType("INTEGER")
+                        .HasColumnName("missed");
 
                     b.Property<DateTimeOffset>("StartedAt")
                         .HasColumnType("TEXT")

@@ -205,7 +205,9 @@ public static class AutomationEndpoints
             r.ScheduleKind, r.ScheduleTimeUtc, r.IntervalMinutes,
             r.Weekday, r.Enabled, r.NextRunAt,
             // SPEC-143: kind=scan + scan config.
-            r.Kind, r.Repositories, r.ScanProfile, r.ScanEffort);
+            r.Kind, r.Repositories, r.ScanProfile, r.ScanEffort,
+            // SPEC-161: misfire policy.
+            r.MisfirePolicy);
 
     private static object ToDto(AutomationInfo a) => new
     {
@@ -235,6 +237,10 @@ public static class AutomationEndpoints
         last_run_at = a.LastRunAt,
         created_at = a.CreatedAt,
         updated_at = a.UpdatedAt,
+        // SPEC-161: circuit breaker + misfire policy.
+        consecutive_failures = a.ConsecutiveFailures,
+        circuit_open = a.CircuitOpen,
+        misfire_policy = a.MisfirePolicy,
     };
 
     private static object ToRunDto(AutomationRunInfo r) => new
@@ -246,6 +252,8 @@ public static class AutomationEndpoints
         status = r.Status,
         conversation_id = r.ConversationId,
         error = r.Error,
+        // SPEC-161 RF-002.
+        missed = r.Missed,
     };
 
 
@@ -421,4 +429,6 @@ public sealed record AutomationUpsertRequest(
     DateTimeOffset? NextRunAt = null,
     // SPEC-143: kind=scan — repositories[] + profile + effort.
     string? Kind = null, IReadOnlyList<string>? Repositories = null,
-    string? ScanProfile = null, string? ScanEffort = null);
+    string? ScanProfile = null, string? ScanEffort = null,
+    // SPEC-161: misfire policy skip|run-once.
+    string? MisfirePolicy = null);

@@ -32,6 +32,20 @@ public static class AutomationKinds
         new HashSet<string>(StringComparer.Ordinal) { Task, Scan };
 }
 
+/// <summary>Misfire policies aceitas (SPEC-161 RF-002).</summary>
+public static class AutomationMisfirePolicies
+{
+    /// <summary>Dispara uma vez mesmo atrasada e reagenda do now.</summary>
+    public const string RunOnce = "run-once";
+
+    /// <summary>Pula o disparo atrasado (run skipped + missed=true).</summary>
+    public const string Skip = "skip";
+
+    /// <summary>Todos os policies válidos.</summary>
+    public static readonly IReadOnlySet<string> All =
+        new HashSet<string>(StringComparer.Ordinal) { RunOnce, Skip };
+}
+
 /// <summary>Automation DTO (SPEC-47 RF-003).</summary>
 public sealed record AutomationInfo(
     Guid Id, Guid? OrgId, string? CreatedByUserId, string Name,
@@ -41,13 +55,18 @@ public sealed record AutomationInfo(
     DateTimeOffset? LastRunAt, DateTimeOffset CreatedAt,
     DateTimeOffset UpdatedAt,
     // SPEC-143: task|scan + config do scan (null para task).
-    string? Kind = null, string? ScanConfigJson = null);
+    string? Kind = null, string? ScanConfigJson = null,
+    // SPEC-161: circuit breaker + misfire policy.
+    int ConsecutiveFailures = 0, bool CircuitOpen = false,
+    string? MisfirePolicy = null);
 
 /// <summary>Run de uma automation (SPEC-47 RF-002/RF-003).</summary>
 public sealed record AutomationRunInfo(
     Guid Id, Guid AutomationId, DateTimeOffset StartedAt,
     DateTimeOffset? FinishedAt, string Status, Guid? ConversationId,
-    string? Error);
+    string? Error,
+    // SPEC-161 RF-002: disparo recuperado de misfire (fora da graça).
+    bool Missed = false);
 
 /// <summary>Hook de trigger externo (token exibido uma única vez).</summary>
 public sealed record AutomationHookInfo(
@@ -64,7 +83,9 @@ public sealed record AutomationUpsert(
     // alimentam ScanConfigJson (Repositories cai p/ SelectedRepository
     // quando omitido).
     string? Kind = null, IReadOnlyList<string>? Repositories = null,
-    string? ScanProfile = null, string? ScanEffort = null);
+    string? ScanProfile = null, string? ScanEffort = null,
+    // SPEC-161 RF-002: skip|run-once (default run-once).
+    string? MisfirePolicy = null);
 
 /// <summary>
 /// Cálculo do próximo disparo (UTC) — puro e testável
@@ -224,6 +245,14 @@ public interface IAutomationService
     /// </summary>
     Task<AutomationRunInfo?> FireByTokenAsync(
         string token, string? ip, CancellationToken ct);
+
+    /// <summary>
+    /// Dispara uma automation devida pelo tick do scheduler — aplica
+    /// misfire policy (SPEC-161) e reagenda. Usado pelo dispatch
+    /// paralelo do <see cref="TickAsync"/> (escopo próprio por chamada).
+    /// </summary>
+    Task FireScheduledAsync(
+        Guid automationId, DateTimeOffset now, CancellationToken ct);
 
     /// <summary>
     /// Tick do scheduler: dispara todas as automations devidas

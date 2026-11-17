@@ -448,6 +448,13 @@ public static class DependencyInjection
 
         // SPEC-47: automations — scheduler de usuário (start-task de
         // conversa por agenda ou webhook trigger anônimo).
+        // SPEC-161: limites do scheduler (paralelismo, misfire, retry,
+        // circuit breaker) via seção Automation.
+        services.Configure<Sandcastle.Infrastructure.Automations
+            .AutomationOptions>(
+            configuration.GetSection(
+                Sandcastle.Infrastructure.Automations
+                    .AutomationOptions.SectionName));
         services.AddScoped<Sandcastle.Application.Automations.IAutomationService,
             Sandcastle.Infrastructure.Automations.AutomationService>();
         services.AddHostedService<
