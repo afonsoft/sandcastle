@@ -9,7 +9,7 @@
 | Stack | `.NET 10 · Blazor WASM` |
 | Repository | `afonsoft/sandcastle` |
 | Status | `Approved` |
-| Ticket | Epic #TBD · Issue #TBD |
+| Ticket | #492 · Issue #502 |
 | Scope | `src/Sandcastle.Client` + `tests/` |
 
 ## 1. User Story

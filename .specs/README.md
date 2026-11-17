@@ -174,13 +174,13 @@ Aprovadas em 2026-11-10 pelo usuário — Epic acompanha no GitHub.
 
 | SPEC | Título | Status | Ticket |
 |---|---|---|---|
-| 161 | automation-scheduler-robustness | Approved | Epic #TBD |
-| 162 | automation-scheduler-advanced | Approved | Epic #TBD |
-| 163 | automation-observability | Approved | Epic #TBD |
-| 164 | agent-loop-guard | Approved | Epic #TBD |
-| 165 | hybrid-code-search | Approved | Epic #TBD |
-| 166 | session-insights-v2 | Approved | Epic #TBD |
-| 167 | model-routing-v2 | Approved | Epic #TBD |
-| 168 | skills-allowed-tools | Approved | Epic #TBD |
-| 169 | plan-mode-v2 | Approved | Epic #TBD |
-| 170 | composer-knowledge-autocomplete | Approved | Epic #TBD |
+| 161 | automation-scheduler-robustness | Approved | #492 · #493 |
+| 162 | automation-scheduler-advanced | Approved | #492 · #494 |
+| 163 | automation-observability | Approved | #492 · #495 |
+| 164 | agent-loop-guard | Approved | #492 · #496 |
+| 165 | hybrid-code-search | Approved | #492 · #497 |
+| 166 | session-insights-v2 | Approved | #492 · #498 |
+| 167 | model-routing-v2 | Approved | #492 · #499 |
+| 168 | skills-allowed-tools | Approved | #492 · #500 |
+| 169 | plan-mode-v2 | Approved | #492 · #501 |
+| 170 | composer-knowledge-autocomplete | Approved | #492 · #502 |

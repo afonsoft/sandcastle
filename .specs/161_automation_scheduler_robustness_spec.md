@@ -9,7 +9,7 @@
 | Stack | `.NET 10` |
 | Repository | `afonsoft/sandcastle` |
 | Status | `Approved` |
-| Ticket | Epic #TBD · Issue #TBD |
+| Ticket | #492 · Issue #493 |
 | Scope | `src/` + `tests/` |
 
 ## 1. User Story
