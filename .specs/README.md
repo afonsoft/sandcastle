@@ -166,6 +166,6 @@ Aprovadas em 2026-11-10 pelo usuário — Epic acompanha no GitHub.
 | 155 | conversation-ops-panel | Delivered · PR #462 | #453 |
 | 156 | customize-hub | Delivered · PR #465 | #454 |
 | 157 | workspace-config | Completed | #455 · PRs #473/#478 |
-| 158 | account-settings | Approved | #456 |
+| 158 | account-settings | Completed | #456 · PR #483 |
 | 159 | composer-voice-stt | Approved | #457 |
 | 160 | automations-calendar | Approved | #458 |
