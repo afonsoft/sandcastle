@@ -29,6 +29,8 @@ else
                 <option value="daily">@L["automations.kind_daily"]</option>
                 <option value="weekly">@L["automations.kind_weekly"]</option>
                 <option value="once">@L["automations.kind_once"]</option>
+                @* SPEC-162: cron + timezone + approval preset. *@
+                <option value="cron">@L["automations.kind_cron"]</option>
             </select>
         </label><br />
         @if (_fKind == "interval")
@@ -46,6 +48,24 @@ else
             <label>@L["automations.weekday"]<br />
                 <input type="number" min="0" max="6" @bind="_fWeekday" /></label><br />
         }
+        @if (_fKind == "cron")
+        {
+            <label>@L["automations.cron_expression"]<br />
+                <input placeholder="0 9 * * 1-5" @bind="_fCron" /></label><br />
+        }
+        @if (_fKind is "daily" or "weekly" or "cron")
+        {
+            <label>@L["automations.time_zone"]<br />
+                <input placeholder="UTC" @bind="_fTimeZone" /></label><br />
+        }
+        <label>@L["automations.approval_preset"]<br />
+            <select @bind="_fPreset">
+                <option value="">@L["automations.preset_default"]</option>
+                <option value="allow">@L["automations.preset_allow"]</option>
+                <option value="allow-readonly">@L["automations.preset_allow_readonly"]</option>
+                <option value="plan">@L["automations.preset_plan"]</option>
+            </select>
+        </label><br />
         <label><input type="checkbox" @bind="_fEnabled" /> @L["automations.enabled"]</label><br />
         <button @onclick="SaveAsync">@L["common.save"]</button>
         <button @onclick="RunNowAsync">@L["automations.run_now"]</button>
@@ -118,6 +138,8 @@ else
     private string? _fName, _fPrompt, _fModel, _fRepo, _fTime;
     private string _fKind = "interval";
     private int _fInterval = 60, _fWeekday = 1;
+    // SPEC-162: cron + timezone + approval preset.
+    private string? _fCron, _fTimeZone, _fPreset;
     private bool _fEnabled = true;
 
     /// <inheritdoc />
@@ -132,6 +154,9 @@ else
             _fKind = _a.ScheduleKind; _fTime = _a.ScheduleTimeUtc;
             _fInterval = _a.IntervalMinutes;
             _fWeekday = _a.Weekday ?? 1; _fEnabled = _a.Enabled;
+            // SPEC-162: cron + timezone + approval preset.
+            _fCron = _a.CronExpression; _fTimeZone = _a.TimeZoneId;
+            _fPreset = _a.ApprovalPreset;
         }
     }
 
@@ -149,6 +174,13 @@ else
             interval_minutes = _fInterval,
             weekday = _fKind == "weekly" ? _fWeekday : (int?)null,
             enabled = _fEnabled,
+            // SPEC-162: cron + timezone + approval preset.
+            cron_expression = _fKind == "cron"
+                ? string.IsNullOrWhiteSpace(_fCron) ? null : _fCron : null,
+            time_zone_id = string.IsNullOrWhiteSpace(_fTimeZone)
+                ? null : _fTimeZone,
+            approval_preset = string.IsNullOrWhiteSpace(_fPreset)
+                ? null : _fPreset,
         });
         if (updated is null)
         {

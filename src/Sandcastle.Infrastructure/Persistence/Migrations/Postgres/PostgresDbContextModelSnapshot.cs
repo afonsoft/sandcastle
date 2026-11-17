@@ -311,6 +311,11 @@ namespace Sandcastle.Infrastructure.Persistence.Migrations.Postgres
                         .HasColumnType("uuid")
                         .HasColumnName("id");
 
+                    b.Property<string>("ApprovalPreset")
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("approval_preset");
+
                     b.Property<int>("ConsecutiveFailures")
                         .HasColumnType("integer")
                         .HasColumnName("consecutive_failures");
@@ -323,6 +328,11 @@ namespace Sandcastle.Infrastructure.Persistence.Migrations.Postgres
                         .IsRequired()
                         .HasColumnType("text")
                         .HasColumnName("created_by_user_id");
+
+                    b.Property<string>("CronExpression")
+                        .HasMaxLength(128)
+                        .HasColumnType("character varying(128)")
+                        .HasColumnName("cron_expression");
 
                     b.Property<bool>("Enabled")
                         .HasColumnType("boolean")
@@ -394,6 +404,14 @@ namespace Sandcastle.Infrastructure.Persistence.Migrations.Postgres
                     b.Property<string>("SelectedRepository")
                         .HasColumnType("text")
                         .HasColumnName("selected_repository");
+
+                    b.Property<string>("TimeZoneId")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)")
+                        .HasDefaultValue("UTC")
+                        .HasColumnName("time_zone_id");
 
                     b.Property<DateTimeOffset>("UpdatedAt")
                         .HasColumnType("timestamp with time zone")

@@ -52,6 +52,22 @@ Configuração (`Automation:*`):
 | `RetryBaseDelayMs` / `RetryMaxDelayMs` | 500 / 8000 | backoff exponencial + jitter |
 | `CircuitBreakerThreshold` | 5 | falhas consecutivas antes de desabilitar |
 
+### Agendamentos avançados (SPEC-162)
+
+- **`schedule_kind: cron`**: expressão cron de 5 campos validada no
+  create/update (400 em expressão ausente ou inválida) via parser
+  Cronos (somente parsing — sem scheduler Quartz). `next_run_at` é
+  projetado no fuso da automation.
+- **`time_zone_id`**: fuso IANA (ex.: `America/Sao_Paulo`) aplicado a
+  `daily`, `weekly` e `cron`; `interval` e `once` ignoram. Default
+  `"UTC"`. Fuso inválido não derruba o tick: o cálculo cai para UTC e
+  registra log.
+- **`approval_preset`**: `allow` (default), `allow-readonly` (pergunta
+  em `file_write`/`file_edit`/`git_commit`) ou `plan` (conversa em modo
+  plano). Só restringe — nunca amplia as permissões do usuário.
+- `GET /automations/schedule` projeta `next_runs` respeitando cron +
+  fuso.
+
 ## Scheduler
 
 `AutomationScheduler` (BackgroundService) ticka a cada 30s sob lock

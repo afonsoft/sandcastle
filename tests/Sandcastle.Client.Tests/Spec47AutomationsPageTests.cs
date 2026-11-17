@@ -91,6 +91,50 @@ public class Spec47AutomationsPageTests : BunitContext
     }
 
     [Fact]
+    public void CreateForm_Cron_Reveals_Cron_And_Timezone_Fields()
+    {
+        Api(_ => Json("[]"));
+        var cut = Render<AutomationsPage>();
+        cut.WaitForAssertion(() =>
+            cut.Markup.ShouldContain("Nova automação"));
+        // kind=cron revela expressão + fuso + preset.
+        var selects = cut.FindAll("select");
+        selects[0].Change("cron");
+        cut.WaitForAssertion(() =>
+        {
+            cut.Markup.ShouldContain("Expressão cron");
+            cut.Markup.ShouldContain("Fuso horário (IANA)");
+            cut.Markup.ShouldContain("Preset de aprovação");
+        });
+    }
+
+    [Fact]
+    public void Detail_Shows_Cron_Schedule_Fields()
+    {
+        const string cronJson = """
+            {"id":"11111111-1111-1111-1111-111111111111","org_id":null,
+             "created_by_user_id":"u","name":"cron job","prompt":"run",
+             "llm_model":null,"selected_repository":null,
+             "schedule_kind":"cron","schedule_time_utc":null,
+             "interval_minutes":60,"weekday":null,"enabled":true,
+             "next_run_at":"2026-10-18T09:00:00Z","last_run_at":null,
+             "created_at":"2026-10-17T00:00:00Z","updated_at":"2026-10-17T00:00:00Z",
+             "time_zone_id":"America/Sao_Paulo",
+             "cron_expression":"0 9 * * 1-5","approval_preset":"plan"}
+            """;
+        Api(req => req.RequestUri!.AbsolutePath.Contains("/runs")
+            ? Json("[]") : Json(cronJson));
+        var cut = Render<AutomationDetailPage>(p =>
+            p.Add(x => x.Id,
+                Guid.Parse("11111111-1111-1111-1111-111111111111")));
+        cut.WaitForAssertion(() =>
+        {
+            cut.Markup.ShouldContain("0 9 * * 1-5");
+            cut.Markup.ShouldContain("America/Sao_Paulo");
+        });
+    }
+
+    [Fact]
     public void Detail_Renders_Runs_Table()
     {
         var runs = """

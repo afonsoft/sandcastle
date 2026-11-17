@@ -91,6 +91,8 @@ else
         <option value="daily">@L["automations.kind_daily"]</option>
         <option value="weekly">@L["automations.kind_weekly"]</option>
         <option value="once">@L["automations.kind_once"]</option>
+        @* SPEC-162: cron + timezone + approval preset. *@
+        <option value="cron">@L["automations.kind_cron"]</option>
     </select>
     @if (_kind == "interval")
     {
@@ -107,6 +109,22 @@ else
         <input type="number" min="0" max="6" @bind="_weekday"
                aria-label="@(L["automations.weekday"])" />
     }
+    @if (_kind == "cron")
+    {
+        <input placeholder="0 9 * * 1-5" @bind="_cron"
+               aria-label="@(L["automations.cron_expression"])" />
+    }
+    @if (_kind is "daily" or "weekly" or "cron")
+    {
+        <input placeholder="UTC" @bind="_timeZone"
+               aria-label="@(L["automations.time_zone"])" />
+    }
+    <select @bind="_preset" aria-label="@(L["automations.approval_preset"])">
+        <option value="">@L["automations.preset_default"]</option>
+        <option value="allow">@L["automations.preset_allow"]</option>
+        <option value="allow-readonly">@L["automations.preset_allow_readonly"]</option>
+        <option value="plan">@L["automations.preset_plan"]</option>
+    </select>
     <button @onclick="CreateAsync"
             disabled="@string.IsNullOrWhiteSpace(_name)">
         @L["common.create"]
@@ -130,6 +148,8 @@ else
     private string? _name, _prompt, _time, _error;
     private string _kind = "interval";
     private int _interval = 60, _weekday = 1;
+    // SPEC-162: cron + timezone + approval preset.
+    private string? _cron, _timeZone, _preset;
 
     /// <inheritdoc />
     protected override async Task OnInitializedAsync() => await Reload();
@@ -156,6 +176,8 @@ else
         "daily" => $"{L["automations.kind_daily"]} {a.ScheduleTimeUtc} UTC",
         "weekly" => $"{L["automations.kind_weekly"]} {a.ScheduleTimeUtc} UTC",
         "once" => L["automations.kind_once"],
+        // SPEC-162: cron rotula com expressão + fuso.
+        "cron" => $"cron {a.CronExpression} ({a.TimeZoneId ?? "UTC"})",
         _ => a.ScheduleKind,
     };
 
@@ -193,6 +215,13 @@ else
                 schedule_time_utc = _time,
                 interval_minutes = _kind == "interval" ? _interval : (int?)null,
                 weekday = _kind == "weekly" ? _weekday : (int?)null,
+                // SPEC-162: cron + timezone + approval preset.
+                cron_expression = _kind == "cron"
+                    ? string.IsNullOrWhiteSpace(_cron) ? null : _cron : null,
+                time_zone_id = string.IsNullOrWhiteSpace(_timeZone)
+                    ? null : _timeZone,
+                approval_preset = string.IsNullOrWhiteSpace(_preset)
+                    ? null : _preset,
             });
             Nav.NavigateTo($"/automations/{created.Id}");
         }
