@@ -429,6 +429,115 @@ public sealed class AppConversationService( // NOSONAR S107 — SPEC-104 (decis�
     }
 
     /// <inheritdoc />
+    public async Task<bool> ArchiveAsync(Guid id, CancellationToken ct)
+    {
+        var record = await db.Conversations.FindAsync([id], ct);
+        if (record is null)
+        {
+            return false;
+        }
+
+        // SPEC-171 RF-001: idempotente — já arquivada não é erro.
+        if (record.ExecutionStatus
+            == nameof(ConversationExecutionStatus.Archived))
+        {
+            return true;
+        }
+
+        record.ExecutionStatus = ConversationExecutionStatus.Archived.ToString();
+        record.UpdatedAt = DateTimeOffset.UtcNow;
+        if (record.SandboxId is { } sandboxId)
+        {
+            // Sandbox é liberado; workspace/contexto/eventos ficam — a
+            // conversa volta operacional no unarchive + resume.
+            try
+            {
+                await sandboxes.DeleteAsync(sandboxId, ct);
+            }
+            catch (Exception e) when (e is not OperationCanceledException)
+            {
+                // release best-effort — o id sai do record de qualquer
+                // forma para o resume provisionar sandbox fresco.
+            }
+
+            record.SandboxId = null;
+        }
+
+        await db.SaveChangesAsync(ct);
+        return true;
+    }
+
+    /// <inheritdoc />
+    public async Task<bool> UnarchiveAsync(Guid id, CancellationToken ct)
+    {
+        var record = await db.Conversations.FindAsync([id], ct);
+        if (record is null)
+        {
+            return false;
+        }
+
+        if (record.ExecutionStatus
+            != nameof(ConversationExecutionStatus.Archived))
+        {
+            return true;
+        }
+
+        // Stopped = criada, sem sandbox — resume/send re-provisiona sob
+        // demanda (fluxo SPEC-154 session-resume-fresh-sandbox).
+        record.ExecutionStatus = ConversationExecutionStatus.Stopped.ToString();
+        record.UpdatedAt = DateTimeOffset.UtcNow;
+        await db.SaveChangesAsync(ct);
+        return true;
+    }
+
+    /// <inheritdoc />
+    public async Task<ConversationPage> ListArchivedAsync(
+        ConversationQuery query, CancellationToken ct)
+    {
+        var q = db.Conversations
+            .Where(r => r.ExecutionStatus == nameof(ConversationExecutionStatus.Archived));
+        if (query.TitleEq is not null)
+        {
+            q = q.Where(r => r.Title == query.TitleEq);
+        }
+
+        if (query.CreatedAtGte is not null)
+        {
+            var gte = query.CreatedAtGte.Value.UtcTicks;
+            q = q.Where(r => r.CreatedAtTicks >= gte);
+        }
+
+        if (CursorPaginator.TryDecode(query.PageId, out var ticks, out var raw)
+            && Guid.TryParse(raw, out _))
+        {
+            var id = raw.ToLowerInvariant();
+            q = q.Where(r => r.CreatedAtTicks < ticks
+                || (r.CreatedAtTicks == ticks
+                    && string.Compare(r.Id.ToString().ToLower(), id) < 0));
+        }
+
+        var limit = Math.Clamp(query.Limit, 1, 100);
+        var rows = await q
+            .OrderByDescending(r => r.CreatedAtTicks).ThenByDescending(r => r.Id)
+            .Take(limit + 1)
+            .ToListAsync(ct);
+        var hasMore = rows.Count > limit;
+        var page = hasMore ? rows.Take(limit).ToList() : rows;
+        var last = page.LastOrDefault();
+        return new ConversationPage(
+            page.Select(r => r.ToDomain()).ToList(),
+            hasMore && last is not null
+                ? CursorPaginator.Encode(last.CreatedAt.UtcTicks, last.Id.ToString())
+                : null);
+    }
+
+    /// <inheritdoc />
+    public Task<long> ArchivedCountAsync(CancellationToken ct) =>
+        db.Conversations.LongCountAsync(r =>
+            r.ExecutionStatus
+            == nameof(ConversationExecutionStatus.Archived), ct);
+
+    /// <inheritdoc />
     public async Task<SwitchResult> SwitchProfileAsync(
         Guid id, string? profile, CancellationToken ct)
     {

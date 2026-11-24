@@ -312,4 +312,72 @@ public sealed class AppConversationApiTests : IDisposable
         repos.GetArrayLength().ShouldBe(1);
         repos[0].GetString().ShouldBe("o/legacy");
     }
+
+    // SPEC-171 AC: archive tira da lista default e vai p/ /archived;
+    // unarchive devolve à lista (Stopped).
+    [Fact]
+    public async Task Archive_Unarchive_Roundtrip()
+    {
+        Guid convId;
+        using (var scope = _factory.Services.CreateScope())
+        {
+            var db = scope.ServiceProvider
+                .GetRequiredService<Sandcastle.Infrastructure.Persistence.AppDbContext>();
+            var conv = new Sandcastle.Infrastructure.Conversations.ConversationRecord
+            {
+                Id = Guid.NewGuid(),
+                SelectedRepository = "o/archive",
+                ExecutionStatus = "Stopped",
+                CreatedAt = DateTimeOffset.UtcNow,
+                UpdatedAt = DateTimeOffset.UtcNow,
+            };
+            db.Conversations.Add(conv);
+            await db.SaveChangesAsync();
+            convId = conv.Id;
+        }
+
+        // archive → fora do /search, dentro do /archived (+count)
+        var arch = await _http.PostAsJsonAsync(
+            $"/api/v1/app-conversations/{convId}/archive", new { });
+        arch.StatusCode.ShouldBe(HttpStatusCode.OK);
+
+        var search = await _http.GetFromJsonAsync<JsonElement>(
+            "/api/v1/app-conversations/search?limit=100");
+        search.GetProperty("items").EnumerateArray()
+            .Select(i => i.GetProperty("id").GetString())
+            .ShouldNotContain(convId.ToString());
+
+        var archived = await _http.GetFromJsonAsync<JsonElement>(
+            "/api/v1/app-conversations/archived?limit=100");
+        archived.GetProperty("items").EnumerateArray()
+            .Select(i => i.GetProperty("id").GetString())
+            .ShouldContain(convId.ToString());
+
+        var count = await _http.GetFromJsonAsync<long>(
+            "/api/v1/app-conversations/archived/count");
+        count.ShouldBeGreaterThanOrEqualTo(1);
+
+        // idempotente: archive de novo não é erro.
+        (await _http.PostAsJsonAsync(
+            $"/api/v1/app-conversations/{convId}/archive", new { }))
+            .StatusCode.ShouldBe(HttpStatusCode.OK);
+
+        // unarchive → volta para a lista default.
+        var unarch = await _http.PostAsJsonAsync(
+            $"/api/v1/app-conversations/{convId}/unarchive", new { });
+        unarch.StatusCode.ShouldBe(HttpStatusCode.OK);
+        (await unarch.Content.ReadFromJsonAsync<JsonElement>())
+            .GetProperty("archived").GetBoolean().ShouldBeFalse();
+
+        var search2 = await _http.GetFromJsonAsync<JsonElement>(
+            "/api/v1/app-conversations/search?limit=100");
+        search2.GetProperty("items").EnumerateArray()
+            .Select(i => i.GetProperty("id").GetString())
+            .ShouldContain(convId.ToString());
+
+        // 404 em id inexistente.
+        (await _http.PostAsJsonAsync(
+            $"/api/v1/app-conversations/{Guid.NewGuid()}/archive", new { }))
+            .StatusCode.ShouldBe(HttpStatusCode.NotFound);
+    }
 }

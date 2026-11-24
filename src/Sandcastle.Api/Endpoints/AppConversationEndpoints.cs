@@ -75,6 +75,15 @@ public static class AppConversationEndpoints
         group.MapDelete(IdGuid,
             DeleteConversationAsync);
 
+        // SPEC-171 RF-001: archive (soft — libera sandbox, preserva
+        // workspace) / unarchive (Stopped; re-provision lazy) + lista.
+        group.MapPost("/{id:guid}/archive",
+            ArchiveConversationAsync).RequireAuthorization();
+        group.MapPost("/{id:guid}/unarchive",
+            UnarchiveConversationAsync).RequireAuthorization();
+        group.MapGet("/archived", ListArchivedAsync);
+        group.MapGet("/archived/count", ArchivedCountAsync);
+
         group.MapPost("/{id:guid}/send-message", SendMessageAsync);
 
         // SPEC-41 RF-005: resume retoma run pausado — 409 fora de Paused.
@@ -300,6 +309,53 @@ public static class AppConversationEndpoints
             ? Results.NoContent()
             : SandcastleProblemFactory.Create(http, 404, $"Conversation {id} not found");
     }
+
+    /// <summary>SPEC-171: archive (soft) — libera sandbox, preserva workspace.</summary>
+    private static async Task<IResult> ArchiveConversationAsync(
+        Guid id,
+        IAppConversationService svc,
+        HttpContext http,
+        CancellationToken ct)
+    {
+        return await svc.ArchiveAsync(id, ct)
+            ? Results.Ok(new { archived = true })
+            : SandcastleProblemFactory.Create(http, 404, $"Conversation {id} not found");
+    }
+
+    /// <summary>SPEC-171: unarchive — Stopped; sandbox re-provisiona no resume.</summary>
+    private static async Task<IResult> UnarchiveConversationAsync(
+        Guid id,
+        IAppConversationService svc,
+        HttpContext http,
+        CancellationToken ct)
+    {
+        return await svc.UnarchiveAsync(id, ct)
+            ? Results.Ok(new { archived = false })
+            : SandcastleProblemFactory.Create(http, 404, $"Conversation {id} not found");
+    }
+
+    /// <summary>SPEC-171: lista de arquivadas (mesmo cursor do /search).</summary>
+    private static async Task<IResult> ListArchivedAsync(
+        string? title__eq,
+        DateTimeOffset? created_at__gte,
+        string? page_id,
+        int? limit,
+        IAppConversationService svc,
+        CancellationToken ct)
+    {
+        var page = await svc.ListArchivedAsync(new ConversationQuery(
+            title__eq, created_at__gte, page_id, limit ?? 100), ct);
+        return Results.Ok(new
+        {
+            items = page.Items.Select(ToDto),
+            next_page_id = page.NextPageId,
+        });
+    }
+
+    /// <summary>SPEC-171: contagem de arquivadas.</summary>
+    private static async Task<IResult> ArchivedCountAsync(
+        IAppConversationService svc, CancellationToken ct) =>
+        Results.Ok(await svc.ArchivedCountAsync(ct));
 
     private static async Task<IResult> ResumeConversationAsync(
         Guid id,
