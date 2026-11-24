@@ -72,6 +72,14 @@ public sealed class AgentPromptContext
     /// </summary>
     public Func<CancellationToken, Task<string>>? WorkdirFactory { get; init; }
 
+    /// <summary>
+    /// SPEC-172 RF-004: notas <c>knowledge:</c> do blueprint v2
+    /// (<c>.agents/blueprint.yaml</c>) resolvidas no provision do sandbox —
+    /// <c>(name, contents)</c>. Null/vazio = contributor fica silencioso.
+    /// </summary>
+    public IReadOnlyList<(string Name, string Contents)>? BlueprintKnowledge
+    { get; init; }
+
     private Task<IReadOnlyList<MemoryEntry>>? _digestTask;
     private Task<bool>? _sddProbeTask;
     private Task<string>? _workdirTask;

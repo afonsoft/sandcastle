@@ -3492,6 +3492,10 @@ namespace Sandcastle.Infrastructure.Persistence.Migrations
                         .HasColumnType("TEXT")
                         .HasColumnName("blueprint_image");
 
+                    b.Property<string>("BlueprintKnowledgeJson")
+                        .HasColumnType("TEXT")
+                        .HasColumnName("blueprint_knowledge_json");
+
                     b.Property<string>("BlueprintLogTail")
                         .HasColumnType("TEXT")
                         .HasColumnName("blueprint_log_tail");

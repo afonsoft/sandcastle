@@ -14,16 +14,31 @@ using YamlDotNet.Serialization;
 
 namespace Sandcastle.Infrastructure.Sandbox;
 
-/// <summary>SPEC-17 RF-004/005: blueprint resolvido para um repo.</summary>
-/// <param name="Image">Override de imagem (<c>sandcastle.yaml:image</c>).</param>
+/// <summary>SPEC-172: nota <c>knowledge:</c> do blueprint v2 — contexto
+/// de ambiente injetado no system prompt do agente.</summary>
+public sealed record BlueprintKnowledge(string Name, string Contents);
+
+/// <summary>SPEC-17 RF-004/005 + SPEC-172: blueprint resolvido para um repo.</summary>
+/// <param name="Image">Override de imagem (<c>image</c>).</param>
 /// <param name="Sdks">SDKs a instalar — nome → versão ("" = default do installer).</param>
 /// <param name="Env">Env extra exportado no sandbox.</param>
 /// <param name="SetupScript">Script relativo ao repo (default <c>.openhands/setup.sh</c>).</param>
+/// <param name="InitializeScript">SPEC-172: script inline <c>initialize:</c>
+/// — roda na fase initialize (1x por snapshot; hoje a cada provision).</param>
+/// <param name="MaintenanceScript">SPEC-172: script inline <c>maintenance:</c>
+/// — roda na fase maintenance (a cada boot, após o setup file).</param>
+/// <param name="Knowledge">SPEC-172: notas declarativas <c>knowledge:</c>.</param>
+/// <param name="Secrets">SPEC-172: nomes de secrets declarados (mount via
+/// vault — incremento 2).</param>
 public sealed record BlueprintSpec(
     string? Image,
     IReadOnlyDictionary<string, string> Sdks,
     IReadOnlyDictionary<string, string> Env,
-    string SetupScript)
+    string SetupScript,
+    string? InitializeScript = null,
+    string? MaintenanceScript = null,
+    IReadOnlyList<BlueprintKnowledge>? Knowledge = null,
+    IReadOnlyList<string>? Secrets = null)
 {
     /// <summary>Blueprint vazio — nada a provisionar.</summary>
     public static readonly BlueprintSpec Empty = new(
@@ -52,14 +67,64 @@ public sealed class BlueprintService(
     public const string SdkDir = "/opt/sc/sdks";
 
     /// <summary>
-    /// Resolve o blueprint para a conversa: YAML do repo → blueprint da org
+    /// SPEC-172 RF-001: candidatos de arquivo por precedência —
+    /// <c>.agents/blueprint.yaml</c> canônico → <c>sandcastle.yaml</c>
+    /// (v1 legado) → <c>.devin/blueprint.yaml</c> (compat read-only).
+    /// </summary>
+    public static readonly string[] BlueprintFileCandidates =
+        [".agents/blueprint.yaml", "sandcastle.yaml",
+         ".devin/blueprint.yaml"];
+
+    /// <summary>JSON (camelCase) gravado em <c>blueprint_knowledge_json</c>.</summary>
+    internal static readonly JsonSerializerOptions KnowledgeJsonOptions =
+        new() { PropertyNamingPolicy = JsonNamingPolicy.CamelCase };
+
+    /// <summary>Primeiro arquivo de blueprint existente no repo.</summary>
+    public static string? FindBlueprintFile(string repoDir)
+    {
+        if (!Directory.Exists(repoDir))
+        {
+            return null;
+        }
+        foreach (var rel in BlueprintFileCandidates)
+        {
+            var path = Path.Combine(repoDir,
+                rel.Replace('/', Path.DirectorySeparatorChar));
+            if (File.Exists(path))
+            {
+                return path;
+            }
+        }
+        return null;
+    }
+
+    /// <summary>Desserializa notas de knowledge persistidas (fail-open).</summary>
+    public static IReadOnlyList<BlueprintKnowledge> DeserializeKnowledge(
+        string json)
+    {
+        try
+        {
+            return JsonSerializer
+                .Deserialize<List<BlueprintKnowledge>>(
+                    json, KnowledgeJsonOptions) ?? [];
+        }
+        catch (JsonException)
+        {
+            return [];
+        }
+    }
+
+    /// <summary>
+    /// Resolve o blueprint para a conversa: arquivo do repo
+    /// (<see cref="BlueprintFileCandidates"/>) → blueprint da org
     /// (<c>settings.blueprint</c> inline YAML) → auto-detect por manifestos.
     /// </summary>
     public async Task<BlueprintSpec> ResolveAsync(
         Guid conversationId, Guid? orgId, CancellationToken ct)
     {
         var repoDir = RepoDir(conversationId);
-        var yamlText = ReadIfExists(Path.Combine(repoDir, "sandcastle.yaml"));
+        var yamlText = FindBlueprintFile(repoDir) is { } bp
+            ? File.ReadAllText(bp) : null;
 
         // Precedência: repo → org → global (org guarda YAML inline em settings).
         if (yamlText is null && orgId is not null)
@@ -79,7 +144,7 @@ public sealed class BlueprintService(
                         : DetectSdks(repoDir),
                 };
             }
-            logger.LogWarning("sandcastle.yaml inválido — auto-detect de SDK");
+            logger.LogWarning("blueprint yaml inválido — auto-detect de SDK");
         }
 
         return BlueprintSpec.Empty with { Sdks = DetectSdks(repoDir) };
@@ -121,6 +186,18 @@ public sealed class BlueprintService(
                 }
             }
 
+            // SPEC-172 RF-003: fase initialize — 1x por snapshot (hoje a
+            // cada provision; reuse via blueprint_hash no incremento 2).
+            if (!failed && !string.IsNullOrWhiteSpace(spec.InitializeScript))
+            {
+                var r = await RunInlineScriptAsync(
+                    sandbox, spec.InitializeScript, executor, timeout, ct);
+                Append(log, "$ [initialize] blueprint script", r);
+                failed = r.ExitCode != 0;
+            }
+
+            // Fase maintenance — a cada boot: setup file (v1 compat)
+            // seguido do script maintenance inline.
             var repoDir = RepoDir(conversationId);
             if (!failed && File.Exists(Path.Combine(
                     repoDir, spec.SetupScript.Replace('/', Path.DirectorySeparatorChar))))
@@ -128,8 +205,24 @@ public sealed class BlueprintService(
                 var cmd = $"cd /workspace/repo && " +
                     $"DEBIAN_FRONTEND=noninteractive bash {spec.SetupScript}";
                 var r = await executor.ExecAsync(sandbox, cmd, timeout, ct);
-                Append(log, $"$ bash {spec.SetupScript}", r);
+                Append(log, $"$ [maintenance] bash {spec.SetupScript}", r);
                 failed = r.ExitCode != 0;
+            }
+
+            if (!failed && !string.IsNullOrWhiteSpace(spec.MaintenanceScript))
+            {
+                var r = await RunInlineScriptAsync(
+                    sandbox, spec.MaintenanceScript, executor, timeout, ct);
+                Append(log, "$ [maintenance] blueprint script", r);
+                failed = r.ExitCode != 0;
+            }
+
+            if (spec.Secrets is { Count: > 0 })
+            {
+                log.AppendLine(
+                    "[blueprint] secrets declared: "
+                    + string.Join(", ", spec.Secrets)
+                    + " (vault mount — SPEC-172 incremento 2)");
             }
 
             if (spec.Env.Count > 0)
@@ -148,6 +241,9 @@ public sealed class BlueprintService(
         record.BlueprintImage = spec.Image;
         record.BlueprintEnvJson = spec.Env.Count > 0
             ? JsonSerializer.Serialize(spec.Env) : null;
+        record.BlueprintKnowledgeJson = spec.Knowledge is { Count: > 0 }
+            ? JsonSerializer.Serialize(
+                spec.Knowledge, KnowledgeJsonOptions) : null;
         await db.SaveChangesAsync(ct);
         if (failed)
         {
@@ -237,7 +333,49 @@ public sealed class BlueprintService(
                 }
             }
 
-            return new BlueprintSpec(image, sdks, env, setup);
+            // SPEC-172 schema v2: scripts inline + knowledge + secrets.
+            var initialize = Str(root, "initialize");
+            var maintenance = Str(root, "maintenance");
+
+            var knowledge = new List<BlueprintKnowledge>();
+            if (root.TryGetValue("knowledge", out var kList) &&
+                kList is List<object> kItems)
+            {
+                foreach (var item in kItems)
+                {
+                    if (item is not Dictionary<object, object> kMap)
+                    {
+                        continue;
+                    }
+                    var name = Str(kMap, "name");
+                    var contents = Str(kMap, "contents");
+                    if (!string.IsNullOrWhiteSpace(name) &&
+                        contents is not null)
+                    {
+                        knowledge.Add(
+                            new BlueprintKnowledge(name.Trim(), contents));
+                    }
+                }
+            }
+
+            var secrets = new List<string>();
+            if (root.TryGetValue("secrets", out var sList) &&
+                sList is List<object> sItems)
+            {
+                foreach (var item in sItems)
+                {
+                    var s = item?.ToString()?.Trim();
+                    if (!string.IsNullOrEmpty(s))
+                    {
+                        secrets.Add(s);
+                    }
+                }
+            }
+
+            return new BlueprintSpec(image, sdks, env, setup,
+                initialize, maintenance,
+                knowledge.Count > 0 ? knowledge : null,
+                secrets.Count > 0 ? secrets : null);
         }
         catch (YamlDotNet.Core.YamlException)
         {
@@ -267,6 +405,17 @@ public sealed class BlueprintService(
         {
             return null;
         }
+    }
+
+    /// <summary>SPEC-172: executa script inline (<c>initialize:</c> /
+    /// <c>maintenance:</c>) em <c>/workspace/repo</c> via bash.</summary>
+    private static async Task<CommandResult> RunInlineScriptAsync(
+        Domain.Sandbox.Sandbox sandbox, string script,
+        ISandboxExecutor executor, TimeSpan timeout, CancellationToken ct)
+    {
+        var cmd = $"cd /workspace/repo && " +
+            $"DEBIAN_FRONTEND=noninteractive bash -c {ShellQuote(script)}";
+        return await executor.ExecAsync(sandbox, cmd, timeout, ct);
     }
 
     private static async Task WriteEnvAsync(

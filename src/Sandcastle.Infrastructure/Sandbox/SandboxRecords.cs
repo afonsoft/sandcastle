@@ -49,6 +49,12 @@ public sealed class SandboxRecord
     /// </summary>
     public string? BlueprintEnvJson { get; set; }
 
+    /// <summary>
+    /// SPEC-172 RF-004: notas <c>knowledge:</c> do blueprint v2 (JSON
+    /// camelCase) — injetadas no system prompt do agente.
+    /// </summary>
+    public string? BlueprintKnowledgeJson { get; set; }
+
     /// <summary>Espelho numérico de <see cref="CreatedAt"/> para ORDER BY.</summary>
     public long CreatedAtTicks { get; set; }
 
