@@ -54,6 +54,10 @@ public sealed class Spec47AutomationServiceTests
         public Task<ConversationPage> SearchAsync(
             ConversationQuery query, CancellationToken ct) =>
             throw new NotSupportedException();
+        public Task<bool> ArchiveAsync(Guid id, CancellationToken ct) => throw new NotSupportedException();
+        public Task<bool> UnarchiveAsync(Guid id, CancellationToken ct) => throw new NotSupportedException();
+        public Task<ConversationPage> ListArchivedAsync(ConversationQuery query, CancellationToken ct) => throw new NotSupportedException();
+        public Task<long> ArchivedCountAsync(CancellationToken ct) => throw new NotSupportedException();
         public Task<long> CountAsync(
             ConversationQuery query, CancellationToken ct) =>
             throw new NotSupportedException();

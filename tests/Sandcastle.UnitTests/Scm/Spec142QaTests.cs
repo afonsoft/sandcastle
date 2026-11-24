@@ -1329,6 +1329,20 @@ public sealed class Spec142QaTests : IAsyncDisposable
                 .ConversationQuery query, CancellationToken ct) =>
             throw new NotImplementedException();
 
+        public Task<bool> ArchiveAsync(Guid id, CancellationToken ct) =>
+            throw new NotImplementedException();
+
+        public Task<bool> UnarchiveAsync(Guid id, CancellationToken ct) =>
+            throw new NotImplementedException();
+
+        public Task<Sandcastle.Application.Conversations.ConversationPage>
+            ListArchivedAsync(Sandcastle.Application.Conversations
+                .ConversationQuery query, CancellationToken ct) =>
+            throw new NotImplementedException();
+
+        public Task<long> ArchivedCountAsync(CancellationToken ct) =>
+            throw new NotImplementedException();
+
         public Task<long> CountAsync(Sandcastle.Application.Conversations
             .ConversationQuery query, CancellationToken ct) =>
             throw new NotImplementedException();
