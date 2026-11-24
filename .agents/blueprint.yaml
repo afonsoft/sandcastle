@@ -1,0 +1,50 @@
+# Sandcastle — blueprint do ambiente de agentes (canonical: .agents/).
+# Compat reads (opcional): .devin/blueprint.yaml, .claude/, .openhands/.
+# Semantics: initialize roda 1x por snapshot/VM nova; maintenance roda a
+# cada boot; knowledge é contexto injetado no agente.
+# https://docs.devin.ai/onboard-devin/environment-yaml (formato de
+# referência — o runtime Sandcastle resolve via .agents primeiro).
+
+# One-time setup (install system tools, global CLIs).
+initialize: |
+  # Tailwind CSS standalone CLI — regenera src/Sandcastle.Client/wwwroot/tailwind.css
+  # a partir de src/Sandcastle.Client/Styles/app.tailwind.css
+  mkdir -p "$HOME/.local/bin"
+  curl -sSL -o "$HOME/.local/bin/tailwindcss" \
+    https://github.com/tailwindlabs/tailwindcss/releases/download/v4.3.3/tailwindcss-linux-x64
+  chmod +x "$HOME/.local/bin/tailwindcss"
+  # dotnet-ef para EF Core Migrations (dual provider SQLite/Postgres)
+  dotnet tool install -g dotnet-ef || dotnet tool update -g dotnet-ef
+
+# Project dependencies (runs during builds, surfaced at session start).
+maintenance: |
+  dotnet restore Sandcastle.slnx
+
+# Reference info for agent
+knowledge:
+  - name: build
+    contents: |
+      # .NET 10 / Blazor WASM, dependências para dentro:
+      # Api → Infrastructure → Application → Domain; Client → Application.
+      # dotnet build Sandcastle.slnx -c Release
+  - name: test
+    contents: |
+      # dotnet test Sandcastle.slnx (xUnit + Shouldly + Testcontainers + bUnit)
+  - name: startup
+    contents: |
+      # dotnet run --project src/Sandcastle.Api → http://localhost:8080
+      # docker compose up -d --build → http://localhost:3032
+  - name: layout
+    contents: |
+      # Tailwind v4: edite classes nos .razor e regenere (arquivo gerado,
+      # nunca editar à mão):
+      # tailwindcss -i src/Sandcastle.Client/Styles/app.tailwind.css \
+      #   -o src/Sandcastle.Client/wwwroot/tailwind.css --minify
+  - name: drift-guards
+    contents: |
+      # Antes de PR que toca .razor/i18n (SPEC-92):
+      # python3 tools/check-css-classes.py
+      # python3 tools/check-form-a11y.py
+      # python3 tools/check-i18n-parity.py
+      # python3 tools/check-i18n-placeholders.py
+      # python3 tools/check-mcp-tools-golden.py
