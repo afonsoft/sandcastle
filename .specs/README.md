@@ -184,3 +184,23 @@ Aprovadas em 2026-11-10 pelo usuário — Epic acompanha no GitHub.
 | 168 | skills-allowed-tools | Approved | #500 · Epic #492 |
 | 169 | plan-mode-v2 | Approved | #501 · Epic #492 |
 | 170 | composer-knowledge-autocomplete | Approved | #502 · Epic #492 |
+
+### Onda H — agent runtime vs OpenWebUiCode (dez/2026) — Approved
+
+Gap-analysis Sandcastle × `~/repos/OpenWebUiCode` (agente no container,
+prompt/tools, fusion, mobile, healthcheck, archive/delete, blueprint).
+Diretriz: `.agents/` é o diretório canônico do harness — `.devin`/
+`.claude` lidos apenas como compat (nunca escritos). Blueprint do
+próprio repo em `.agents/blueprint.yaml`. Aprovadas 2026-11-24 — Epic
+#520.
+
+| SPEC | Título | Status | Ticket |
+|---|---|---|---|
+| 171 | conversation-archive-ux (archive/unarchive + delete v2) | Approved | #521 · Epic #520 |
+| 172 | blueprint-v2 (fases initialize/maintenance, knowledge, secrets, test) | Approved | #522 · Epic #520 |
+| 173 | repo-hooks-discovery (`.agents/hooks.json` + compat `.devin`/`.claude`) | Approved | #523 · Epic #520 |
+| 174 | tool-safety-tiers (tiers, command-risk, arg repair, paralelismo) | Approved | #524 · Epic #520 |
+| 175 | sandbox-agent-health (`/alive` degraded, watchdog, exec cancel/batch) | Approved | #525 · Epic #520 |
+| 176 | prompt-cache-context-ops (cache tiers, rewind, snapshot/usage) | Approved | #526 · Epic #520 |
+| 177 | mobile-workspace-ux (tabs, touch, safe-area) | Approved | #527 · Epic #520 |
+| 178 | team-agent-mailbox (`team_*` tools + delegate v2) | Approved | #528 · Epic #520 |
