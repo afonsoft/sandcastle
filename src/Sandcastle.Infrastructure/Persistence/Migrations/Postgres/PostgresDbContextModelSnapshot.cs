@@ -3501,6 +3501,10 @@ namespace Sandcastle.Infrastructure.Persistence.Migrations.Postgres
                         .HasColumnType("text")
                         .HasColumnName("blueprint_image");
 
+                    b.Property<string>("BlueprintKnowledgeJson")
+                        .HasColumnType("text")
+                        .HasColumnName("blueprint_knowledge_json");
+
                     b.Property<string>("BlueprintLogTail")
                         .HasColumnType("text")
                         .HasColumnName("blueprint_log_tail");

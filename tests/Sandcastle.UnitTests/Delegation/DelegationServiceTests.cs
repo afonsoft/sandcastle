@@ -143,6 +143,10 @@ public class DelegationServiceTests : IDisposable
             CancellationToken ct) => CreateAsync(request, ct);
 
         public Task<ConversationPage> SearchAsync(ConversationQuery q, CancellationToken ct) => throw new NotSupportedException();
+        public Task<bool> ArchiveAsync(Guid id, CancellationToken ct) => throw new NotSupportedException();
+        public Task<bool> UnarchiveAsync(Guid id, CancellationToken ct) => throw new NotSupportedException();
+        public Task<ConversationPage> ListArchivedAsync(ConversationQuery query, CancellationToken ct) => throw new NotSupportedException();
+        public Task<long> ArchivedCountAsync(CancellationToken ct) => throw new NotSupportedException();
         public Task<long> CountAsync(ConversationQuery q, CancellationToken ct) => throw new NotSupportedException();
         public Task<IReadOnlyList<AppConversation>> GetBatchAsync(IReadOnlyCollection<Guid> ids, CancellationToken ct) => throw new NotSupportedException();
         public Task<AppConversation?> GetAsync(Guid id, CancellationToken ct) => throw new NotSupportedException();

@@ -336,6 +336,10 @@ public sealed class Spec53ScmProvidersTests : IAsyncDisposable
             null, null, DateTimeOffset.UtcNow, DateTimeOffset.UtcNow);
         public Task<ConversationPage> SearchAsync(ConversationQuery q,
             CancellationToken ct) => throw new NotImplementedException();
+        public Task<bool> ArchiveAsync(Guid id, CancellationToken ct) => throw new NotSupportedException();
+        public Task<bool> UnarchiveAsync(Guid id, CancellationToken ct) => throw new NotSupportedException();
+        public Task<ConversationPage> ListArchivedAsync(ConversationQuery query, CancellationToken ct) => throw new NotSupportedException();
+        public Task<long> ArchivedCountAsync(CancellationToken ct) => throw new NotSupportedException();
         public Task<long> CountAsync(ConversationQuery q,
             CancellationToken ct) => throw new NotImplementedException();
         public Task<IReadOnlyList<AppConversation>> GetBatchAsync(

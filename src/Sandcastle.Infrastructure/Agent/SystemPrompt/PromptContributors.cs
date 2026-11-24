@@ -208,6 +208,34 @@ public sealed class RepoContextContributor : IAgentPromptContributor
 }
 
 /// <summary>
+/// SPEC-172 RF-004: notas <c>knowledge:</c> do blueprint v2 — contexto
+/// de ambiente (build/test/startup) logo após o repo context.
+/// </summary>
+public sealed class BlueprintKnowledgeContributor : IAgentPromptContributor
+{
+    /// <inheritdoc />
+    public int Order => 45;
+
+    /// <inheritdoc />
+    public Task<IReadOnlyList<string>> ContributeAsync(AgentPromptContext ctx)
+    {
+        if (ctx.BlueprintKnowledge is not { Count: > 0 })
+        {
+            return Task.FromResult<IReadOnlyList<string>>([]);
+        }
+        var sb = new StringBuilder("## Environment blueprint");
+        sb.Append("\nEnvironment notes declared by the repository blueprint"
+            + " (.agents/blueprint.yaml):");
+        foreach (var (name, contents) in ctx.BlueprintKnowledge)
+        {
+            sb.Append("\n\n### ").Append(name)
+                .Append('\n').Append(contents);
+        }
+        return Task.FromResult<IReadOnlyList<string>>([sb.ToString()]);
+    }
+}
+
+/// <summary>
 /// Block 5 — resolved skills appended as additional context (SPEC-90
 /// RF-002; SPEC-11 ordering preserved).
 /// </summary>

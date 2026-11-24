@@ -198,6 +198,9 @@ public sealed class ConversationHistoryBuilder(IServiceProvider services)
                         conv.SandboxId, ct),
                 SddProbeFactory = probeCt => ProbeSddSurfaceAsync(
                     services, conv.SandboxId, probeCt),
+                BlueprintKnowledge =
+                    await LoadBlueprintKnowledgeAsync(
+                        conv.SandboxId, ct),
             });
         var sp = new SystemPromptEvent
         {
@@ -391,6 +394,30 @@ public sealed class ConversationHistoryBuilder(IServiceProvider services)
         {
             return Subagents.SubagentPresets.Names;
         }
+    }
+
+    /// <summary>
+    /// SPEC-172 RF-004: notas <c>knowledge:</c> do blueprint persistidas
+    /// no sandbox record (<c>blueprint_knowledge_json</c>) — fail-open.
+    /// </summary>
+    private async Task<IReadOnlyList<(string Name, string Contents)>?>
+        LoadBlueprintKnowledgeAsync(Guid? sandboxId, CancellationToken ct)
+    {
+        if (sandboxId is not { } id
+            || services.GetService<Persistence.AppDbContext>()
+                is not { } db)
+        {
+            return null;
+        }
+        var json = await db.Sandboxes
+            .Where(s => s.Id == id)
+            .Select(s => s.BlueprintKnowledgeJson)
+            .FirstOrDefaultAsync(ct);
+        return string.IsNullOrEmpty(json)
+            ? null
+            : Infrastructure.Sandbox.BlueprintService
+                .DeserializeKnowledge(json)
+                .Select(k => (k.Name, k.Contents)).ToList();
     }
 
     /// <summary>
