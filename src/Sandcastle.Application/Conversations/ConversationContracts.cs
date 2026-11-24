@@ -147,6 +147,26 @@ public interface IAppConversationService
 
     Task<long> CountAsync(ConversationQuery query, CancellationToken ct);
 
+    /// <summary>
+    /// SPEC-171 RF-001: archive — soft-delete que libera o sandbox mas
+    /// preserva workspace/contexto/eventos (idempotente). O
+    /// <c>DELETE</c> continua sendo o caminho destrutivo.
+    /// </summary>
+    Task<bool> ArchiveAsync(Guid id, CancellationToken ct);
+
+    /// <summary>
+    /// SPEC-171 RF-001: unarchive — volta a <c>Stopped</c>; o sandbox é
+    /// re-provisionado sob demanda no próximo resume/send.
+    /// </summary>
+    Task<bool> UnarchiveAsync(Guid id, CancellationToken ct);
+
+    /// <summary>SPEC-171 RF-001: página de arquivadas (cursor do /search).</summary>
+    Task<ConversationPage> ListArchivedAsync(
+        ConversationQuery query, CancellationToken ct);
+
+    /// <summary>SPEC-171 RF-001: contagem de arquivadas.</summary>
+    Task<long> ArchivedCountAsync(CancellationToken ct);
+
     Task<IReadOnlyList<AppConversation>> GetBatchAsync(
         IReadOnlyCollection<Guid> ids, CancellationToken ct);
 
