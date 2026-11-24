@@ -36,7 +36,8 @@ internal static class RouteEvaluator
         double? remainingBudgetPct,
         int cheapWhenBelowPct,
         LlmCircuitBreaker circuit,
-        int weightCursor)
+        int weightCursor,
+        IReadOnlyDictionary<string, double>? adaptiveScores = null)
     {
         var statuses = new List<CandidateStatus>(candidates.Count);
         var eligible = new List<RouteCandidate>(candidates.Count);
@@ -110,16 +111,41 @@ internal static class RouteEvaluator
 
         // 4) weight — loteria determinística por cursor; weight 0 sai do
         //    sorteio mas continua como último recurso da cadeia.
+        //    SPEC-167: peso efetivo = base × quality_ema × cost_factor —
+        //    score adaptativo só escala para baixo (nunca cria rota).
         var weighted = eligible.Where(c => c.Weight is > 0).ToList();
         if (weighted.Count > 0)
         {
-            var total = weighted.Sum(c => (long)c.Weight!.Value);
-            var cursor = (int)(((weightCursor % total) + total) % total);
+            var minPrice = weighted
+                .Select(c => (c.PriceInPer1M ?? 0m)
+                             + (c.PriceOutPer1M ?? 0m))
+                .Where(p => p > 0)
+                .Cast<decimal?>()
+                .Min();
+            var eff = weighted.ToDictionary(
+                c => c,
+                c => (double)c.Weight!.Value
+                     * (adaptiveScores is not null
+                        && adaptiveScores.TryGetValue(
+                            ModelStatsMath.Key(c.Provider, c.Model),
+                            out var s)
+                        ? s : ModelStatsMath.Neutral)
+                     * ModelStatsMath.CostFactor(c, minPrice));
+            var total = eff.Values.Sum();
+            // Pesos inteiros ⇒ cursor por unidade (semântica SPEC-149
+            // byte-idêntica); pesos fracionários (score adaptativo)
+            // ⇒ fração cíclica em [0,total) — distribuição ∝ peso.
+            var allInt = eff.Values.All(w => w == Math.Floor(w));
+            var cursor = allInt
+                ? (double)(((weightCursor % (long)total)
+                            + (long)total) % (long)total)
+                : (((weightCursor % 1000L) + 1000L) % 1000L)
+                  / 1000.0 * total;
             RouteCandidate? picked = null;
-            var acc = 0L;
+            var acc = 0.0;
             foreach (var c in weighted)
             {
-                acc += c.Weight!.Value;
+                acc += eff[c];
                 if (cursor < acc)
                 {
                     picked = c;

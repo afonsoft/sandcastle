@@ -101,7 +101,9 @@ public sealed record RouteCandidate(
     [property: JsonPropertyName("weight")] int? Weight = null,
     [property: JsonPropertyName("budget_tier")] string? BudgetTier = null,
     [property: JsonPropertyName("internal")] bool Internal = false,
-    [property: JsonPropertyName("api_key_ref")] string? ApiKeyRef = null);
+    [property: JsonPropertyName("api_key_ref")] string? ApiKeyRef = null,
+    [property: JsonPropertyName("price_in_1m")] decimal? PriceInPer1M = null,
+    [property: JsonPropertyName("price_out_1m")] decimal? PriceOutPer1M = null);
 
 /// <summary>
 /// SPEC-149 RF-001: org routing document stored under

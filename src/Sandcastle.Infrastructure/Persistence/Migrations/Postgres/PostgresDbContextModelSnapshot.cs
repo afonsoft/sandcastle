@@ -2139,6 +2139,69 @@ namespace Sandcastle.Infrastructure.Persistence.Migrations.Postgres
                     b.ToTable("memory_records", (string)null);
                 });
 
+            modelBuilder.Entity("Sandcastle.Infrastructure.Persistence.ModelStatsRecord", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<long>("Failures")
+                        .HasColumnType("bigint")
+                        .HasColumnName("failures");
+
+                    b.Property<DateTimeOffset>("LastSeenAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("last_seen_at");
+
+                    b.Property<double?>("LatencyEmaMs")
+                        .HasColumnType("double precision")
+                        .HasColumnName("latency_ema_ms");
+
+                    b.Property<string>("Model")
+                        .IsRequired()
+                        .HasMaxLength(160)
+                        .HasColumnType("character varying(160)")
+                        .HasColumnName("model");
+
+                    b.Property<string>("Provider")
+                        .IsRequired()
+                        .HasMaxLength(80)
+                        .HasColumnType("character varying(80)")
+                        .HasColumnName("provider");
+
+                    b.Property<double>("QualityEma")
+                        .HasColumnType("double precision")
+                        .HasColumnName("quality_ema");
+
+                    b.Property<string>("Role")
+                        .IsRequired()
+                        .HasMaxLength(40)
+                        .HasColumnType("character varying(40)")
+                        .HasColumnName("role");
+
+                    b.Property<long>("Runs")
+                        .HasColumnType("bigint")
+                        .HasColumnName("runs");
+
+                    b.Property<long>("Successes")
+                        .HasColumnType("bigint")
+                        .HasColumnName("successes");
+
+                    b.Property<decimal>("TotalCostUsd")
+                        .HasColumnType("numeric")
+                        .HasColumnName("total_cost_usd");
+
+                    b.HasKey("Id")
+                        .HasName("pk_model_stats");
+
+                    b.HasIndex("Role", "Provider", "Model")
+                        .IsUnique()
+                        .HasDatabaseName("ix_model_stats_role_provider_model");
+
+                    b.ToTable("model_stats", (string)null);
+                });
+
             modelBuilder.Entity("Sandcastle.Infrastructure.Persistence.OrgInvitationRecord", b =>
                 {
                     b.Property<Guid>("Id")

@@ -698,6 +698,11 @@ public static class DependencyInjection
         services.AddScoped<
             Sandcastle.Application.Agent.IRoutingRulesService,
             Sandcastle.Infrastructure.Agent.Routing.RoutingRulesService>();
+        // SPEC-167: adaptive stats (quality/latency EMA) — scoped,
+        // fail-open; o router resolve por escopo a cada seleção.
+        services.AddScoped<
+            Sandcastle.Application.Agent.IModelStatsService,
+            Sandcastle.Infrastructure.Agent.Routing.ModelStatsService>();
         services.Configure<Sandcastle.Application.Agent.RouterOptions>(
             configuration.GetSection(
                 Sandcastle.Application.Agent.RouterOptions.Section));

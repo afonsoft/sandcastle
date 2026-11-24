@@ -2130,6 +2130,69 @@ namespace Sandcastle.Infrastructure.Persistence.Migrations
                     b.ToTable("memory_records", (string)null);
                 });
 
+            modelBuilder.Entity("Sandcastle.Infrastructure.Persistence.ModelStatsRecord", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("TEXT")
+                        .HasColumnName("id");
+
+                    b.Property<long>("Failures")
+                        .HasColumnType("INTEGER")
+                        .HasColumnName("failures");
+
+                    b.Property<DateTimeOffset>("LastSeenAt")
+                        .HasColumnType("TEXT")
+                        .HasColumnName("last_seen_at");
+
+                    b.Property<double?>("LatencyEmaMs")
+                        .HasColumnType("REAL")
+                        .HasColumnName("latency_ema_ms");
+
+                    b.Property<string>("Model")
+                        .IsRequired()
+                        .HasMaxLength(160)
+                        .HasColumnType("TEXT")
+                        .HasColumnName("model");
+
+                    b.Property<string>("Provider")
+                        .IsRequired()
+                        .HasMaxLength(80)
+                        .HasColumnType("TEXT")
+                        .HasColumnName("provider");
+
+                    b.Property<double>("QualityEma")
+                        .HasColumnType("REAL")
+                        .HasColumnName("quality_ema");
+
+                    b.Property<string>("Role")
+                        .IsRequired()
+                        .HasMaxLength(40)
+                        .HasColumnType("TEXT")
+                        .HasColumnName("role");
+
+                    b.Property<long>("Runs")
+                        .HasColumnType("INTEGER")
+                        .HasColumnName("runs");
+
+                    b.Property<long>("Successes")
+                        .HasColumnType("INTEGER")
+                        .HasColumnName("successes");
+
+                    b.Property<decimal>("TotalCostUsd")
+                        .HasColumnType("TEXT")
+                        .HasColumnName("total_cost_usd");
+
+                    b.HasKey("Id")
+                        .HasName("pk_model_stats");
+
+                    b.HasIndex("Role", "Provider", "Model")
+                        .IsUnique()
+                        .HasDatabaseName("ix_model_stats_role_provider_model");
+
+                    b.ToTable("model_stats", (string)null);
+                });
+
             modelBuilder.Entity("Sandcastle.Infrastructure.Persistence.OrgInvitationRecord", b =>
                 {
                     b.Property<Guid>("Id")

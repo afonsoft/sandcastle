@@ -39,8 +39,19 @@ public static class LlmEndpoints
             .WithTags(EndpointTags.Api).RequireAuthorization();
         usage.MapGet("/llm", GetLlmUsageAsync);
 
+        // SPEC-167 RF-004: health adaptativo por modelo/role.
+        var routing = app.MapGroup("/api/v1/model-routing")
+            .WithTags(EndpointTags.Api).RequireAuthorization();
+        routing.MapGet("/stats", GetStatsAsync);
+
         return app;
     }
+
+    /// <summary>SPEC-167: stats adaptativas (EMA) — filtro opcional por task/role.</summary>
+    private static async Task<IResult> GetStatsAsync(
+        string? task, string? role, IModelStatsService stats,
+        CancellationToken ct) =>
+        Results.Ok(await stats.ListAsync(task ?? role, ct));
 
     /// <summary>Catálogo provider×model (SPEC-23 discovery — SPEC-149 expõe p/ o editor).</summary>
     private static async Task<IResult> RoutesAsync(
