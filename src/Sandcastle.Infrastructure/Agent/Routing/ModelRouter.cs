@@ -87,6 +87,7 @@ public sealed class ModelRouter(
             IRoutingRulesService? rulesSvc = null;
             IUsageBudgetService? budget = null;
             IAuditService? audit = null;
+            IModelStatsService? stats = null;
             if (scope is { } s)
             {
                 rulesSvc = s.ServiceProvider
@@ -94,6 +95,7 @@ public sealed class ModelRouter(
                 budget = s.ServiceProvider
                     .GetService<IUsageBudgetService>();
                 audit = s.ServiceProvider.GetService<IAuditService>();
+                stats = s.ServiceProvider.GetService<IModelStatsService>();
             }
 
             // Ctx mínimo (só ConversationId) ⇒ completa org/user/pin
@@ -151,11 +153,17 @@ public sealed class ModelRouter(
                 }
             }
 
+            // SPEC-167 RF-002: quality EMA por candidato alimenta o peso
+            // adaptativo (fail-open — ausência de stats = score neutro).
+            var scores = stats is null
+                ? null
+                : await stats.GetScoresAsync(roleWire, candidates, ct);
+
             var eval = RouteEvaluator.Evaluate(
                 candidates, doc,
                 LlmRoles.IsPinnable(role), ctx.PreferredModel,
                 remainingPct, cheapBelow, _breaker,
-                Interlocked.Increment(ref _weightCursor));
+                Interlocked.Increment(ref _weightCursor), scores);
 
             if (eval.Ordered.Count == 0)
             {
@@ -204,6 +212,8 @@ public sealed class ModelRouter(
         {
             _breaker.ReportFailure(current.Provider, current.Model,
                 TimeSpan.FromSeconds(plan.CircuitOpenSec));
+            await ReportOutcomeAsync(current, plan.Role, success: false,
+                latencyMs: null, costUsd: null, ct);
 
             var next = plan.Candidates.Count > current.Attempt + 1
                 ? plan.Candidates[current.Attempt + 1]
@@ -225,7 +235,39 @@ public sealed class ModelRouter(
                 Route: plan);
         }
 
+        await ReportOutcomeAsync(current, "code", success: false,
+            latencyMs: null, costUsd: null, ct);
         return await LegacyFallbackAsync(current, kind, ct);
+    }
+
+    /// <inheritdoc />
+    public async Task ReportOutcomeAsync(
+        ModelSelection selection, string role, bool success,
+        long? latencyMs, decimal? costUsd, CancellationToken ct)
+    {
+        if (scopeFactory is null)
+        {
+            return;
+        }
+
+        try
+        {
+            await using var scope = scopeFactory.CreateAsyncScope();
+            var stats = scope.ServiceProvider
+                .GetService<IModelStatsService>();
+            if (stats is null)
+            {
+                return;
+            }
+
+            await stats.RecordOutcomeAsync(role, selection.Provider,
+                selection.Model, success, latencyMs, costUsd, ct);
+        }
+        catch (Exception e) when (e is not OperationCanceledException)
+        {
+            // Stats nunca derrubam a run.
+            _logger.LogWarning(e, "model_stats report failed");
+        }
     }
 
     /// <summary>SPEC-23 pass-through fallback — <c>AgentLlm:FallbackModels</c> walk.</summary>

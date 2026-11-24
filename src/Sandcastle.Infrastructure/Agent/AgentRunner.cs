@@ -745,13 +745,17 @@ public sealed class AgentRunner(
             st.StopLengthPending = true;
         }
 
+        // SPEC-167 RF-004: custo estimado por preço configurado quando o
+        // provider não reporta cost_usd.
+        var costUsd = end.Usage.CostUsd
+            ?? EstimateCostUsd(st.Selection, end.Usage);
         await st.Events.AppendAsync(conversationId, new TokenEvent
         {
             Source = EventSource.Agent,
             ParentId = st.LastEventId,
             PromptTokens = end.Usage.PromptTokens,
             CompletionTokens = end.Usage.CompletionTokens,
-            CostUsd = end.Usage.CostUsd,
+            CostUsd = costUsd,
             Model = st.Model,
             Role = "code", // SPEC-149: wire name canônico da role
         }, ct);
@@ -768,10 +772,40 @@ public sealed class AgentRunner(
             await meter.RecordTokensAsync(meterOrg,
                 end.Usage.PromptTokens
                     + end.Usage.CompletionTokens,
-                end.Usage.CostUsd, ct);
+                costUsd, ct);
+        }
+
+        // SPEC-167 RF-002: outcome do turno alimenta as stats
+        // adaptativas (fail-open dentro do router).
+        if (st.Router is not null && st.Selection is not null)
+        {
+            await st.Router.ReportOutcomeAsync(st.Selection,
+                st.Selection.Route?.Role ?? "code", success: true,
+                latencyMs: null, costUsd, ct);
         }
 
         return end.ResponseId;
+    }
+
+    /// <summary>SPEC-167: custo estimado via price_in/out do candidato.</summary>
+    private static decimal? EstimateCostUsd(
+        ModelSelection? sel, LlmUsage usage)
+    {
+        var plan = sel?.Route;
+        if (plan is null || sel!.Attempt >= plan.Candidates.Count)
+        {
+            return null;
+        }
+
+        var c = plan.Candidates[sel.Attempt];
+        if (c.PriceInPer1M is not > 0 && c.PriceOutPer1M is not > 0)
+        {
+            return null;
+        }
+
+        return ((usage.PromptTokens * (c.PriceInPer1M ?? 0m))
+                + (usage.CompletionTokens * (c.PriceOutPer1M ?? 0m)))
+            / 1_000_000m;
     }
 
     /// <summary>

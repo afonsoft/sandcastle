@@ -330,6 +330,29 @@ public sealed class UsageRecord
 }
 
 /// <summary>
+/// SPEC-167 RF-002: per-(role,provider,model) adaptive stats — EMA de
+/// qualidade (sucesso=1/falha=0, janela ~50) e latência que alimentam o
+/// score do <c>RouteEvaluator</c>. Unique key (Role, Provider, Model).
+/// </summary>
+public sealed class ModelStatsRecord
+{
+    public required Guid Id { get; set; }
+    /// <summary>Role wire name (code/plan/critic/…).</summary>
+    public required string Role { get; set; }
+    /// <summary>Provider id — "" quando desconhecido.</summary>
+    public required string Provider { get; set; }
+    public required string Model { get; set; }
+    public long Runs { get; set; }
+    public long Successes { get; set; }
+    public long Failures { get; set; }
+    /// <summary>EMA de sucesso em [0,1] — inicia em 0.5.</summary>
+    public double QualityEma { get; set; } = 0.5;
+    public double? LatencyEmaMs { get; set; }
+    public decimal TotalCostUsd { get; set; }
+    public DateTimeOffset LastSeenAt { get; set; }
+}
+
+/// <summary>
 /// SPEC-50: BYOR LiteLLM virtual key — metadata + ciphertext only; the
 /// plaintext key is returned once at refresh and never persisted in
 /// cleartext (<see cref="KeyCiphertext"/> is DataProtection-protected

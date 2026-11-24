@@ -159,6 +159,8 @@ public class AppDbContext : DbContext, IDataProtectionKeyContext
 
     /// <summary>Metered usage rows.</summary>
     public DbSet<UsageRecord> UsageRecords => Set<UsageRecord>();
+    /// <summary>SPEC-167: adaptive model stats (quality/latency EMA).</summary>
+    public DbSet<ModelStatsRecord> ModelStats => Set<ModelStatsRecord>();
 
     /// <summary>Device-flow authorization sessions (SPEC-08 RF-009).</summary>
     public DbSet<DeviceCodeRecord> DeviceCodes => Set<DeviceCodeRecord>();

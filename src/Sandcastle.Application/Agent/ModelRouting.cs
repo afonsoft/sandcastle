@@ -137,4 +137,15 @@ public interface IModelRouter
     /// </summary>
     Task<ModelSelection?> ResolveAsync(
         LlmRole role, LlmRouteContext ctx, CancellationToken ct);
+
+    /// <summary>
+    /// SPEC-167 RF-002: reports the outcome of a selection to the
+    /// adaptive-stats store (quality/latency EMA). Default no-op keeps
+    /// test doubles and custom routers compatible; <c>ModelRouter</c>
+    /// overrides it (fail-open — stats never break a run).
+    /// </summary>
+    Task ReportOutcomeAsync(
+        ModelSelection selection, string role, bool success,
+        long? latencyMs, decimal? costUsd, CancellationToken ct) =>
+        Task.CompletedTask;
 }
