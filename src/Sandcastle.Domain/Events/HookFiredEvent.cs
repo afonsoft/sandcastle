@@ -19,6 +19,9 @@ public sealed record HookFiredEvent : EventBase
     /// <summary>Layer of the hook file: <c>repo</c> or <c>user</c>.</summary>
     public required string Layer { get; init; }
 
+    /// <summary>SPEC-173: caminho do arquivo de origem do hook.</summary>
+    public string? FilePath { get; init; }
+
     /// <summary>Glob matched against the tool name; null = all tools.</summary>
     public string? Matcher { get; init; }
 

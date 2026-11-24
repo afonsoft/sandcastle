@@ -31,6 +31,12 @@ public sealed record WorkspaceHookDefinition
     /// <summary>File name inside the hooks dir (audit).</summary>
     public required string Name { get; init; }
 
+    /// <summary>
+    /// SPEC-173: caminho do arquivo que originou o hook (relativo ao
+    /// workdir do repo ou <c>$HOME</c>) — null em fixtures antigas.
+    /// </summary>
+    public string? FilePath { get; init; }
+
     /// <summary>Discovery layer: <c>repo</c> or <c>user</c>.</summary>
     public required string Layer { get; init; }
 }
