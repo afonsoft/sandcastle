@@ -305,6 +305,9 @@ public sealed class RunnerFallbackTests
             e.Value!.Value.TryGetProperty("kind", out var k)
             && k.GetString() == "modelunavailable").ShouldBeTrue();
         fx.Events.Events.OfType<TokenEvent>().Last().Model.ShouldBe("backup");
+        fx.Events.Events
+            .OfType<Sandcastle.Domain.Events.AgentDiagnosticEvent>()
+            .ShouldContain(e => e.Code == "model_fallback");
     }
 
     [Fact]

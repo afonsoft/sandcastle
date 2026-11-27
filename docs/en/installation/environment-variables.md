@@ -54,6 +54,7 @@ Português: [../../installation/environment-variables.md](../../installation/env
 | `SANDCASTLE_Embeddings__ApiKey` | `AgentLlm` key | Optional embeddings credential override |
 | `SANDCASTLE_Search__MaxEmbeddingsPerCall` | `512` | Embedding batch cost budget |
 | `SANDCASTLE_Insights__LlmAnalysis` | `true` | L2 LLM session-insight analysis |
+| `SANDCASTLE_ModelRouting__MaxFallbacks` | `2` | Maximum adaptive model fallback attempts |
 | `LLM__MODEL` / `LLM__BASE_URL` / `LLM__API_KEY` | — | Legacy flat aliases (upstream style) |
 | `SANDCASTLE_Agent__Sdd` | `auto` | Probe `.specs/`/`docs/specs` into the prompt |
 

@@ -222,6 +222,50 @@ public sealed class Spec149ModelRouterApiTests : IDisposable
         resp.StatusCode.ShouldBe(HttpStatusCode.Forbidden);
     }
 
+
+    // ---------- SPEC-167 admin pools compatibility surface ----------
+
+    [Fact]
+    public async Task Pools_Get_Without_OrgId_Returns400()
+    {
+        var resp = await _http.GetAsync(
+            "/api/v1/admin/model-routing/pools");
+        resp.StatusCode.ShouldBe(HttpStatusCode.BadRequest);
+    }
+
+    [Fact]
+    public async Task Pools_Put_Then_Get_Roundtrip()
+    {
+        var org = DefaultOrgId();
+        var put = await _http.PutAsJsonAsync(
+            $"/api/v1/admin/model-routing/pools?orgId={org}",
+            new
+            {
+                version = "routing_rules_v1",
+                rules = new
+                {
+                    code = new object[]
+                    {
+                        new
+                        {
+                            model = "gpt-5-mini", provider = "openai",
+                            weight = 2, price_in_1m = 0.4m,
+                            price_out_1m = 1.6m,
+                        },
+                        new { model = "gpt-5", provider = "openai", weight = 1 },
+                    },
+                },
+            });
+        put.StatusCode.ShouldBe(HttpStatusCode.NoContent,
+            await put.Content.ReadAsStringAsync());
+
+        var doc = await _http.GetFromJsonAsync<JsonElement>(
+            $"/api/v1/admin/model-routing/pools?orgId={org}");
+        var code = doc.GetProperty("rules").GetProperty("code");
+        code.GetArrayLength().ShouldBe(2);
+        code[0].GetProperty("price_in_1m").GetDecimal().ShouldBe(0.4m);
+    }
+
     // ---------- GET /api/v1/usage/llm ----------
 
     [Fact]

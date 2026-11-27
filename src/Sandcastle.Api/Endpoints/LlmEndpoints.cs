@@ -44,6 +44,16 @@ public static class LlmEndpoints
             .WithTags(EndpointTags.Api).RequireAuthorization();
         routing.MapGet("/stats", GetStatsAsync);
 
+        // SPEC-167 RF-004: pools adaptativos são o documento de routing
+        // rules da org (role → ordered candidates) exposto no surface admin
+        // canônico. `orgId` é query param porque a rota admin é flat.
+        var adminPools = app.MapGroup("/api/v1/admin/model-routing")
+            .WithTags(EndpointTags.Api);
+        adminPools.MapGet("/pools", GetPoolsAsync)
+            .RequireAuthorization(PermEditLlm);
+        adminPools.MapPut("/pools", PutPoolsAsync)
+            .RequireAuthorization(PermEditLlm);
+
         return app;
     }
 
@@ -52,6 +62,52 @@ public static class LlmEndpoints
         string? task, string? role, IModelStatsService stats,
         CancellationToken ct) =>
         Results.Ok(await stats.ListAsync(task ?? role, ct));
+
+    /// <summary>Gets the adaptive model pools for an organization.</summary>
+    private static async Task<IResult> GetPoolsAsync(
+        [FromQuery] Guid? orgId,
+        IRoutingRulesService rules,
+        CancellationToken ct)
+    {
+        if (orgId is not { } oid)
+        {
+            return Results.BadRequest(new { detail = "orgId is required" });
+        }
+
+        return Results.Ok(await rules.GetAsync(oid, ct)
+            ?? new RoutingRulesDocument());
+    }
+
+    /// <summary>Replaces the adaptive model pools for an organization.</summary>
+    private static async Task<IResult> PutPoolsAsync(
+        [FromQuery] Guid? orgId,
+        [FromBody] RoutingRulesDocument? body,
+        ICurrentUserAccessor current,
+        IRoutingRulesService rules,
+        CancellationToken ct)
+    {
+        if (orgId is not { } oid)
+        {
+            return Results.BadRequest(new { detail = "orgId is required" });
+        }
+
+        if (current.User is null)
+        {
+            return Results.Unauthorized();
+        }
+
+        try
+        {
+            await rules.SetAsync(oid, body,
+                current.User.UserId.ToString(), ct);
+        }
+        catch (RoutingRulesException e)
+        {
+            return Results.BadRequest(new { detail = e.Message });
+        }
+
+        return Results.NoContent();
+    }
 
     /// <summary>Catálogo provider×model (SPEC-23 discovery — SPEC-149 expõe p/ o editor).</summary>
     private static async Task<IResult> RoutesAsync(
