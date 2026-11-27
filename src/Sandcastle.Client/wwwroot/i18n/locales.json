@@ -38,5 +38,6 @@
   "sidebar.delete": "Delete",
   "sidebar.delete_confirm": "Delete this conversation?",
   "common.confirm": "Confirm",
-  "common.ok": "OK"
+  "common.ok": "OK",
+  "composer.mentions": "Mentions"
 }

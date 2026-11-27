@@ -15,7 +15,14 @@
         <div class="composer-chips">
             @foreach (var m in MentionTokens())
             {
-                <span class="chip mention" title="@m">@("@" + Short(m))</span>
+                if (MentionFormat.Href(m.Type, m.Id) is { } href)
+                {
+                    <a class="chip mention mention-@m.Type" href="@href" title="@m.Raw">@("@" + Short(m.Label))</a>
+                }
+                else
+                {
+                    <span class="chip mention mention-@m.Type" title="@m.Raw">@("@" + Short(m.Label))</span>
+                }
             }
             @foreach (var a in _attachments)
             {
@@ -59,13 +66,20 @@
             }
             @if (_mentionOpen && _mentionItems.Count > 0)
             {
-                <div class="popup" role="listbox" aria-label="@L["composer.files"]">
+                <div class="popup mention-popup" role="listbox" aria-label="@L["composer.mentions"]">
                     @for (var i = 0; i < _mentionItems.Count; i++)
                     {
                         var p = _mentionItems[i];
-                        <button class="popup-item @(i == _idx ? "sel" : "")"
+                        <button class="popup-item mention-item @(i == _idx ? "sel" : "")"
+                                role="option" aria-selected="@(i == _idx)"
                                 @onclick="() => PickMention(p)">
-                            <Icon Name="file" Size="13" /> @p
+                            <Icon Name="@(p.Icon ?? "file")" Size="13" />
+                            <span class="mention-label">@p.Label</span>
+                            <span class="badge mention-type">@p.Type</span>
+                            @if (!string.IsNullOrWhiteSpace(p.Snippet))
+                            {
+                                <span class="mention-snippet">@p.Snippet</span>
+                            }
                         </button>
                     }
                 </div>
@@ -190,9 +204,12 @@
     private bool _mentionOpen, _slashOpen;
     private string _mentionQuery = "", _slashQuery = "";
     private int _idx;
-    private List<string> _mentionItems = [];
+    private List<MentionService.MentionItem> _mentionItems = [];
     private List<ComposerSlash.Command> _slashItems = [];
     private List<string>? _treeCache;
+    [Inject] private IServiceProvider ServiceProvider { get; set; } = default!;
+
+    private CancellationTokenSource? _mentionCts;
     private List<ComposerSlash.Command>? _slashCache;
     private List<string> _history = [];
     private int _histIdx = -1;
@@ -279,15 +296,34 @@
 
     private async Task OpenMention()
     {
-        if (ConversationId is null) { return; }
         _mentionOpen = true;
-        _treeCache ??= await LoadTreeAsync();
-        _mentionItems = _treeCache
-            .Select(p => (p, IdeQuickOpenFuzzy.Score(_mentionQuery, p)))
-            .Where(t => t.Item2 > 0)
-            .OrderByDescending(t => t.Item2)
-            .Select(t => t.p).Take(8).ToList();
-        StateHasChanged();
+        _mentionCts?.Cancel();
+        _mentionCts = new CancellationTokenSource();
+        var ct = _mentionCts.Token;
+        try
+        {
+            // SPEC-170 RF-001: debounce — digitação contínua cancela a
+            // request anterior; cache do service evita repetição.
+            await Task.Delay(150, ct);
+            var candidates = new List<MentionService.MentionItem>();
+            if (ConversationId is not null)
+            {
+                _treeCache ??= await LoadTreeAsync();
+                candidates.AddRange(MentionService.FileItems(
+                    _treeCache, _mentionQuery));
+            }
+
+            if (ServiceProvider.GetService<MentionService>() is { } mentions)
+            {
+                candidates.AddRange(await mentions.SearchServerAsync(
+                    _mentionQuery, limit: 20, ct: ct));
+            }
+            _mentionItems = MentionService.Rank(
+                candidates, _mentionQuery).ToList();
+            StateHasChanged();
+        }
+        catch (OperationCanceledException) { /* query superseded */ }
+        catch (Exception) { _mentionItems = []; }
     }
 
     private async Task OpenSlash()
@@ -399,11 +435,13 @@
         _text = _histIdx < 0 ? _histSaved : _history[_histIdx];
     }
 
-    private void PickMention(string path)
+    private void PickMention(MentionService.MentionItem item)
     {
-        // Substitui o token @query do fim pelo path completo.
+        // Substitui o token @query do fim pela referência estruturada.
         var at = _text.LastIndexOf('@');
-        _text = _text[..at] + "@" + path + " ";
+        var label = item.Label.Replace("[", "(").Replace("]", ")");
+        _text = _text[..at] + "@[" + label + "](" + item.Type + ":"
+            + item.Id + ") ";
         _mentionOpen = false;
     }
 
@@ -565,17 +603,8 @@
         finally { Sending = false; }
     }
 
-    private IEnumerable<string> MentionTokens()
-    {
-        foreach (var tok in _text.Split(' ',
-            StringSplitOptions.RemoveEmptyEntries))
-        {
-            if (tok.StartsWith('@') && tok.Length > 1)
-            {
-                yield return tok[1..];
-            }
-        }
-    }
+    private IEnumerable<MentionFormat.Parsed> MentionTokens() =>
+        MentionFormat.Parse(_text);
 
     private static string Short(string path) =>
         path.Length <= 40 ? path : "…" + path[^38..];

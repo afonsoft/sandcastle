@@ -41,6 +41,7 @@ builder.Services.AddScoped<ChatNotificationsService>();
 builder.Services.AddScoped<MarkdownService>();
 // SPEC-46: dicionários JSON i18n/{lang}.json + fallback + Changed.
 builder.Services.AddScoped<LocalizationService>();
+builder.Services.AddScoped<MentionService>();
 
 var host = builder.Build();
 // Carrega pt-BR/en-US + locale persistido antes do primeiro render.

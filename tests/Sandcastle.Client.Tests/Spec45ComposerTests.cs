@@ -112,7 +112,7 @@ public class Spec45ComposerTests : BunitContext
         // Seleciona → o token vira @path completo.
         cut.Find(".popup-item").Click();
         cut.Find("textarea").GetAttribute("value")!
-            .ShouldContain("@/workspace/repo/a.cs");
+            .ShouldContain("@[/workspace/repo/a.cs](file:/workspace/repo/a.cs)");
     }
 
     // ---- /slash popup ----------------------------------------------------

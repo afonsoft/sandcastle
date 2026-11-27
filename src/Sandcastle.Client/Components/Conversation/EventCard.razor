@@ -12,7 +12,27 @@
 {
     case "MessageEvent":
         <div class="msg @(Event.Role() == "user" ? "user" : "agent")">
-            <div class="md" @ref="_md">@MarkdownService.Render(Event.MessageText())</div>
+            @{
+                var messageText = Event.MessageText();
+                var mentions = MentionFormat.Parse(messageText);
+            }
+            @if (mentions.Count > 0)
+            {
+                <div class="mention-chips">
+                    @foreach (var mention in mentions)
+                    {
+                        if (MentionFormat.Href(mention.Type, mention.Id) is { } href)
+                        {
+                            <a class="chip mention mention-@mention.Type" href="@href" title="@mention.Raw">@("@" + mention.Label)</a>
+                        }
+                        else
+                        {
+                            <span class="chip mention mention-@mention.Type" title="@mention.Raw">@("@" + mention.Label)</span>
+                        }
+                    }
+                </div>
+            }
+            <div class="md" @ref="_md">@MarkdownService.Render(MentionFormat.DisplayText(messageText))</div>
             @* SPEC-41 RF-006: copy da saída de texto do agente. *@
             @if (Event.Role() != "user")
             {
