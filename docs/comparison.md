@@ -165,6 +165,19 @@ Itens que mais aproximam o Sandcastle do Devin Web, em ordem de valor:
 6. **PSP billing** — fora de escopo (Stripe-like), metering já emite os
    contadores necessários.
 
+## Onda G — agente, contexto e composer (SPECs 161–170)
+
+| Capability | Sandcastle |
+|---|---|
+| Automation observability | stats, health green/yellow/red e idempotência de webhook (SPEC-163) |
+| Loop guard | hard cap de iterações, detecção de no-progress/repeat-action e turn-end enforcement (SPEC-164) |
+| Hybrid code search | índice semântico + lexical com RRF, embeddings e invalidação incremental (SPEC-165) |
+| Session insights | análise LLM persistida com cache, recomputação e página admin (SPEC-166) |
+| Model routing v2 | quality EMA, latency budget, cost ceiling, fallback cooldown e adaptive routing (SPEC-167) |
+| Skills allowed-tools | frontmatter `allowed-tools`, união entre skills e bloqueio auditado no dispatch (SPEC-168) |
+| Plan mode v2 | plano versionado, aprovação por item, comentários, diff read-only e gate de execução (SPEC-169) |
+| Composer mentions | `@` rico com arquivos + conversas/skills/automations/knowledge, debounce/cache/cancel e chips navegáveis (SPEC-170) |
+
 ## Gaps residuais conhecidos
 
 1. **SPEC-62** — managed conversations / delegate cross-sandbox (em andamento).
