@@ -405,6 +405,8 @@ public static class DependencyInjection
                 Sandcastle.Infrastructure.Conversations.StartTaskService>());
         services.AddScoped<Sandcastle.Application.Conversations.IAppConversationService,
             Sandcastle.Infrastructure.Conversations.AppConversationService>();
+        services.AddScoped<Sandcastle.Application.Conversations.IPlanArtifactService,
+            Sandcastle.Infrastructure.Conversations.PlanArtifactService>();
         // SPEC-135: fork + turn undo + hunk revert.
         services.AddScoped<Sandcastle.Application.Conversations.IConversationUxService,
             Sandcastle.Infrastructure.Conversations.ConversationUxService>();

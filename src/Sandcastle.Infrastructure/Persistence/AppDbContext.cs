@@ -135,6 +135,14 @@ public class AppDbContext : DbContext, IDataProtectionKeyContext
     /// <summary>Billing plans.</summary>
     public DbSet<PlanRecord> Plans => Set<PlanRecord>();
 
+    /// <summary>SPEC-169: reviewable conversation plan artifacts.</summary>
+    public DbSet<ConversationPlanArtifactRecord> ConversationPlanArtifacts =>
+        Set<ConversationPlanArtifactRecord>();
+
+    /// <summary>SPEC-169: items of reviewable conversation plans.</summary>
+    public DbSet<ConversationPlanItemRecord> ConversationPlanItems =>
+        Set<ConversationPlanItemRecord>();
+
     /// <summary>SPEC-128: notas de contexto por conversa (DB-backed).</summary>
     public DbSet<ConversationContextNoteRecord> ContextNotes =>
         Set<ConversationContextNoteRecord>();

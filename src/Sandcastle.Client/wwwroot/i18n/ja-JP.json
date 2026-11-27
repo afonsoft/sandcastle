@@ -1019,5 +1019,13 @@
   "insights.categories": "カテゴリ",
   "insights.size_distribution": "サイズ分布",
   "skills.allowed_tools": "allowed tools",
-  "skills.allowed_tools_placeholder": "ツール名をカンマ区切りで入力。空の場合は制限なし"
+  "skills.allowed_tools_placeholder": "ツール名をカンマ区切りで入力。空の場合は制限なし",
+  "conv.tab_plan": "プラン",
+  "plan_artifact.title": "プラン承認",
+  "plan_artifact.empty": "レビュープランはまだありません",
+  "plan_artifact.comment": "コメント",
+  "plan_artifact.approve": "承認",
+  "plan_artifact.reject": "拒否",
+  "plan_artifact.modify": "修正",
+  "plan_artifact.execute": "承認して実行"
 }

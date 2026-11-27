@@ -1019,5 +1019,13 @@
   "insights.categories": "类别",
   "insights.size_distribution": "规模分布",
   "skills.allowed_tools": "允许的工具",
-  "skills.allowed_tools_placeholder": "逗号分隔工具名称；留空表示不限制"
+  "skills.allowed_tools_placeholder": "逗号分隔工具名称；留空表示不限制",
+  "conv.tab_plan": "计划",
+  "plan_artifact.title": "计划审批",
+  "plan_artifact.empty": "尚无计划评审",
+  "plan_artifact.comment": "评论",
+  "plan_artifact.approve": "批准",
+  "plan_artifact.reject": "拒绝",
+  "plan_artifact.modify": "修改",
+  "plan_artifact.execute": "批准并执行"
 }

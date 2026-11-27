@@ -576,3 +576,27 @@ public sealed class UserLlmKeyRecord
     public DateTimeOffset CreatedAt { get; set; }
     public DateTimeOffset UpdatedAt { get; set; }
 }
+/// <summary>SPEC-169: versioned review plan artifact for a conversation.</summary>
+public sealed class ConversationPlanArtifactRecord
+{
+    public required Guid Id { get; set; }
+    public required Guid ConversationId { get; set; }
+    public int Version { get; set; }
+    public DateTimeOffset CreatedAt { get; set; }
+    public DateTimeOffset UpdatedAt { get; set; }
+    public DateTimeOffset? ExecutedAt { get; set; }
+    public List<ConversationPlanItemRecord> Items { get; set; } = [];
+}
+
+/// <summary>SPEC-169: one reviewable plan item.</summary>
+public sealed class ConversationPlanItemRecord
+{
+    public required Guid Id { get; set; }
+    public required Guid PlanId { get; set; }
+    public int Position { get; set; }
+    public required string Title { get; set; }
+    public required string FilesJson { get; set; }
+    public string? Rationale { get; set; }
+    public required string Status { get; set; }
+    public required string CommentsJson { get; set; }
+}

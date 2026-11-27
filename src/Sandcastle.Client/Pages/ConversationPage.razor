@@ -160,6 +160,10 @@
                 {
                     <InsightsTab State="State" />
                 }
+                else if (_tab == "plan")
+                {
+                    <PlanArtifactTab ConversationId="@Id" />
+                }
                 else if (_tab is "jobs" or "mcps" or "info")
                 {
                     @* SPEC-155: painel operacional (jobs/MCPs/info). *@
@@ -185,7 +189,7 @@
     [
         ("ide", "conv.tab_ide"),
         ("terminal", "conv.tab_terminal"), ("browser", "conv.tab_browser"), ("desktop", "conv.tab_desktop"), ("files", "conv.tab_files"),
-        ("diff", "conv.tab_diff"), ("commits", "conv.tab_commits"), ("usage", "conv.tab_usage"),
+        ("diff", "conv.tab_diff"), ("commits", "conv.tab_commits"), ("plan", "conv.tab_plan"), ("usage", "conv.tab_usage"),
         ("jobs", "conv.tab_jobs"), ("mcps", "conv.tab_mcps"), ("info", "conv.tab_info"), ("insights", "conv.tab_insights"),
     ];
 

@@ -1,6 +1,9 @@
 using System.Text.Json;
 
+using Microsoft.Extensions.DependencyInjection;
+
 using Sandcastle.Application.Agent;
+using Sandcastle.Application.Conversations;
 
 namespace Sandcastle.Infrastructure.Agent.Tools;
 
@@ -41,7 +44,8 @@ public static class BuiltinSpecs
             Schema("""
                 {"type":"object","properties":{
                   "name":{"type":"string","description":"Plan file name (default 'current')"},
-                  "content":{"type":"string","description":"Plan markdown"}},
+                  "content":{"type":"string","description":"Plan markdown"},
+                  "items":{"type":"array","description":"Structured review items for plan-mode-v2","items":{"type":"object","properties":{"title":{"type":"string"},"files":{"type":"array","items":{"type":"string"}},"rationale":{"type":"string"}},"required":["title"]}}},
                  "required":["content"]}
                 """)),
         Risky: true,
@@ -59,9 +63,40 @@ public static class BuiltinSpecs
                 + $"cat > {PlansDir}/{name}.md <<'SC_EOF'\n{content}\nSC_EOF\n"
                 + "&& echo wrote",
                 ctx.DefaultTimeout, ct);
-            return r.ExitCode == 0
-                ? ToolResult.Ok(new { path = $"{PlansDir}/{name}.md" })
-                : ToolResult.Error($"write_plan falhou: {r.StdErr.Trim()}");
+            if (r.ExitCode != 0)
+            {
+                return ToolResult.Error($"write_plan falhou: {r.StdErr.Trim()}");
+            }
+
+            // SPEC-169: quando o modelo fornece itens estruturados,
+            // persistimos o artefato versionado de aprovação além do
+            // markdown file-based legado (SPEC-121).
+            if (a.TryGetProperty("items", out var items)
+                && items.ValueKind == JsonValueKind.Array)
+            {
+                var inputs = items.EnumerateArray().Select(item =>
+                    new PlanArtifactItemInput(
+                        item.GetProperty("title").GetString() ?? "",
+                        item.TryGetProperty("files", out var files)
+                            && files.ValueKind == JsonValueKind.Array
+                            ? files.EnumerateArray()
+                                .Select(f => f.GetString() ?? "").ToList()
+                            : null,
+                        item.TryGetProperty("rationale", out var rationale)
+                            && rationale.ValueKind == JsonValueKind.String
+                            ? rationale.GetString() : null)).ToList();
+                var plans = ctx.Services.GetRequiredService<IPlanArtifactService>();
+                var artifact = await plans.PutAsync(
+                    ctx.ConversationId, new PutPlanArtifactRequest(inputs), ct);
+                return ToolResult.Ok(new
+                {
+                    path = $"{PlansDir}/{name}.md",
+                    plan_id = artifact.Id,
+                    version = artifact.Version,
+                });
+            }
+
+            return ToolResult.Ok(new { path = $"{PlansDir}/{name}.md" });
         });
 
     /// <summary>Lê ou adiciona notas no arquivo de contexto do run.</summary>
