@@ -183,7 +183,7 @@ Aprovadas em 2026-11-10 pelo usuário — Epic acompanha no GitHub.
 | 167 | model-routing-v2 | Completed | #499 · PR #542 |
 | 168 | skills-allowed-tools | Completed | #500 · PR #544 |
 | 169 | plan-mode-v2 | Completed | #501 · PR #546 |
-| 170 | composer-knowledge-autocomplete | Approved | #502 · Epic #492 |
+| 170 | composer-knowledge-autocomplete | Completed | #502 · Epic #492 |
 
 ### Onda H — agent runtime vs OpenWebUiCode (dez/2026) — Approved
 
