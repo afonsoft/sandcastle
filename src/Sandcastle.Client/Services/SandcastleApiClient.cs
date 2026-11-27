@@ -371,13 +371,13 @@ public sealed class SandcastleApiClient(HttpClient http)
         var resp = await http.GetAsync(
             $"/api/v1/app-conversations/{conversationId}/insights", ct);
         if (!resp.IsSuccessStatusCode) { return null; }
-        return await resp.Content.ReadFromJsonAsync<SessionInsightItem>(ct);
+        return await resp.Content.ReadFromJsonAsync<SessionInsightItem>(Json, ct);
     }
 
     public Task<InsightsStatsItem?> GetInsightsStatsAsync(
         int days = 30, CancellationToken ct = default) =>
         http.GetFromJsonAsync<InsightsStatsItem>(
-            $"/api/v1/insights/stats?days={days}", ct);
+            $"/api/v1/insights/stats?days={days}", Json, ct);
 
     public sealed record SessionInsightItem(
         Guid Id, Guid ConversationId, Guid? OrgId, string Outcome,
