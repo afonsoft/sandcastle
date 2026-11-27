@@ -179,7 +179,7 @@ Aprovadas em 2026-11-10 pelo usuário — Epic acompanha no GitHub.
 | 163 | automation-observability | Completed | #495 · PR #534 |
 | 164 | agent-loop-guard | Completed | #496 · Epic #492 |
 | 165 | hybrid-code-search | Completed | #497 · Epic #492 |
-| 166 | session-insights-v2 | Approved | #498 · Epic #492 |
+| 166 | session-insights-v2 | Completed | #498 · PR #540 |
 | 167 | model-routing-v2 | Approved | #499 · Epic #492 |
 | 168 | skills-allowed-tools | Approved | #500 · Epic #492 |
 | 169 | plan-mode-v2 | Approved | #501 · Epic #492 |

@@ -8,7 +8,7 @@
 | Type | `Feature` |
 | Stack | `.NET 10 · Blazor WASM` |
 | Repository | `afonsoft/sandcastle` |
-| Status | `Approved` |
+| Status | `Completed` |
 | Ticket | #498 · Epic #492 |
 | Scope | `src/` + `tests/` |
 
