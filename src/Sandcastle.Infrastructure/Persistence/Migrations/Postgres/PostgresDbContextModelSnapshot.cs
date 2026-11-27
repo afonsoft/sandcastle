@@ -1656,6 +1656,10 @@ namespace Sandcastle.Infrastructure.Persistence.Migrations.Postgres
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("created_at");
 
+                    b.Property<string>("EmbeddingJson")
+                        .HasColumnType("text")
+                        .HasColumnName("embedding_json");
+
                     b.Property<int>("EndLine")
                         .HasColumnType("integer")
                         .HasColumnName("end_line");

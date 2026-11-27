@@ -1647,6 +1647,10 @@ namespace Sandcastle.Infrastructure.Persistence.Migrations
                         .HasColumnType("TEXT")
                         .HasColumnName("created_at");
 
+                    b.Property<string>("EmbeddingJson")
+                        .HasColumnType("TEXT")
+                        .HasColumnName("embedding_json");
+
                     b.Property<int>("EndLine")
                         .HasColumnType("INTEGER")
                         .HasColumnName("end_line");

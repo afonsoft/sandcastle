@@ -482,6 +482,8 @@ public sealed class CodeUnitRecord : IOrgScoped
     public string? SymbolName { get; set; }
     public required string Text { get; set; }
     public required string Hash { get; set; }
+    /// <summary>SPEC-165: serialized embedding vector; null when semantic indexing is disabled/unavailable.</summary>
+    public string? EmbeddingJson { get; set; }
     public DateTimeOffset CreatedAt { get; set; }
 }
 

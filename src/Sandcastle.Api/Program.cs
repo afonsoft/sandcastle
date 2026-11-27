@@ -91,6 +91,14 @@ builder.Services.AddSingleton<Microsoft.AspNetCore.Authorization.IAuthorizationM
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddScoped<Sandcastle.Application.Common.Interfaces.IOutputCompactorService, Sandcastle.Infrastructure.Agent.OutputCompactorService>();
 builder.Services.AddSingleton<Sandcastle.Application.Sandbox.ISandboxSnapshotProvider, Sandcastle.Infrastructure.Sandbox.FileSystemSandboxSnapshotProvider>();
+builder.Services.Configure<Sandcastle.Infrastructure.Indexing.EmbeddingOptions>(
+    builder.Configuration.GetSection(
+        Sandcastle.Infrastructure.Indexing.EmbeddingOptions.Section));
+builder.Services.Configure<Sandcastle.Infrastructure.Indexing.SearchOptions>(
+    builder.Configuration.GetSection(
+        Sandcastle.Infrastructure.Indexing.SearchOptions.Section));
+builder.Services.AddSingleton<Sandcastle.Application.Indexing.IEmbeddingProvider,
+    Sandcastle.Infrastructure.Indexing.OpenAiCompatEmbeddingProvider>();
 builder.Services.AddScoped<Sandcastle.Application.Indexing.ICodeSearchStore, Sandcastle.Infrastructure.Indexing.EfCodeSearchStore>();
 builder.Services.AddScoped<Sandcastle.Application.Indexing.IRepoIndexer, Sandcastle.Infrastructure.Indexing.RepoIndexer>();
 builder.Services.AddScoped<Sandcastle.Application.Ask.IAskModeService, Sandcastle.Infrastructure.Ask.AskModeService>();

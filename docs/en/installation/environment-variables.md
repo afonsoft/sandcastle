@@ -49,6 +49,10 @@ Português: [../../installation/environment-variables.md](../../installation/env
 | `SANDCASTLE_AgentLlm__FallbackModels__<n>` | — | Ordered fallback list |
 | `SANDCASTLE_AgentLlm__SecurityAnalyzer` | `pattern` | `pattern` \| `llm` \| `policy` |
 | `SANDCASTLE_AgentLlm__StrictResume` | `false` | Fail resume on contract drift |
+| `SANDCASTLE_Embeddings__Model` | — | OpenAI-compatible embedding model; empty disables semantic search |
+| `SANDCASTLE_Embeddings__BaseUrl` | `AgentLlm` gateway | Optional embeddings endpoint override |
+| `SANDCASTLE_Embeddings__ApiKey` | `AgentLlm` key | Optional embeddings credential override |
+| `SANDCASTLE_Search__MaxEmbeddingsPerCall` | `512` | Embedding batch cost budget |
 | `LLM__MODEL` / `LLM__BASE_URL` / `LLM__API_KEY` | — | Legacy flat aliases (upstream style) |
 | `SANDCASTLE_Agent__Sdd` | `auto` | Probe `.specs/`/`docs/specs` into the prompt |
 

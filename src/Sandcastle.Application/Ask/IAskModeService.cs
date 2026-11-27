@@ -22,7 +22,8 @@ public sealed record AskResponse(
     Guid SessionId,
     string Answer,
     IReadOnlyList<AskCitation> Citations,
-    bool CanPromoteToAgent);
+    bool CanPromoteToAgent,
+    bool SearchDegraded = false);
 
 public sealed record PromoteAskSessionRequest(
     Guid SessionId,
