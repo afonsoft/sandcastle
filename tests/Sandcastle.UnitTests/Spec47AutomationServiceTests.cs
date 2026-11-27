@@ -319,11 +319,12 @@ public sealed class Spec47AutomationServiceTests
         var rec = await db.AutomationHooks.FindAsync(hook!.Id);
         rec!.TokenHash.ShouldNotBe(token);
 
-        (await svc.FireByTokenAsync("token-errado", "1.2.3.4",
-            CancellationToken.None)).ShouldBeNull();
-        var run = await svc.FireByTokenAsync(
-            token!, "1.2.3.4", CancellationToken.None);
-        run.ShouldNotBeNull();
+        (await svc.FireByTokenAsync("token-errado", "1.2.3.4", null,
+            "hash", CancellationToken.None)).ShouldBeNull();
+        var result = await svc.FireByTokenAsync(
+            token!, "1.2.3.4", null, "hash", CancellationToken.None);
+        result.ShouldNotBeNull();
+        result!.Run.ShouldNotBeNull();
         convs.Created.ShouldBe(1);
 
         (await db.AutomationHooks.FindAsync(hook.Id))!.LastUsedAt

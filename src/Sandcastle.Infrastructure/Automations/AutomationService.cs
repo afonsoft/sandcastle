@@ -331,7 +331,18 @@ public sealed class AutomationService(
             .Where(a => a.CreatedByUserId == owner)
             .OrderBy(a => a.Name).ThenBy(a => a.Id)
             .ToListAsync(ct);
-        return rows.Select(ToInfo).ToList();
+        var result = new List<AutomationInfo>(rows.Count);
+        foreach (var r in rows)
+        {
+            // SPEC-163 RF-002: health na lista (derivado dos runs).
+            var info = ToInfo(r);
+            result.Add(info with
+            {
+                Health = await HealthAsync(r, ct),
+            });
+        }
+
+        return result;
     }
 
     /// <inheritdoc />
@@ -342,7 +353,75 @@ public sealed class AutomationService(
         var r = await db.Automations.AsNoTracking()
             .FirstOrDefaultAsync(
                 a => a.Id == id && a.CreatedByUserId == owner, ct);
-        return r is null ? null : ToInfo(r);
+        if (r is null)
+        {
+            return null;
+        }
+
+        var info = ToInfo(r);
+        return info with { Health = await HealthAsync(r, ct) };
+    }
+
+    /// <summary>
+    /// SPEC-163 RF-002: saúde derivada — taxa de sucesso nos últimos 20
+    /// runs (exclui skipped) + falhas consecutivas + circuit-open.
+    /// </summary>
+    private async Task<string> HealthAsync(
+        AutomationRecord r, CancellationToken ct)
+    {
+        var statuses = await db.AutomationRuns.AsNoTracking()
+            .Where(x => x.AutomationId == r.Id && x.Status != "skipped")
+            .OrderByDescending(x => x.StartedAtTicks)
+            .Take(20)
+            .Select(x => x.Status)
+            .ToListAsync(ct);
+        double? rate = statuses.Count == 0
+            ? null
+            : statuses.Count(s => s == "succeeded") / (double)statuses.Count;
+        return AutomationHealth.Level(
+            rate, r.ConsecutiveFailures, CircuitOpen(r));
+    }
+
+    /// <summary>SPEC-161: circuit-open derivado (desabilitado no limiar).</summary>
+    private bool CircuitOpen(AutomationRecord r) =>
+        !r.Enabled
+        && r.ConsecutiveFailures >= _options.CircuitBreakerThreshold;
+
+    /// <inheritdoc />
+    public async Task<AutomationStats?> GetStatsAsync(
+        Guid id, Guid ownerUserId, CancellationToken ct)
+    {
+        var owner = ownerUserId.ToString();
+        var r = await db.Automations.AsNoTracking()
+            .FirstOrDefaultAsync(
+                a => a.Id == id && a.CreatedByUserId == owner, ct);
+        if (r is null)
+        {
+            return null;
+        }
+
+        var runs = await db.AutomationRuns.AsNoTracking()
+            .Where(x => x.AutomationId == id)
+            .OrderByDescending(x => x.StartedAtTicks)
+            .ToListAsync(ct);
+        var decisive = runs.Where(x => x.Status != "skipped").ToList();
+        var last20 = decisive.Take(20).ToList();
+        double? rate = last20.Count == 0
+            ? null
+            : last20.Count(x => x.Status == "succeeded")
+                / (double)last20.Count;
+        var circuitOpen = CircuitOpen(r);
+        return new AutomationStats(
+            r.Id,
+            runs.Count,
+            runs.Count(x => x.Status == "succeeded"),
+            runs.Count(x => x.Status == "failed"),
+            runs.Count(x => x.Status == "skipped"),
+            rate,
+            runs.FirstOrDefault(x => x.Status == "failed")?.Error,
+            r.ConsecutiveFailures,
+            AutomationHealth.Level(rate, r.ConsecutiveFailures, circuitOpen),
+            runs.Take(10).Select(ToRunInfo).ToList());
     }
 
     /// <inheritdoc />
@@ -899,8 +978,9 @@ public sealed class AutomationService(
     }
 
     /// <inheritdoc />
-    public async Task<AutomationRunInfo?> FireByTokenAsync(
-        string token, string? ip, CancellationToken ct)
+    public async Task<AutomationHookFireResult?> FireByTokenAsync(
+        string token, string? ip, string? idempotencyKey,
+        string? payloadHash, CancellationToken ct)
     {
         var hook = await db.AutomationHooks.FirstOrDefaultAsync(
             h => h.TokenHash == HashToken(token), ct);
@@ -916,10 +996,64 @@ public sealed class AutomationService(
             return null;
         }
 
+        // SPEC-163 RF-004: dedup — chave = header Idempotency-Key ou
+        // hash do payload; janela de 24h (expiradas são removidas antes,
+        // o que libera a chave única para reuso após a janela).
+        var key = string.IsNullOrWhiteSpace(idempotencyKey)
+            ? payloadHash
+            : idempotencyKey.Trim();
+        if (key is { Length: > 128 })
+        {
+            key = key[..128];
+        }
+
+        if (!string.IsNullOrEmpty(key))
+        {
+            var now = DateTimeOffset.UtcNow;
+            var windowStart = now.AddHours(-24);
+            var expired = await db.AutomationHookDeliveries
+                .Where(d => d.HookId == hook.Id
+                    && d.ReceivedAtTicks < windowStart.UtcTicks)
+                .ToListAsync(ct);
+            if (expired.Count > 0)
+            {
+                db.AutomationHookDeliveries.RemoveRange(expired);
+                // Persiste a limpeza antes do dup-check/insert — o índice
+                // único (hook, key) precisa da linha antiga fora.
+                await db.SaveChangesAsync(ct);
+            }
+
+            var dup = await db.AutomationHookDeliveries
+                .FirstOrDefaultAsync(
+                    d => d.HookId == hook.Id && d.IdempotencyKey == key
+                        && d.ReceivedAtTicks >= windowStart.UtcTicks, ct);
+            if (dup is not null)
+            {
+                return new AutomationHookFireResult(null, true, dup.RunId);
+            }
+
+            hook.LastUsedAt = now;
+            var fired = await FireAsync(rec, actor: "hook", ip: ip, ct);
+            db.AutomationHookDeliveries.Add(
+                new AutomationHookDeliveryRecord
+                {
+                    Id = Guid.NewGuid(),
+                    HookId = hook.Id,
+                    IdempotencyKey = key,
+                    PayloadHash = payloadHash ?? string.Empty,
+                    ReceivedAt = now,
+                    ReceivedAtTicks = now.UtcTicks,
+                    RunId = fired.Id,
+                });
+            await db.SaveChangesAsync(ct);
+            return new AutomationHookFireResult(
+                ToRunInfo(fired), false, fired.Id);
+        }
+
         hook.LastUsedAt = DateTimeOffset.UtcNow;
         var run = await FireAsync(rec, actor: "hook", ip: ip, ct);
         await db.SaveChangesAsync(ct);
-        return ToRunInfo(run);
+        return new AutomationHookFireResult(ToRunInfo(run), false, run.Id);
     }
 
     /// <inheritdoc />

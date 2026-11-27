@@ -156,4 +156,58 @@ public class Spec47AutomationsPageTests : BunitContext
             cut.Markup.ShouldContain("/conversations/33333333");
         });
     }
+
+    // ---- SPEC-163 RF-003: saúde + estatísticas -------------------------
+
+    private static string AutomationWithHealth(string health) => $$"""
+        {"id":"11111111-1111-1111-1111-111111111111","org_id":null,
+         "created_by_user_id":"u","name":"nightly","prompt":"run",
+         "llm_model":null,"selected_repository":null,
+         "schedule_kind":"interval","schedule_time_utc":null,
+         "interval_minutes":60,"weekday":null,"enabled":true,
+         "next_run_at":"2026-10-18T09:00:00Z","last_run_at":null,
+         "created_at":"2026-10-17T00:00:00Z","updated_at":"2026-10-17T00:00:00Z",
+         "health":"{{health}}"}
+        """;
+
+    [Fact]
+    public void List_Renders_Health_Dot_With_Tooltip()
+    {
+        var json = AutomationWithHealth("red");
+        Api(_ => Json($"[{json}]"));
+        var cut = Render<AutomationsPage>();
+        cut.WaitForAssertion(() =>
+        {
+            cut.Markup.ShouldContain("Com falhas");
+            cut.Markup.ShouldContain("#dc2626");
+        });
+    }
+
+    [Fact]
+    public void Detail_Renders_Stats_Panel()
+    {
+        const string stats = """
+            {"automation_id":"11111111-1111-1111-1111-111111111111",
+             "total":11,"succeeded":8,"failed":2,"skipped":1,
+             "success_rate_last_20":0.8,"last_error":"boom",
+             "consecutive_failures":2,"health":"yellow","last_runs":[]}
+            """;
+        Api(req =>
+        {
+            var path = req.RequestUri!.AbsolutePath;
+            if (path.EndsWith("/stats")) { return Json(stats); }
+            if (path.Contains("/runs")) { return Json("[]"); }
+            return Json(AutomationJson);
+        });
+        var cut = Render<AutomationDetailPage>(p =>
+            p.Add(x => x.Id,
+                Guid.Parse("11111111-1111-1111-1111-111111111111")));
+        cut.WaitForAssertion(() =>
+        {
+            cut.Markup.ShouldContain("Estatísticas");
+            cut.Markup.ShouldContain("Execuções: 11");
+            cut.Markup.ShouldContain("Falhas consecutivas: 2");
+            cut.Markup.ShouldContain("boom");
+        });
+    }
 }

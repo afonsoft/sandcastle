@@ -62,6 +62,11 @@ public static class AutomationEndpoints
             .RequireAuthorization()
             .RequireScope(AutomationsRead);
 
+        // SPEC-163 RF-001: stats + saúde por automation.
+        g.MapGet("/{id:guid}/stats", GetIdGuidStatsAsync)
+            .RequireAuthorization()
+            .RequireScope(AutomationsRead);
+
         g.MapPost("/{id:guid}/hooks", PostIdGuidHooksAsync).RequireAuthorization()
             .RequireScope(AutomationsWrite);
 
@@ -144,15 +149,37 @@ public static class AutomationEndpoints
                 ctx, 429, "rate limit exceeded");
         }
 
-        var run = await svc.FireByTokenAsync(token, ip, ct);
-        return run is null
-            ? SandcastleProblemFactory.Create(ctx, 404, "not found")
-            : Results.Accepted(null, new
+        // SPEC-163 RF-004: idempotência — chave do header ou SHA-256
+        // do body bruto; resposta deduplicada não cria run.
+        var body = await new StreamReader(ctx.Request.Body).ReadToEndAsync(ct);
+        var payloadHash = Convert.ToHexString(
+            System.Security.Cryptography.SHA256.HashData(
+                System.Text.Encoding.UTF8.GetBytes(body)))
+            .ToLowerInvariant();
+        var idemKey = ctx.Request.Headers["Idempotency-Key"].FirstOrDefault();
+        var result = await svc.FireByTokenAsync(
+            token, ip, idemKey, payloadHash, ct);
+        if (result is null)
+        {
+            return SandcastleProblemFactory.Create(ctx, 404, "not found");
+        }
+
+        if (result.Deduplicated)
+        {
+            return Results.Ok(new
             {
-                run_id = run.Id,
-                conversation_id = run.ConversationId,
-                status = run.Status,
+                deduplicated = true,
+                run_id = result.RunId,
             });
+        }
+
+        var run = result.Run!;
+        return Results.Accepted(null, new
+        {
+            run_id = run.Id,
+            conversation_id = run.ConversationId,
+            status = run.Status,
+        });
     }
 
 
@@ -247,6 +274,8 @@ public static class AutomationEndpoints
         time_zone_id = a.TimeZoneId,
         cron_expression = a.CronExpression,
         approval_preset = a.ApprovalPreset,
+        // SPEC-163: saúde derivada (green|yellow|red).
+        health = a.Health,
     };
 
     private static object ToRunDto(AutomationRunInfo r) => new
@@ -289,6 +318,35 @@ public static class AutomationEndpoints
             : Results.NotFound();
 
     }
+
+    private static async Task<IResult> GetIdGuidStatsAsync(
+        Guid id, HttpContext ctx, ICurrentUserAccessor current,
+        IAutomationService svc, CancellationToken ct)
+    {
+        if (current.User is not { } u)
+        {
+            return Results.Unauthorized();
+        }
+
+        return await svc.GetStatsAsync(id, u.UserId, ct) is { } s
+            ? Results.Ok(ToStatsDto(s))
+            : SandcastleProblemFactory.Create(
+                ctx, 404, AutomationNotFound);
+    }
+
+    private static object ToStatsDto(AutomationStats s) => new
+    {
+        automation_id = s.AutomationId,
+        total = s.Total,
+        succeeded = s.Succeeded,
+        failed = s.Failed,
+        skipped = s.Skipped,
+        success_rate_last_20 = s.SuccessRateLast20,
+        last_error = s.LastError,
+        consecutive_failures = s.ConsecutiveFailures,
+        health = s.Health,
+        last_runs = s.LastRuns.Select(ToRunDto).ToList(),
+    };
 
     private static async Task<IResult> GetIdGuidRunsAsync(Guid id, int? take, ICurrentUserAccessor current, IAutomationService svc, CancellationToken ct)
     {

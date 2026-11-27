@@ -79,7 +79,9 @@ public sealed record AutomationInfo(
     string? MisfirePolicy = null,
     // SPEC-162: cron + timezone + approval preset.
     string? TimeZoneId = null, string? CronExpression = null,
-    string? ApprovalPreset = null);
+    string? ApprovalPreset = null,
+    // SPEC-163 RF-002: saúde derivada (green|yellow|red).
+    string? Health = null);
 
 /// <summary>Run de uma automation (SPEC-47 RF-002/RF-003).</summary>
 public sealed record AutomationRunInfo(
@@ -88,6 +90,57 @@ public sealed record AutomationRunInfo(
     string? Error,
     // SPEC-161 RF-002: disparo recuperado de misfire (fora da graça).
     bool Missed = false);
+
+/// <summary>Níveis de saúde de uma automation (SPEC-163 RF-002).</summary>
+public static class AutomationHealth
+{
+    /// <summary>Taxa de sucesso ≥90% e sem falhas consecutivas.</summary>
+    public const string Green = "green";
+
+    /// <summary>Taxa 70–90% ou 1–2 falhas consecutivas.</summary>
+    public const string Yellow = "yellow";
+
+    /// <summary>Taxa &lt;70%, ≥3 falhas consecutivas ou circuit-open.</summary>
+    public const string Red = "red";
+
+    /// <summary>
+    /// Classifica a saúde: <paramref name="successRate"/> é a fração
+    /// (0..1) de sucesso na janela recente; circuit-open força red.
+    /// </summary>
+    public static string Level(
+        double? successRate, int consecutiveFailures, bool circuitOpen)
+    {
+        if (circuitOpen || consecutiveFailures >= 3)
+        {
+            return Red;
+        }
+
+        if (consecutiveFailures is 1 or 2)
+        {
+            return Yellow;
+        }
+
+        if (successRate is null)
+        {
+            return Green;
+        }
+
+        return successRate >= 0.90 ? Green
+            : successRate >= 0.70 ? Yellow
+            : Red;
+    }
+}
+
+/// <summary>Stats agregadas de uma automation (SPEC-163 RF-001).</summary>
+public sealed record AutomationStats(
+    Guid AutomationId, long Total, long Succeeded, long Failed,
+    long Skipped, double? SuccessRateLast20, string? LastError,
+    int ConsecutiveFailures, string Health,
+    IReadOnlyList<AutomationRunInfo> LastRuns);
+
+/// <summary>Resultado do trigger por webhook com idempotência (SPEC-163 RF-004).</summary>
+public sealed record AutomationHookFireResult(
+    AutomationRunInfo? Run, bool Deduplicated, Guid? RunId);
 
 /// <summary>Hook de trigger externo (token exibido uma única vez).</summary>
 public sealed record AutomationHookInfo(
@@ -332,6 +385,13 @@ public interface IAutomationService
     Task<IReadOnlyList<AutomationRunInfo>> ListRunsAsync(
         Guid id, Guid ownerUserId, int take, CancellationToken ct);
 
+    /// <summary>
+    /// SPEC-163 RF-001: stats agregadas + saúde + últimos 10 runs
+    /// (owner-scoped; <see langword="null"/> = 404).
+    /// </summary>
+    Task<AutomationStats?> GetStatsAsync(
+        Guid id, Guid ownerUserId, CancellationToken ct);
+
     /// <summary>Histórico global de runs do owner (janela from/to).</summary>
     Task<IReadOnlyList<AutomationRunInfo>> ListAllRunsAsync(
         Guid ownerUserId, DateTimeOffset? from, DateTimeOffset? to,
@@ -347,12 +407,15 @@ public interface IAutomationService
 
     /// <summary>
     /// Trigger anônimo por token — resolve o hash e dispara a automation
-    /// linkada (mesmo guard de concorrência). <see langword="null"/> =
+    /// linkada (mesmo guard de concorrência). SPEC-163 RF-004:
+    /// <paramref name="idempotencyKey"/> + <paramref name="payloadHash"/>
+    /// deduplicam entregas em 24h. <see langword="null"/> no Run =
     /// token inválido (endpoint devolve 404, não 401 — não vazar
     /// existência).
     /// </summary>
-    Task<AutomationRunInfo?> FireByTokenAsync(
-        string token, string? ip, CancellationToken ct);
+    Task<AutomationHookFireResult?> FireByTokenAsync(
+        string token, string? ip, string? idempotencyKey,
+        string? payloadHash, CancellationToken ct);
 
     /// <summary>
     /// Dispara uma automation devida pelo tick do scheduler — aplica

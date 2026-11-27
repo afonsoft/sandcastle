@@ -88,6 +88,28 @@ else
         </p>
     }
 
+    @* SPEC-163 RF-003: painel de estatísticas de saúde. *@
+    <h2>@L["automations.stats_title"]</h2>
+    @if (_stats is null)
+    {
+        <p><em>@L["common.loading"]</em></p>
+    }
+    else
+    {
+        <p>
+            @L["automations.stats_total"]: @_stats.Total ·
+            @L["automations.stats_success_rate"]:
+            @(_stats.SuccessRateLast20?.ToString("P0") ?? "—") ·
+            @L["automations.stats_consecutive_failures"]: @_stats.ConsecutiveFailures
+        </p>
+        @if (_stats.LastError is { } lastError)
+        {
+            <p class="text-danger">
+                @L["automations.stats_last_error"]: @lastError
+            </p>
+        }
+    }
+
     <h2>@L["automations.runs"]</h2>
     @if (_runs.Count == 0)
     {
@@ -133,6 +155,7 @@ else
     [Parameter] public Guid Id { get; set; }
 
     private AutomationItem? _a;
+    private AutomationStatsItem? _stats;
     private List<AutomationRunItem> _runs = [];
     private string? _error, _token;
     private string? _fName, _fPrompt, _fModel, _fRepo, _fTime;
@@ -146,6 +169,7 @@ else
     protected override async Task OnInitializedAsync()
     {
         _a = await Api.GetAutomationAsync(Id);
+        _stats = await Api.GetAutomationStatsAsync(Id);
         _runs = (await Api.ListAutomationRunsAsync(Id)).ToList();
         if (_a is not null)
         {

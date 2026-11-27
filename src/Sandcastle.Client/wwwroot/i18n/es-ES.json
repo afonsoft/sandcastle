@@ -993,5 +993,14 @@
   "automations.preset_default": "Predeterminado (ajustes del usuario)",
   "automations.preset_allow": "Permitir todo",
   "automations.preset_allow_readonly": "Solo lectura (preguntar en escrituras)",
-  "automations.preset_plan": "Modo plan"
+  "automations.preset_plan": "Modo plan",
+  "automations.health": "Salud",
+  "automations.health_green": "Correcta",
+  "automations.health_yellow": "Degradada",
+  "automations.health_red": "Con fallos",
+  "automations.stats_title": "Estadísticas",
+  "automations.stats_total": "Ejecuciones totales",
+  "automations.stats_success_rate": "Tasa de éxito (últimas 20)",
+  "automations.stats_consecutive_failures": "Fallos consecutivos",
+  "automations.stats_last_error": "Último error"
 }

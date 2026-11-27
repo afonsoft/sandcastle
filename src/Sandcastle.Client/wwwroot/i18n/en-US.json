@@ -993,5 +993,14 @@
   "automations.preset_default": "Default (user settings)",
   "automations.preset_allow": "Allow all",
   "automations.preset_allow_readonly": "Allow read-only (ask on writes)",
-  "automations.preset_plan": "Plan mode"
+  "automations.preset_plan": "Plan mode",
+  "automations.health": "Health",
+  "automations.health_green": "Healthy",
+  "automations.health_yellow": "Degraded",
+  "automations.health_red": "Failing",
+  "automations.stats_title": "Statistics",
+  "automations.stats_total": "Total runs",
+  "automations.stats_success_rate": "Success rate (last 20)",
+  "automations.stats_consecutive_failures": "Consecutive failures",
+  "automations.stats_last_error": "Last error"
 }

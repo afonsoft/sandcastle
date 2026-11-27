@@ -993,5 +993,14 @@
   "automations.preset_default": "默认（用户设置）",
   "automations.preset_allow": "全部允许",
   "automations.preset_allow_readonly": "只读（写操作需确认）",
-  "automations.preset_plan": "计划模式"
+  "automations.preset_plan": "计划模式",
+  "automations.health": "健康度",
+  "automations.health_green": "正常",
+  "automations.health_yellow": "降级",
+  "automations.health_red": "失败",
+  "automations.stats_title": "统计",
+  "automations.stats_total": "总运行次数",
+  "automations.stats_success_rate": "成功率（最近20次）",
+  "automations.stats_consecutive_failures": "连续失败",
+  "automations.stats_last_error": "最近错误"
 }

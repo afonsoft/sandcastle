@@ -267,6 +267,54 @@ namespace Sandcastle.Infrastructure.Persistence.Migrations.Postgres
                     b.ToTable("alert_sources", (string)null);
                 });
 
+            modelBuilder.Entity("Sandcastle.Infrastructure.Automations.AutomationHookDeliveryRecord", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<Guid>("HookId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("hook_id");
+
+                    b.Property<string>("IdempotencyKey")
+                        .IsRequired()
+                        .HasMaxLength(128)
+                        .HasColumnType("character varying(128)")
+                        .HasColumnName("idempotency_key");
+
+                    b.Property<string>("PayloadHash")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)")
+                        .HasColumnName("payload_hash");
+
+                    b.Property<DateTimeOffset>("ReceivedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("received_at");
+
+                    b.Property<long>("ReceivedAtTicks")
+                        .HasColumnType("bigint")
+                        .HasColumnName("received_at_ticks");
+
+                    b.Property<Guid?>("RunId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("run_id");
+
+                    b.HasKey("Id")
+                        .HasName("pk_automation_hook_deliveries");
+
+                    b.HasIndex("ReceivedAtTicks")
+                        .HasDatabaseName("ix_automation_hook_deliveries_received_at_ticks");
+
+                    b.HasIndex("HookId", "IdempotencyKey")
+                        .IsUnique()
+                        .HasDatabaseName("ix_automation_hook_deliveries_hook_id_idempotency_key");
+
+                    b.ToTable("automation_hook_deliveries", (string)null);
+                });
+
             modelBuilder.Entity("Sandcastle.Infrastructure.Automations.AutomationHookRecord", b =>
                 {
                     b.Property<Guid>("Id")

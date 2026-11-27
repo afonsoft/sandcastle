@@ -68,6 +68,26 @@ Configuração (`Automation:*`):
 - `GET /automations/schedule` projeta `next_runs` respeitando cron +
   fuso.
 
+### Observabilidade (SPEC-163)
+
+- **`GET /automations/{id}/stats`** (scope `automations:read`, 404 na
+  mesma regra do `GET /{id}`): totais por status, taxa de sucesso das
+  últimas 20 runs decisivas (skipped não conta), `last_error`,
+  `consecutive_failures`, `health` e as últimas 10 runs. Nunca expõe
+  prompt nem secrets.
+- **`health`** (`green|yellow|red`): função pura sobre taxa de sucesso,
+  falhas consecutivas e circuit breaker aberto — exposta no stats e no
+  campo `health` do list/detail. UI mostra dot colorido com tooltip na
+  lista e painel de estatísticas no detalhe.
+- **Idempotência do webhook**: tabela `automation_hook_deliveries`
+  (índice único `(hook_id, idempotency_key)`) registra cada entrega por
+  24h. Chave = header `Idempotency-Key` ou SHA-256 do body cru. A
+  checagem acontece após auth do token e antes do fire: duplicata
+  retorna `200 {deduplicated: true, run_id}` sem criar novo run;
+  payload diferente com a mesma chave também deduplica; janela expirada
+  é purgada e permite reuso da chave. Payload sem chave continua
+  deduplicando pelo hash do body.
+
 ## Scheduler
 
 `AutomationScheduler` (BackgroundService) ticka a cada 30s sob lock
@@ -87,8 +107,9 @@ disponibilidade. Falha em uma automation não bloqueia as demais.
 | GET/PATCH/DELETE | `/api/v1/automations/{id}` | detail/update — `{enabled}` faz toggle |
 | POST | `/api/v1/automations/{id}/run-now` | 202 `{run_id, conversation_id}`; 409 se já running |
 | GET | `/api/v1/automations/{id}/runs?take=`, `/api/v1/automations/runs?from&to` | histórico |
+| GET | `/api/v1/automations/{id}/stats` | totais, taxa (últimas 20), saúde, últimas 10 runs |
 | POST/DELETE | `/api/v1/automations/{id}/hooks`, `/api/v1/automations/hooks/{hookId}` | token 1× |
-| POST | `/api/v1/hooks/{token}` | **anônimo** → 202; 404 em inválido (não vaza existência); rate-limit 10/min por token + 60/min por IP |
+| POST | `/api/v1/hooks/{token}` | **anônimo** → 202; 404 em inválido (não vaza existência); rate-limit 10/min por token + 60/min por IP; idempotente via `Idempotency-Key` ou hash do body (janela 24h) → duplicata retorna 200 `{deduplicated, run_id}` |
 
 ## Tool `routine`
 

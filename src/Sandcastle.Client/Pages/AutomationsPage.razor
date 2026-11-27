@@ -48,6 +48,7 @@ else
         <thead>
             <tr>
                 <th>@L["automations.name"]</th>
+                <th>@L["automations.health"]</th>
                 <th>@L["automations.schedule"]</th>
                 <th>@L["automations.next_run"]</th>
                 <th>@L["automations.last_run"]</th>
@@ -60,6 +61,12 @@ else
             {
                 <tr>
                     <td><a href="/automations/@a.Id">@a.Name</a></td>
+                    @* SPEC-163 RF-003: dot de saúde com tooltip. *@
+                    <td>
+                        <span style="display:inline-block;width:0.7em;height:0.7em;border-radius:50%;background:@HealthColor(a.Health)"
+                              title="@HealthLabel(a.Health)"
+                              aria-label="@HealthLabel(a.Health)"></span>
+                    </td>
                     <td>@ScheduleLabel(a)</td>
                     <td>@(a.NextRunAt?.LocalDateTime.ToString("g") ?? "—")</td>
                     <td>@(a.LastRunAt?.LocalDateTime.ToString("g") ?? "—")</td>
@@ -168,6 +175,21 @@ else
             .Where(a => a.Enabled && a.NextRunAt is not null)
             .OrderBy(a => a.NextRunAt).Take(10).ToList();
     }
+
+    // SPEC-163 RF-003: cor/label do dot de saúde.
+    private static string HealthColor(string? health) => health switch
+    {
+        "yellow" => "#d97706",
+        "red" => "#dc2626",
+        _ => "#16a34a",
+    };
+
+    private string HealthLabel(string? health) => health switch
+    {
+        "yellow" => L["automations.health_yellow"],
+        "red" => L["automations.health_red"],
+        _ => L["automations.health_green"],
+    };
 
     private string ScheduleLabel(AutomationItem a) => a.ScheduleKind switch
     {
