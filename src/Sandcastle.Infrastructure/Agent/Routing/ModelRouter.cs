@@ -208,6 +208,12 @@ public sealed class ModelRouter(
             return null;
         }
 
+        var maxFallbacks = routerOptions?.Value.MaxFallbacks ?? 2;
+        if (current.Attempt >= maxFallbacks)
+        {
+            return null;
+        }
+
         if (current.Route is { Candidates.Count: > 0 } plan)
         {
             _breaker.ReportFailure(current.Provider, current.Model,

@@ -335,6 +335,12 @@ public sealed class RouterOptions
     /// timeout; the classified timeout still drives fallback (429/5xx/timeout).
     /// </summary>
     public int FailoverTimeoutSec { get; set; }
+
+    /// <summary>
+    /// SPEC-167 RF-003: maximum fallback attempts after the initial
+    /// selection (default 2). Bindable via <c>ModelRouting:MaxFallbacks</c>.
+    /// </summary>
+    public int MaxFallbacks { get; set; } = 2;
 }
 
 /// <summary>

@@ -516,7 +516,7 @@ public sealed class Spec149ModelRouterTests
             Rules = new Dictionary<string, List<RouteCandidate>>
             {
                 ["code"] = [new("a", "p1"), new("b", "p2"),
-                            new("c", "p3")],
+                            new("c", "p3"), new("d", "p4")],
             },
         };
         var router = Make(doc, audit, breaker: breaker);
@@ -546,7 +546,7 @@ public sealed class Spec149ModelRouterTests
         third!.Model.ShouldBe("c");
         (await router.NextFallbackAsync(
             third, LlmErrorKind.Transient, CancellationToken.None))
-            .ShouldBeNull(); // cadeia esgotada ⇒ caller → llm_no_route
+            .ShouldBeNull(); // max_fallbacks=2 ⇒ "d" nunca entra; caller → llm_no_route
     }
 
     [Fact]

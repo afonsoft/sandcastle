@@ -985,6 +985,10 @@ public sealed class AgentRunner(
         logger.LogWarning(
             "LLM {Kind} em {From} — fallback para {To}",
             lce.Kind, st.Selection.Model, next.Model);
+        await st.Activity.DiagnosticAsync(st.Events, conversationId,
+            "warn", "model_fallback",
+            $"{lce.Kind.ToString().ToLowerInvariant()} — {st.Selection.Model} → {next.Model}",
+            CancellationToken.None);
         st.Model = next.Model;
         st.Selection = next;
         st.Conv.LlmModel = next.Model;

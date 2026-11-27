@@ -715,6 +715,8 @@ public static class DependencyInjection
         services.Configure<Sandcastle.Application.Agent.RouterOptions>(
             configuration.GetSection(
                 Sandcastle.Application.Agent.RouterOptions.Section));
+        services.Configure<Sandcastle.Application.Agent.RouterOptions>(
+            configuration.GetSection("ModelRouting"));
         // SPEC-22: context engine — meter/condenser/builder scoped por run.
         services.AddScoped<
             Sandcastle.Application.Agent.IContextMeter,
