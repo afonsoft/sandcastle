@@ -1027,5 +1027,6 @@
   "plan_artifact.approve": "Approuver",
   "plan_artifact.reject": "Rejeter",
   "plan_artifact.modify": "Modifier",
-  "plan_artifact.execute": "Approuver et exécuter"
+  "plan_artifact.execute": "Approuver et exécuter",
+  "composer.mentions": "Mentions"
 }

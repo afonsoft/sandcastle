@@ -1027,5 +1027,6 @@
   "plan_artifact.approve": "承認",
   "plan_artifact.reject": "拒否",
   "plan_artifact.modify": "修正",
-  "plan_artifact.execute": "承認して実行"
+  "plan_artifact.execute": "承認して実行",
+  "composer.mentions": "メンション"
 }

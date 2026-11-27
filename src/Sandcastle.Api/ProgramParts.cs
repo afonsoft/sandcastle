@@ -395,6 +395,7 @@ internal static class ProgramParts
         app.MapAdminEndpoints();
         app.MapAppConversationEndpoints();
         app.MapPlanArtifactEndpoints();
+        app.MapMentionEndpoints();
         app.MapHandoffEndpoints(); // SPEC-150: local↔cloud handoff/pickup
         app.MapEventEndpoints();
         app.MapSandboxEndpoints();
