@@ -184,6 +184,11 @@ public class AppDbContext : DbContext, IDataProtectionKeyContext
     public DbSet<Sandcastle.Infrastructure.Automations.AutomationHookRecord>
         AutomationHooks => Set<Sandcastle.Infrastructure.Automations.AutomationHookRecord>();
 
+    /// <summary>SPEC-163: webhook deliveries for idempotency dedup.</summary>
+    public DbSet<Sandcastle.Infrastructure.Automations.AutomationHookDeliveryRecord>
+        AutomationHookDeliveries =>
+            Set<Sandcastle.Infrastructure.Automations.AutomationHookDeliveryRecord>();
+
     /// <summary>Public share links — token hash only (SPEC-56).</summary>
     public DbSet<Sandcastle.Infrastructure.Sharing.ConversationShareRecord>
         ConversationShares =>

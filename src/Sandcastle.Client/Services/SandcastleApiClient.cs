@@ -1163,6 +1163,12 @@ public sealed class SandcastleApiClient(HttpClient http)
         Guid id, CancellationToken ct = default) =>
         GetOrNull<AutomationItem>($"/api/v1/automations/{id}", ct);
 
+    /// <summary>SPEC-163 RF-001: estatísticas de saúde (null se 404).</summary>
+    public Task<AutomationStatsItem?> GetAutomationStatsAsync(
+        Guid id, CancellationToken ct = default) =>
+        GetOrNull<AutomationStatsItem>(
+            $"/api/v1/automations/{id}/stats", ct);
+
     /// <summary>Cria automation; erro de validação → exception com detalhe.</summary>
     public async Task<AutomationItem> CreateAutomationAsync(
         object body, CancellationToken ct = default)

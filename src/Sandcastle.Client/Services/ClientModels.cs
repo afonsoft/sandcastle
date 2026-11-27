@@ -202,6 +202,8 @@ public sealed record AutomationItem(
     string? ScheduleTimeUtc, int IntervalMinutes, int? Weekday,
     bool Enabled, DateTimeOffset? NextRunAt, DateTimeOffset? LastRunAt,
     DateTimeOffset CreatedAt, DateTimeOffset UpdatedAt,
+    // SPEC-163 RF-002: saúde derivada (green|yellow|red).
+    string? Health = null,
     // SPEC-162: cron + timezone IANA + approval preset.
     string? TimeZoneId = null, string? CronExpression = null,
     string? ApprovalPreset = null);
@@ -222,6 +224,17 @@ public sealed record AutomationRunItem(
     Guid Id, Guid AutomationId, DateTimeOffset StartedAt,
     DateTimeOffset? FinishedAt, string Status, Guid? ConversationId,
     string? Error);
+
+/// <summary>SPEC-163 RF-001: estatísticas de saúde de uma automation.</summary>
+public sealed record AutomationStatsItem(
+    Guid AutomationId, long Total, long Succeeded, long Failed,
+    long Skipped,
+    // SnakeCaseLower não insere "_" antes de dígitos — fixa o nome.
+    [property: System.Text.Json.Serialization.JsonPropertyName(
+        "success_rate_last_20")]
+    double? SuccessRateLast20, string? LastError,
+    int ConsecutiveFailures, string Health,
+    IReadOnlyList<AutomationRunItem> LastRuns);
 /// <summary>SPEC-135 RF-001: resultado do POST .../fork.</summary>
 public sealed record ForkConversationResult(string Id, string StartTaskId);
 

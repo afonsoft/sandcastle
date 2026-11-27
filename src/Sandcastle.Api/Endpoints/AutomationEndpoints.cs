@@ -18,6 +18,7 @@ public static class AutomationEndpoints
     private const string AutomationNotFound = "automation not found";
     private const string AutomationsWrite = "automations:write";
     private const string AutomationsRead = "automations:read";
+    private const int MaxHookPayloadBytes = 64 * 1024;
     /// <summary>Maps automation + hook-trigger endpoints.</summary>
     public static IEndpointRouteBuilder MapAutomationEndpoints(
         this IEndpointRouteBuilder app)
@@ -59,6 +60,11 @@ public static class AutomationEndpoints
 
         // SPEC-160 RF-001: agenda projetada + runs reais no intervalo.
         g.MapGet("/schedule", GetScheduleAsync)
+            .RequireAuthorization()
+            .RequireScope(AutomationsRead);
+
+        // SPEC-163 RF-001: stats + saúde por automation.
+        g.MapGet("/{id:guid}/stats", GetIdGuidStatsAsync)
             .RequireAuthorization()
             .RequireScope(AutomationsRead);
 
@@ -144,17 +150,70 @@ public static class AutomationEndpoints
                 ctx, 429, "rate limit exceeded");
         }
 
-        var run = await svc.FireByTokenAsync(token, ip, ct);
-        return run is null
-            ? SandcastleProblemFactory.Create(ctx, 404, "not found")
-            : Results.Accepted(null, new
+        // SPEC-163 RF-004: idempotência — chave do header ou SHA-256
+        // do body bruto; resposta deduplicada não cria run. O endpoint é
+        // anônimo, então o payload é limitado antes de materializar em memória.
+        var body = await ReadHookBodyAsync(ctx.Request.Body, ct);
+        if (body is null)
+        {
+            return SandcastleProblemFactory.Create(
+                ctx, 413, "hook payload too large");
+        }
+
+        var payloadHash = Convert.ToHexString(
+            System.Security.Cryptography.SHA256.HashData(
+                System.Text.Encoding.UTF8.GetBytes(body)))
+            .ToLowerInvariant();
+        var idemKey = ctx.Request.Headers["Idempotency-Key"].FirstOrDefault();
+        var result = await svc.FireByTokenAsync(
+            token, ip, idemKey, payloadHash, ct);
+        if (result is null)
+        {
+            return SandcastleProblemFactory.Create(ctx, 404, "not found");
+        }
+
+        if (result.Deduplicated)
+        {
+            return Results.Ok(new
             {
-                run_id = run.Id,
-                conversation_id = run.ConversationId,
-                status = run.Status,
+                deduplicated = true,
+                run_id = result.RunId,
             });
+        }
+
+        var run = result.Run!;
+        return Results.Accepted(null, new
+        {
+            run_id = run.Id,
+            conversation_id = run.ConversationId,
+            status = run.Status,
+        });
     }
 
+
+    private static async Task<string?> ReadHookBodyAsync(
+        Stream body, CancellationToken ct)
+    {
+        using var output = new MemoryStream();
+        var buffer = new byte[8192];
+        while (true)
+        {
+            var read = await body.ReadAsync(buffer, ct);
+            if (read == 0)
+            {
+                break;
+            }
+
+            if (output.Length + read > MaxHookPayloadBytes)
+            {
+                return null;
+            }
+
+            output.Write(buffer, 0, read);
+        }
+
+        return System.Text.Encoding.UTF8.GetString(output.ToArray());
+    }
 
     /// <summary>
     /// Token bucket in-memory — janela fixa por chave (SPEC-47 NFR:
@@ -247,6 +306,8 @@ public static class AutomationEndpoints
         time_zone_id = a.TimeZoneId,
         cron_expression = a.CronExpression,
         approval_preset = a.ApprovalPreset,
+        // SPEC-163: saúde derivada (green|yellow|red).
+        health = a.Health,
     };
 
     private static object ToRunDto(AutomationRunInfo r) => new
@@ -289,6 +350,35 @@ public static class AutomationEndpoints
             : Results.NotFound();
 
     }
+
+    private static async Task<IResult> GetIdGuidStatsAsync(
+        Guid id, HttpContext ctx, ICurrentUserAccessor current,
+        IAutomationService svc, CancellationToken ct)
+    {
+        if (current.User is not { } u)
+        {
+            return Results.Unauthorized();
+        }
+
+        return await svc.GetStatsAsync(id, u.UserId, ct) is { } s
+            ? Results.Ok(ToStatsDto(s))
+            : SandcastleProblemFactory.Create(
+                ctx, 404, AutomationNotFound);
+    }
+
+    private static object ToStatsDto(AutomationStats s) => new
+    {
+        automation_id = s.AutomationId,
+        total = s.Total,
+        succeeded = s.Succeeded,
+        failed = s.Failed,
+        skipped = s.Skipped,
+        success_rate_last_20 = s.SuccessRateLast20,
+        last_error = s.LastError,
+        consecutive_failures = s.ConsecutiveFailures,
+        health = s.Health,
+        last_runs = s.LastRuns.Select(ToRunDto).ToList(),
+    };
 
     private static async Task<IResult> GetIdGuidRunsAsync(Guid id, int? take, ICurrentUserAccessor current, IAutomationService svc, CancellationToken ct)
     {

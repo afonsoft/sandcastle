@@ -993,5 +993,14 @@
   "automations.preset_default": "デフォルト（ユーザー設定）",
   "automations.preset_allow": "すべて許可",
   "automations.preset_allow_readonly": "読み取り専用（書き込み時に確認）",
-  "automations.preset_plan": "プランモード"
+  "automations.preset_plan": "プランモード",
+  "automations.health": "状態",
+  "automations.health_green": "正常",
+  "automations.health_yellow": "低下",
+  "automations.health_red": "失敗中",
+  "automations.stats_title": "統計",
+  "automations.stats_total": "総実行回数",
+  "automations.stats_success_rate": "成功率（直近20件）",
+  "automations.stats_consecutive_failures": "連続失敗",
+  "automations.stats_last_error": "最後のエラー"
 }

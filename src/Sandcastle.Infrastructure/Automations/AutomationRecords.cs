@@ -115,6 +115,29 @@ public sealed class AutomationHookRecord
     public DateTimeOffset? LastUsedAt { get; set; }
 }
 
+/// <summary>
+/// SPEC-163 RF-004: entrega de webhook aceita — dedup por
+/// (hook, idempotency_key) dentro da janela de 24h; o índice único
+/// garante o hot path anônimo sem corrida.
+/// </summary>
+public sealed class AutomationHookDeliveryRecord
+{
+    /// <summary>PK.</summary>
+    public required Guid Id { get; set; }
+    /// <summary>FK lógica → <see cref="AutomationHookRecord"/>.</summary>
+    public required Guid HookId { get; set; }
+    /// <summary>Chave de idempotência (header ou hash do payload).</summary>
+    public required string IdempotencyKey { get; set; }
+    /// <summary>SHA-256 hex do body bruto (auditoria da entrega).</summary>
+    public required string PayloadHash { get; set; }
+    /// <summary>Recebido em (janela de 24h).</summary>
+    public DateTimeOffset ReceivedAt { get; set; }
+    /// <summary>Espelho em ticks — SQLite não compara DateTimeOffset.</summary>
+    public long ReceivedAtTicks { get; set; }
+    /// <summary>Run criado por esta entrega.</summary>
+    public Guid? RunId { get; set; }
+}
+
 /// <inheritdoc />
 public sealed class AutomationRecordConfiguration
     : IEntityTypeConfiguration<AutomationRecord>
@@ -165,5 +188,24 @@ public sealed class AutomationHookRecordConfiguration
         b.HasKey(e => e.Id);
         b.HasIndex(e => e.AutomationId);
         b.HasIndex(e => e.TokenHash).IsUnique();
+    }
+}
+
+/// <inheritdoc />
+public sealed class AutomationHookDeliveryRecordConfiguration
+    : IEntityTypeConfiguration<AutomationHookDeliveryRecord>
+{
+    /// <inheritdoc />
+    public void Configure(
+        EntityTypeBuilder<AutomationHookDeliveryRecord> b)
+    {
+        b.ToTable("automation_hook_deliveries");
+        b.HasKey(e => e.Id);
+        // SPEC-163 RF-004: dedup composta — hot path do webhook anônimo.
+        b.HasIndex(e => new { e.HookId, e.IdempotencyKey })
+            .IsUnique();
+        b.HasIndex(e => e.ReceivedAtTicks);
+        b.Property(e => e.IdempotencyKey).HasMaxLength(128);
+        b.Property(e => e.PayloadHash).HasMaxLength(64);
     }
 }

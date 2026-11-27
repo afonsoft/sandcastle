@@ -993,5 +993,14 @@
   "automations.preset_default": "Standard (Benutzereinstellungen)",
   "automations.preset_allow": "Alles erlauben",
   "automations.preset_allow_readonly": "Nur lesen (Frage bei Schreibzugriffen)",
-  "automations.preset_plan": "Planmodus"
+  "automations.preset_plan": "Planmodus",
+  "automations.health": "Zustand",
+  "automations.health_green": "Fehlerfrei",
+  "automations.health_yellow": "Beeinträchtigt",
+  "automations.health_red": "Fehlerhaft",
+  "automations.stats_title": "Statistiken",
+  "automations.stats_total": "Ausführungen gesamt",
+  "automations.stats_success_rate": "Erfolgsquote (letzte 20)",
+  "automations.stats_consecutive_failures": "Aufeinanderfolgende Fehler",
+  "automations.stats_last_error": "Letzter Fehler"
 }
