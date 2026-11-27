@@ -177,7 +177,7 @@ Aprovadas em 2026-11-10 pelo usuário — Epic acompanha no GitHub.
 | 161 | automation-scheduler-robustness | Completed | #493 · PR #503 |
 | 162 | automation-scheduler-advanced | Completed | #494 · PR #505 |
 | 163 | automation-observability | Completed | #495 · PR #534 |
-| 164 | agent-loop-guard | Approved | #496 · Epic #492 |
+| 164 | agent-loop-guard | Completed | #496 · Epic #492 |
 | 165 | hybrid-code-search | Approved | #497 · Epic #492 |
 | 166 | session-insights-v2 | Approved | #498 · Epic #492 |
 | 167 | model-routing-v2 | Approved | #499 · Epic #492 |
