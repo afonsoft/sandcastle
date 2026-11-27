@@ -389,3 +389,30 @@ public sealed class PersonalAccessTokenConfiguration
         b.HasIndex(e => e.UserId);
     }
 }
+/// <inheritdoc />
+public sealed class ConversationPlanArtifactConfiguration
+    : IEntityTypeConfiguration<ConversationPlanArtifactRecord>
+{
+    /// <inheritdoc />
+    public void Configure(EntityTypeBuilder<ConversationPlanArtifactRecord> b)
+    {
+        b.ToTable("conversation_plan_artifacts");
+        b.HasKey(e => e.Id);
+        b.HasIndex(e => e.ConversationId).IsUnique();
+        b.HasMany(e => e.Items).WithOne().HasForeignKey(e => e.PlanId)
+            .OnDelete(DeleteBehavior.Cascade);
+    }
+}
+
+/// <inheritdoc />
+public sealed class ConversationPlanItemConfiguration
+    : IEntityTypeConfiguration<ConversationPlanItemRecord>
+{
+    /// <inheritdoc />
+    public void Configure(EntityTypeBuilder<ConversationPlanItemRecord> b)
+    {
+        b.ToTable("conversation_plan_items");
+        b.HasKey(e => e.Id);
+        b.HasIndex(e => e.PlanId);
+    }
+}

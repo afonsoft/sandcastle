@@ -1767,6 +1767,91 @@ namespace Sandcastle.Infrastructure.Persistence.Migrations
                     b.ToTable("conversation_memories", (string)null);
                 });
 
+            modelBuilder.Entity("Sandcastle.Infrastructure.Persistence.ConversationPlanArtifactRecord", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("TEXT")
+                        .HasColumnName("id");
+
+                    b.Property<Guid>("ConversationId")
+                        .HasColumnType("TEXT")
+                        .HasColumnName("conversation_id");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("TEXT")
+                        .HasColumnName("created_at");
+
+                    b.Property<DateTimeOffset?>("ExecutedAt")
+                        .HasColumnType("TEXT")
+                        .HasColumnName("executed_at");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("TEXT")
+                        .HasColumnName("updated_at");
+
+                    b.Property<int>("Version")
+                        .HasColumnType("INTEGER")
+                        .HasColumnName("version");
+
+                    b.HasKey("Id")
+                        .HasName("pk_conversation_plan_artifacts");
+
+                    b.HasIndex("ConversationId")
+                        .IsUnique()
+                        .HasDatabaseName("ix_conversation_plan_artifacts_conversation_id");
+
+                    b.ToTable("conversation_plan_artifacts", (string)null);
+                });
+
+            modelBuilder.Entity("Sandcastle.Infrastructure.Persistence.ConversationPlanItemRecord", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("TEXT")
+                        .HasColumnName("id");
+
+                    b.Property<string>("CommentsJson")
+                        .IsRequired()
+                        .HasColumnType("TEXT")
+                        .HasColumnName("comments_json");
+
+                    b.Property<string>("FilesJson")
+                        .IsRequired()
+                        .HasColumnType("TEXT")
+                        .HasColumnName("files_json");
+
+                    b.Property<Guid>("PlanId")
+                        .HasColumnType("TEXT")
+                        .HasColumnName("plan_id");
+
+                    b.Property<int>("Position")
+                        .HasColumnType("INTEGER")
+                        .HasColumnName("position");
+
+                    b.Property<string>("Rationale")
+                        .HasColumnType("TEXT")
+                        .HasColumnName("rationale");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasColumnType("TEXT")
+                        .HasColumnName("status");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasColumnType("TEXT")
+                        .HasColumnName("title");
+
+                    b.HasKey("Id")
+                        .HasName("pk_conversation_plan_items");
+
+                    b.HasIndex("PlanId")
+                        .HasDatabaseName("ix_conversation_plan_items_plan_id");
+
+                    b.ToTable("conversation_plan_items", (string)null);
+                });
+
             modelBuilder.Entity("Sandcastle.Infrastructure.Persistence.ConversationSkillRecord", b =>
                 {
                     b.Property<Guid>("ConversationId")
@@ -4918,6 +5003,21 @@ namespace Sandcastle.Infrastructure.Persistence.Migrations
                         .HasDatabaseName("ix_ticket_project_configs_connection_id_project_key");
 
                     b.ToTable("ticket_project_configs", (string)null);
+                });
+
+            modelBuilder.Entity("Sandcastle.Infrastructure.Persistence.ConversationPlanItemRecord", b =>
+                {
+                    b.HasOne("Sandcastle.Infrastructure.Persistence.ConversationPlanArtifactRecord", null)
+                        .WithMany("Items")
+                        .HasForeignKey("PlanId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_conversation_plan_items_conversation_plan_artifacts_plan_id");
+                });
+
+            modelBuilder.Entity("Sandcastle.Infrastructure.Persistence.ConversationPlanArtifactRecord", b =>
+                {
+                    b.Navigation("Items");
                 });
 #pragma warning restore 612, 618
         }

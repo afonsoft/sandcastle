@@ -1019,5 +1019,13 @@
   "insights.categories": "Catégories",
   "insights.size_distribution": "Distribution des tailles",
   "skills.allowed_tools": "Outils autorisés",
-  "skills.allowed_tools_placeholder": "noms séparés par des virgules; vide = sans restriction"
+  "skills.allowed_tools_placeholder": "noms séparés par des virgules; vide = sans restriction",
+  "conv.tab_plan": "Plan",
+  "plan_artifact.title": "Approbation du plan",
+  "plan_artifact.empty": "Aucun plan de révision",
+  "plan_artifact.comment": "Commentaire",
+  "plan_artifact.approve": "Approuver",
+  "plan_artifact.reject": "Rejeter",
+  "plan_artifact.modify": "Modifier",
+  "plan_artifact.execute": "Approuver et exécuter"
 }

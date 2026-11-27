@@ -1019,5 +1019,13 @@
   "insights.categories": "Categories",
   "insights.size_distribution": "Size distribution",
   "skills.allowed_tools": "Allowed tools",
-  "skills.allowed_tools_placeholder": "comma-separated tool names; blank = unrestricted"
+  "skills.allowed_tools_placeholder": "comma-separated tool names; blank = unrestricted",
+  "conv.tab_plan": "Plan",
+  "plan_artifact.title": "Plan approval",
+  "plan_artifact.empty": "No review plan yet",
+  "plan_artifact.comment": "Comment",
+  "plan_artifact.approve": "Approve",
+  "plan_artifact.reject": "Reject",
+  "plan_artifact.modify": "Modify",
+  "plan_artifact.execute": "Approve & execute"
 }

@@ -1019,5 +1019,13 @@
   "insights.categories": "Categorias",
   "insights.size_distribution": "Distribuição de tamanho",
   "skills.allowed_tools": "Tools permitidas",
-  "skills.allowed_tools_placeholder": "nomes de tools separados por vírgula; vazio = irrestrito"
+  "skills.allowed_tools_placeholder": "nomes de tools separados por vírgula; vazio = irrestrito",
+  "conv.tab_plan": "Plano",
+  "plan_artifact.title": "Aprovação do plano",
+  "plan_artifact.empty": "Nenhum plano de revisão ainda",
+  "plan_artifact.comment": "Comentário",
+  "plan_artifact.approve": "Aprovar",
+  "plan_artifact.reject": "Rejeitar",
+  "plan_artifact.modify": "Modificar",
+  "plan_artifact.execute": "Aprovar e executar"
 }

@@ -1019,5 +1019,13 @@
   "insights.categories": "Kategorien",
   "insights.size_distribution": "Größenverteilung",
   "skills.allowed_tools": "Erlaubte Tools",
-  "skills.allowed_tools_placeholder": "kommagetrennte Tool-Namen; leer = uneingeschränkt"
+  "skills.allowed_tools_placeholder": "kommagetrennte Tool-Namen; leer = uneingeschränkt",
+  "conv.tab_plan": "Plan",
+  "plan_artifact.title": "Plan-Genehmigung",
+  "plan_artifact.empty": "Noch kein Review-Plan",
+  "plan_artifact.comment": "Kommentar",
+  "plan_artifact.approve": "Genehmigen",
+  "plan_artifact.reject": "Ablehnen",
+  "plan_artifact.modify": "Ändern",
+  "plan_artifact.execute": "Genehmigen und ausführen"
 }
