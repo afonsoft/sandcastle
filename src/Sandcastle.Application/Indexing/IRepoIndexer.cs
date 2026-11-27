@@ -9,12 +9,15 @@ public sealed record CodeUnitDto(
     string Kind,
     string? SymbolName,
     string Text,
-    string Hash);
+    string Hash,
+    string? EmbeddingJson = null);
 
 public sealed record SearchCodeResult(
     CodeUnitDto Unit,
     double Score,
-    string Snippet);
+    string Snippet,
+    bool Degraded = false,
+    string? Excerpt = null);
 
 public interface ICodeSearchStore
 {

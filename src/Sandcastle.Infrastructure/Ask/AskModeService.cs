@@ -49,7 +49,8 @@ public sealed class AskModeService : IAskModeService
                 SessionId: Guid.NewGuid(),
                 Answer: $"O repositório '{request.Repository}' (branch: '{branch}') ainda não foi indexado. Dispare a indexação primeiro.",
                 Citations: citations,
-                CanPromoteToAgent: false);
+                CanPromoteToAgent: false,
+                SearchDegraded: true);
         }
 
         // SPEC-145 RF-001: permalink do provider — base da conexão SCM
@@ -126,7 +127,8 @@ public sealed class AskModeService : IAskModeService
             SessionId: Guid.NewGuid(),
             Answer: answerBuilder.ToString(),
             Citations: citations,
-            CanPromoteToAgent: citations.Count > 0);
+            CanPromoteToAgent: citations.Count > 0,
+            SearchDegraded: results.Any(r => r.Degraded));
     }
 
     public async Task<PromoteAskSessionResponse> PromoteToAgentAsync(PromoteAskSessionRequest request, CancellationToken ct = default)

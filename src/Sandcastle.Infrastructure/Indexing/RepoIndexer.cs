@@ -138,6 +138,16 @@ public sealed class RepoIndexer : IRepoIndexer
 
         record.CommitSha = lease.CommitSha;
 
+        // SPEC-165 RF-004: preserva embeddings de units inalteradas por hash
+        // antes da regravação do índice — reindex não paga re-embedding.
+        var reusableEmbeddings = await _db.CodeUnits.AsNoTracking()
+            .Where(u => u.RepoIndexId == indexId && u.EmbeddingJson != null)
+            .Select(u => new { u.Hash, u.EmbeddingJson })
+            .ToListAsync(ct);
+        var embeddingByHash = reusableEmbeddings
+            .GroupBy(x => x.Hash)
+            .ToDictionary(g => g.Key, g => g.First().EmbeddingJson);
+
         // Limpa unidades antigas se houver
         await _searchStore.DeleteIndexUnitsAsync(indexId, ct);
 
@@ -168,7 +178,9 @@ public sealed class RepoIndexer : IRepoIndexer
 
             // Sanitiza com SecretRedactor antes de persistir
             var safeContent = SecretRedactor.Redact(content);
-            var chunks = ChunkFile(indexId, relPath, safeContent);
+            var chunks = ChunkFile(indexId, relPath, safeContent)
+                .Select(u => embeddingByHash.TryGetValue(u.Hash, out var embedding)
+                    ? u with { EmbeddingJson = embedding } : u);
             codeUnits.AddRange(chunks);
             files.Add(relPath);
         }
