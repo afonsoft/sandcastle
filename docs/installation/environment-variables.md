@@ -36,6 +36,10 @@ English: [../en/installation/environment-variables.md](../en/installation/enviro
 | `SANDCASTLE_AgentLlm__TimeoutSeconds` | `120` | Timeout por chamada LLM |
 | `SANDCASTLE_AgentLlm__MaxRetries` | `1` | Retries por chamada |
 | `SANDCASTLE_AgentLlm__MaxIterations` | `250` | Passos máx. do loop do agente |
+| `SANDCASTLE_AgentLlm__MaxSameToolConsecutive` | `6` | Limite do guard de mesma tool |
+| `SANDCASTLE_AgentLlm__MaxRepeatArgs` | `3` | Limite de repetição tool+args idênticos |
+| `SANDCASTLE_AgentLlm__StallWatchdogSec` | `300` | Segundos sem progresso durável antes do nudge |
+| `SANDCASTLE_AgentLlm__MaxStallNudges` | `2` | Nudges antes de abortar como `stalled` |
 | `SANDCASTLE_AgentLlm__ToolTimeoutSeconds` | `120` | Timeout por tool |
 | `SANDCASTLE_AgentLlm__BashToolTimeoutSeconds` | `600` | Timeout do tool bash |
 | `SANDCASTLE_AgentLlm__ConfirmationTimeoutMinutes` | `30` | Espera por aprovação `ask` |

@@ -86,6 +86,18 @@ public sealed class AgentLlmOptions
     /// </summary>
     public int MaxRouteWaitSeconds { get; set; } = 300;
 
+    /// <summary>SPEC-164: consecutive calls of the same tool before a recoverable veto.</summary>
+    public int MaxSameToolConsecutive { get; set; } = 6;
+
+    /// <summary>SPEC-164: consecutive identical tool+canonical-args calls before veto.</summary>
+    public int MaxRepeatArgs { get; set; } = 3;
+
+    /// <summary>SPEC-164: seconds without durable progress before an agent_stall nudge.</summary>
+    public int StallWatchdogSec { get; set; } = 300;
+
+    /// <summary>SPEC-164: stall nudges before aborting the run as stalled.</summary>
+    public int MaxStallNudges { get; set; } = 2;
+
     /// <summary>
     /// SPEC-25 RF-005: per-tool observation cap in chars
     /// (e.g. <c>{"bash":61440,"search":102400,"mcp__*":81920}</c>);

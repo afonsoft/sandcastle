@@ -20,6 +20,12 @@ public sealed class RunActivityTracker
     private int _toolsUsed;
     private int _commandsRun;
 
+    /// <summary>SPEC-164: last meaningful durable progress (heartbeat/iteration pings excluded).</summary>
+    public DateTimeOffset LastProgressAt { get; private set; } = DateTimeOffset.UtcNow;
+
+    /// <summary>Marks meaningful durable progress for the stall watchdog.</summary>
+    public void NoteProgress() => LastProgressAt = DateTimeOffset.UtcNow;
+
     /// <summary>Notes a completed tool call (name + raw args JSON).</summary>
     public void NoteToolCall(string toolName, string? argumentsJson)
     {
