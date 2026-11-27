@@ -30,7 +30,9 @@ public sealed class ModelStatsService(
             {
                 row = new ModelStatsRecord
                 {
-                    Id = Guid.NewGuid(), Role = role, Provider = prov,
+                    Id = Guid.NewGuid(),
+                    Role = role,
+                    Provider = prov,
                     Model = model,
                 };
                 db.ModelStats.Add(row);

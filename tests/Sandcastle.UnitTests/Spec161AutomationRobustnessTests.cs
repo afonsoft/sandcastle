@@ -30,8 +30,11 @@ public sealed class Spec161AutomationRobustnessTests
 {
     private sealed class FakeConversationService : IAppConversationService
     {
-        public int Created { get; private set; }
-        public int Attempts { get; private set; }
+        private int _created;
+        private int _attempts;
+
+        public int Created => _created;
+        public int Attempts => _attempts;
         public int CurrentInflight;
         public int MaxInflight;
         public Queue<Exception> ThrowQueue { get; } = new();
@@ -43,7 +46,7 @@ public sealed class Spec161AutomationRobustnessTests
             Guid userId, Guid? orgId, CreateConversationRequest request,
             CancellationToken ct)
         {
-            Attempts++;
+            Interlocked.Increment(ref _attempts);
             var inflight = Interlocked.Increment(ref CurrentInflight);
             var observed = MaxInflight;
             while (inflight > observed)
@@ -69,7 +72,7 @@ public sealed class Spec161AutomationRobustnessTests
                     throw ThrowAlways;
                 }
 
-                Created++;
+                Interlocked.Increment(ref _created);
                 return new AppConversationStartTask(
                     Guid.NewGuid(), StartTaskStatus.Working,
                     ConversationId, null, null,
@@ -178,6 +181,7 @@ public sealed class Spec161AutomationRobustnessTests
 
     private sealed class Fixture : IAsyncDisposable
     {
+        public required string DbPath { get; init; }
         public required SqliteConnection Conn { get; init; }
         public required AppDbContext Db { get; init; }
         public required FakeConversationService Convs { get; init; }
@@ -191,13 +195,24 @@ public sealed class Spec161AutomationRobustnessTests
                 Microsoft.Extensions.Options.Options.Create(Opts),
             notifications: Notify);
 
-        public async ValueTask DisposeAsync() => await Conn.DisposeAsync();
+        public async ValueTask DisposeAsync()
+        {
+            await Db.DisposeAsync();
+            await Conn.DisposeAsync();
+            foreach (var path in new[] { DbPath, $"{DbPath}-wal", $"{DbPath}-shm" })
+            {
+                if (File.Exists(path)) { File.Delete(path); }
+            }
+        }
     }
 
     private static async Task<Fixture> NewAsync(
         Action<AutomationOptions>? configure = null)
     {
-        var conn = new SqliteConnection("Data Source=:memory:");
+        var dbPath = Path.Combine(
+            Path.GetTempPath(), $"sc-spec161-{Guid.NewGuid():N}.db");
+        var conn = new SqliteConnection(
+            $"Data Source={dbPath};Default Timeout=10");
         await conn.OpenAsync();
         var db = new AppDbContext(
             new DbContextOptionsBuilder<AppDbContext>()
@@ -207,6 +222,7 @@ public sealed class Spec161AutomationRobustnessTests
         configure?.Invoke(options);
         return new Fixture
         {
+            DbPath = dbPath,
             Conn = conn,
             Db = db,
             Convs = new FakeConversationService(),
@@ -455,7 +471,8 @@ public sealed class Spec161AutomationRobustnessTests
         // automation no próprio scope (DbContext isolado).
         var services = new ServiceCollection();
         services.AddDbContext<AppDbContext>(o => o
-            .UseSqlite(fx.Conn).UseSnakeCaseNamingConvention());
+            .UseSqlite($"Data Source={fx.DbPath};Default Timeout=10")
+            .UseSnakeCaseNamingConvention());
         services.AddSingleton<IAppConversationService>(fx.Convs);
         services.AddSingleton<IEventService>(fx.Events);
         services.AddSingleton<IAuditService>(fx.Audit);

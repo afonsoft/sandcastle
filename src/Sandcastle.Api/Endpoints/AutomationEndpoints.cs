@@ -18,6 +18,7 @@ public static class AutomationEndpoints
     private const string AutomationNotFound = "automation not found";
     private const string AutomationsWrite = "automations:write";
     private const string AutomationsRead = "automations:read";
+    private const int MaxHookPayloadBytes = 64 * 1024;
     /// <summary>Maps automation + hook-trigger endpoints.</summary>
     public static IEndpointRouteBuilder MapAutomationEndpoints(
         this IEndpointRouteBuilder app)
@@ -150,8 +151,15 @@ public static class AutomationEndpoints
         }
 
         // SPEC-163 RF-004: idempotência — chave do header ou SHA-256
-        // do body bruto; resposta deduplicada não cria run.
-        var body = await new StreamReader(ctx.Request.Body).ReadToEndAsync(ct);
+        // do body bruto; resposta deduplicada não cria run. O endpoint é
+        // anônimo, então o payload é limitado antes de materializar em memória.
+        var body = await ReadHookBodyAsync(ctx.Request.Body, ct);
+        if (body is null)
+        {
+            return SandcastleProblemFactory.Create(
+                ctx, 413, "hook payload too large");
+        }
+
         var payloadHash = Convert.ToHexString(
             System.Security.Cryptography.SHA256.HashData(
                 System.Text.Encoding.UTF8.GetBytes(body)))
@@ -182,6 +190,30 @@ public static class AutomationEndpoints
         });
     }
 
+
+    private static async Task<string?> ReadHookBodyAsync(
+        Stream body, CancellationToken ct)
+    {
+        using var output = new MemoryStream();
+        var buffer = new byte[8192];
+        while (true)
+        {
+            var read = await body.ReadAsync(buffer, ct);
+            if (read == 0)
+            {
+                break;
+            }
+
+            if (output.Length + read > MaxHookPayloadBytes)
+            {
+                return null;
+            }
+
+            output.Write(buffer, 0, read);
+        }
+
+        return System.Text.Encoding.UTF8.GetString(output.ToArray());
+    }
 
     /// <summary>
     /// Token bucket in-memory — janela fixa por chave (SPEC-47 NFR:

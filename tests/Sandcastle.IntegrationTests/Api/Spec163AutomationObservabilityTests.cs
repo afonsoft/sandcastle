@@ -193,4 +193,75 @@ public sealed class Spec163AutomationObservabilityTests : IDisposable
             }
         }
     }
+
+    [Fact]
+    public async Task Hook_Retry_Concorrente_Deduplica_Uma_Vez()
+    {
+        var http = await LoginAsync("alice@example.com");
+        var created = await http.PostAsJsonAsync("/api/v1/automations", new
+        {
+            name = "auto",
+            prompt = "run",
+            schedule_kind = "interval",
+            interval_minutes = 30,
+        });
+        using var cdoc = JsonDocument.Parse(
+            await created.Content.ReadAsStringAsync());
+        var id = cdoc.RootElement.GetProperty("id").GetString();
+        var hook = await http.PostAsync(
+            $"/api/v1/automations/{id}/hooks", null);
+        using var hdoc = JsonDocument.Parse(
+            await hook.Content.ReadAsStringAsync());
+        var token = hdoc.RootElement.GetProperty("token").GetString();
+
+        var responses = await Task.WhenAll(Enumerable.Range(0, 2)
+            .Select(_ =>
+            {
+                var req = new HttpRequestMessage(HttpMethod.Post,
+                    $"/api/v1/hooks/{token}");
+                req.Headers.Add("Idempotency-Key", "concurrent-key");
+                req.Content = new StringContent("{}",
+                    System.Text.Encoding.UTF8, "application/json");
+                return http.SendAsync(req);
+            }));
+
+        responses.Count(r => r.StatusCode == HttpStatusCode.Accepted)
+            .ShouldBe(1);
+        responses.Count(r => r.StatusCode == HttpStatusCode.OK)
+            .ShouldBe(1);
+
+        var stats = await http.GetAsync($"/api/v1/automations/{id}/stats");
+        using var sdoc = JsonDocument.Parse(
+            await stats.Content.ReadAsStringAsync());
+        sdoc.RootElement.GetProperty("total").GetInt64().ShouldBe(1);
+    }
+
+    [Fact]
+    public async Task Hook_Payload_Acima_Do_Limite_Retorna_413()
+    {
+        var http = await LoginAsync("alice@example.com");
+        var created = await http.PostAsJsonAsync("/api/v1/automations", new
+        {
+            name = "auto",
+            prompt = "run",
+            schedule_kind = "interval",
+            interval_minutes = 30,
+        });
+        using var cdoc = JsonDocument.Parse(
+            await created.Content.ReadAsStringAsync());
+        var id = cdoc.RootElement.GetProperty("id").GetString();
+        var hook = await http.PostAsync(
+            $"/api/v1/automations/{id}/hooks", null);
+        using var hdoc = JsonDocument.Parse(
+            await hook.Content.ReadAsStringAsync());
+        var token = hdoc.RootElement.GetProperty("token").GetString();
+
+        var req = new HttpRequestMessage(HttpMethod.Post,
+            $"/api/v1/hooks/{token}")
+        {
+            Content = new ByteArrayContent(new byte[(64 * 1024) + 1]),
+        };
+        var res = await http.SendAsync(req);
+        res.StatusCode.ShouldBe(HttpStatusCode.RequestEntityTooLarge);
+    }
 }

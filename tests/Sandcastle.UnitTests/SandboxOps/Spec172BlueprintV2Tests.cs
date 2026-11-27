@@ -175,7 +175,8 @@ public sealed class Spec172BlueprintV2Tests : IDisposable
     {
         var ctx = new AgentPromptContext
         {
-            Tools = [], Ct = CancellationToken.None,
+            Tools = [],
+            Ct = CancellationToken.None,
         };
         var sections = await new BlueprintKnowledgeContributor()
             .ContributeAsync(ctx);
