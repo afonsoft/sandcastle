@@ -669,6 +669,15 @@ public static class DependencyInjection
             o.Model = configuration["LLM:MODEL"] ?? o.Model;
             o.BaseUrl ??= configuration["LLM:BASE_URL"];
             o.ApiKey ??= configuration["LLM:API_KEY"];
+            // SPEC-164: chaves curtas Agent:* têm precedência sobre AgentLlm:*.
+            o.MaxSameToolConsecutive = configuration.GetValue<int?>(
+                "Agent:MaxSameToolConsecutive") ?? o.MaxSameToolConsecutive;
+            o.MaxRepeatArgs = configuration.GetValue<int?>(
+                "Agent:MaxRepeatArgs") ?? o.MaxRepeatArgs;
+            o.StallWatchdogSec = configuration.GetValue<int?>(
+                "Agent:StallWatchdogSec") ?? o.StallWatchdogSec;
+            o.MaxStallNudges = configuration.GetValue<int?>(
+                "Agent:MaxStallNudges") ?? o.MaxStallNudges;
         });
         services.AddHttpClient("agent-llm");
         services.AddSingleton<

@@ -417,6 +417,8 @@ public sealed class AgentRunner(
             ByorCtx = byorCtx,
             UserKeyCtx = userKeyCtx,
             KeySource = keySource,
+            LoopGuard = new AgentLoopGuard(
+                opt.MaxSameToolConsecutive, opt.MaxRepeatArgs),
             History = history,
             Ids = ids,
             LastEventId = lastEventId,
@@ -449,6 +451,38 @@ public sealed class AgentRunner(
                 iterSpan?.SetTag("iteration", iteration);
                 await activity.ProgressAsync(events, conversationId, iteration,
                     st.MaxIterations, "iteration", ct);
+                var stalledFor = DateTimeOffset.UtcNow - activity.LastProgressAt;
+                if (stalledFor > TimeSpan.FromSeconds(opt.StallWatchdogSec))
+                {
+                    if (st.StallNudges >= opt.MaxStallNudges)
+                    {
+                        await events.AppendAsync(conversationId,
+                            new AgentErrorEvent
+                            {
+                                ToolName = "loop",
+                                ToolCallId = "",
+                                Error = "stalled",
+                            }, CancellationToken.None);
+                        await activity.SummaryAsync(events, conversationId,
+                            "stalled", null, CancellationToken.None);
+                        await SetStatusAsync(events, db, conv, Error,
+                            ConversationExecutionStatus.Error);
+                        return;
+                    }
+
+                    st.StallNudges++;
+                    await activity.DiagnosticAsync(events, conversationId,
+                        "warn", "agent_stall",
+                        $"no durable progress for {(int)stalledFor.TotalSeconds}s — nudge {st.StallNudges}/{opt.MaxStallNudges}",
+                        CancellationToken.None);
+                    st.History.Add(new LlmMessage("system",
+                        "No durable progress was observed. Report the blocker or make concrete progress instead of repeating the same step."));
+                }
+                else
+                {
+                    st.StallNudges = 0;
+                }
+
                 if (await CheckSignalsAsync(st.Services, events, db, conv))
                 {
                     return;
@@ -533,6 +567,8 @@ public sealed class AgentRunner(
 
             }
 
+            await EmitTurnEndClosureAsync(st, conversationId,
+                "max_iterations", CancellationToken.None);
             await events.AppendAsync(conversationId, new AgentErrorEvent
             {
                 ToolName = "loop",
@@ -976,7 +1012,9 @@ public sealed class AgentRunner(
         {
             if (turn.Text.Length == 0)
             {
-                // Completion vazio → nada a fazer; encerra em idle.
+                // SPEC-164 RF-003: completion vazia nunca termina em silêncio.
+                await EmitTurnEndClosureAsync(st, conversationId,
+                    "empty completion", ct);
                 await SetStatusAsync(st.Events, st.Db, st.Conv, "idle",
                     ConversationExecutionStatus.Running);
                 return DispatchVerdict.Abort;
@@ -1002,6 +1040,7 @@ public sealed class AgentRunner(
                 conversationId, msg, ct)).Id;
             st.History.Add(LlmMessage.Assistant(turn.Text.ToString()));
             st.Ids.Add(msg.Id);
+            st.Activity.NoteProgress();
             return DispatchVerdict.Continue;
         }
 
@@ -1079,6 +1118,28 @@ public sealed class AgentRunner(
 
         ArgumentNullException.ThrowIfNull(tool);
 
+        // SPEC-164 RF-002: veto recuperável de loop — a call vira erro
+        // explícito para o modelo e a run pode mudar de estratégia.
+        var loopVerdict = st.LoopGuard.Register(call.Name, call.ArgumentsJson);
+        if (loopVerdict is not LoopVerdict.Ok)
+        {
+            var countHint = loopVerdict == LoopVerdict.VetoRepeatArgs
+                ? $"tool+args repeated {st.Opt.MaxRepeatArgs} times"
+                : $"tool repeated {st.Opt.MaxSameToolConsecutive} times consecutively";
+            var message = $"tool '{call.Name}' {countHint} — change approach";
+            st.LastEventId = (await st.Events.AppendAsync(conversationId,
+                new AgentDiagnosticEvent
+                {
+                    Severity = "warn",
+                    Code = "loop_guard_veto",
+                    Message = message,
+                    ParentId = actionEvent.Id,
+                }, ct)).Id;
+            return await RejectCallAsync(st, conversationId, actionEvent,
+                call, ToolResult.Error(message),
+                JsonSerializer.Serialize(new { error = message }), ct);
+        }
+
         if (await RunPreHooksAsync(
                 st, conversationId, call, actionEvent, ct))
         {
@@ -1136,6 +1197,7 @@ public sealed class AgentRunner(
         st.History.Add(LlmMessage.ToolResult(
             call.Id, result.Observation.GetRawText()));
         st.Ids.Add(observationId);
+        st.Activity.NoteProgress();
 
         await MaybeCompactMidTurnAsync(st, turn, conversationId, ct);
 
@@ -1154,6 +1216,43 @@ public sealed class AgentRunner(
         }
 
         return ToolCallVerdict.Next;
+    }
+
+    /// <summary>
+    /// SPEC-164 RF-003: turn-end guard — quando a run termina sem uma
+    /// mensagem assistant final visível, emite diagnóstico e uma mensagem
+    /// sintética de fechamento (nunca silêncio para o usuário).
+    /// </summary>
+    private async Task EmitTurnEndClosureAsync(
+        LoopState st, Guid conversationId, string reason, CancellationToken ct)
+    {
+        var last = st.History.LastOrDefault();
+        var hasFinalAssistant = last?.Role == "assistant"
+            && last.ToolCalls is null
+            && !string.IsNullOrWhiteSpace(last.Content);
+        if (hasFinalAssistant)
+        {
+            return;
+        }
+
+        await st.Activity.DiagnosticAsync(st.Events, conversationId,
+            "warning", "turn_end_anomaly",
+            $"run ended without final assistant message ({reason})", ct);
+        const string closing = "Run encerrada pelo guard de turn-end";
+        var msg = new MessageEvent
+        {
+            Source = EventSource.Agent,
+            ParentId = st.LastEventId,
+            LlmMessage = JsonSerializer.SerializeToElement(new
+            {
+                role = "assistant",
+                content = new[] { new { type = "text", text = closing } },
+            }, EventJson.Options),
+        };
+        st.LastEventId = (await st.Events.AppendAsync(
+            conversationId, msg, ct)).Id;
+        st.History.Add(LlmMessage.Assistant(closing));
+        st.Ids.Add(msg.Id);
     }
 
     /// <summary>Observa erro + registra tool_result — rejects early-next.</summary>
@@ -1753,6 +1852,8 @@ public sealed class AgentRunner(
         public int SinceLedger { get; set; }
         public int LastEstimate { get; set; }
         public string? PendingInstructions { get; set; }
+        public required AgentLoopGuard LoopGuard { get; init; }
+        public int StallNudges { get; set; }
     }
 
     /// <summary>
