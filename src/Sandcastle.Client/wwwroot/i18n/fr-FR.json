@@ -1002,5 +1002,20 @@
   "automations.stats_total": "Exécutions totales",
   "automations.stats_success_rate": "Taux de réussite (20 dernières)",
   "automations.stats_consecutive_failures": "Échecs consécutifs",
-  "automations.stats_last_error": "Dernière erreur"
+  "automations.stats_last_error": "Dernière erreur",
+  "conv.tab_insights": "Insights",
+  "insights.empty": "Aucun insight disponible pour le moment.",
+  "insights.outcome": "Résultat",
+  "insights.category": "Catégorie",
+  "insights.size": "Taille",
+  "insights.action_items": "Actions recommandées",
+  "insights.timeline": "Chronologie",
+  "insights.l2_failed": "Analyse LLM indisponible ; insights heuristiques affichés.",
+  "admin.nav_insights": "Insights",
+  "admin.insights_title": "Insights de sessions",
+  "insights.total": "Sessions",
+  "insights.success_rate": "Taux de réussite",
+  "insights.l2_coverage": "Couverture L2",
+  "insights.categories": "Catégories",
+  "insights.size_distribution": "Distribution des tailles"
 }

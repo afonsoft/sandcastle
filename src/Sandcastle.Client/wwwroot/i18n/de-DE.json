@@ -1002,5 +1002,20 @@
   "automations.stats_total": "Ausführungen gesamt",
   "automations.stats_success_rate": "Erfolgsquote (letzte 20)",
   "automations.stats_consecutive_failures": "Aufeinanderfolgende Fehler",
-  "automations.stats_last_error": "Letzter Fehler"
+  "automations.stats_last_error": "Letzter Fehler",
+  "conv.tab_insights": "Insights",
+  "insights.empty": "Noch keine Insights verfügbar.",
+  "insights.outcome": "Ergebnis",
+  "insights.category": "Kategorie",
+  "insights.size": "Größe",
+  "insights.action_items": "Empfohlene Aktionen",
+  "insights.timeline": "Zeitverlauf",
+  "insights.l2_failed": "LLM-Analyse nicht verfügbar; heuristische Insights werden angezeigt.",
+  "admin.nav_insights": "Insights",
+  "admin.insights_title": "Sitzungs-Insights",
+  "insights.total": "Sitzungen",
+  "insights.success_rate": "Erfolgsquote",
+  "insights.l2_coverage": "L2-Abdeckung",
+  "insights.categories": "Kategorien",
+  "insights.size_distribution": "Größenverteilung"
 }

@@ -53,6 +53,7 @@ English: [../en/installation/environment-variables.md](../en/installation/enviro
 | `SANDCASTLE_Embeddings__BaseUrl` | gateway `AgentLlm` | Override opcional do endpoint de embeddings |
 | `SANDCASTLE_Embeddings__ApiKey` | chave `AgentLlm` | Override opcional da credencial de embeddings |
 | `SANDCASTLE_Search__MaxEmbeddingsPerCall` | `512` | Budget de custo por batch de embeddings |
+| `SANDCASTLE_Insights__LlmAnalysis` | `true` | Análise L2 de insights por LLM |
 | `LLM__MODEL` / `LLM__BASE_URL` / `LLM__API_KEY` | — | Aliases flat legados (estilo upstream) |
 | `SANDCASTLE_Agent__Sdd` | `auto` | Probe `.specs/`/`docs/specs` no prompt |
 

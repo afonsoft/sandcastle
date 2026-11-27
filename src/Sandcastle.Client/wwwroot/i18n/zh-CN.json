@@ -1002,5 +1002,20 @@
   "automations.stats_total": "总运行次数",
   "automations.stats_success_rate": "成功率（最近20次）",
   "automations.stats_consecutive_failures": "连续失败",
-  "automations.stats_last_error": "最近错误"
+  "automations.stats_last_error": "最近错误",
+  "conv.tab_insights": "洞察",
+  "insights.empty": "暂无可用洞察。",
+  "insights.outcome": "结果",
+  "insights.category": "类别",
+  "insights.size": "规模",
+  "insights.action_items": "建议操作",
+  "insights.timeline": "时间线",
+  "insights.l2_failed": "LLM 分析不可用；正在显示启发式洞察。",
+  "admin.nav_insights": "洞察",
+  "admin.insights_title": "会话洞察",
+  "insights.total": "会话",
+  "insights.success_rate": "成功率",
+  "insights.l2_coverage": "L2 覆盖率",
+  "insights.categories": "类别",
+  "insights.size_distribution": "规模分布"
 }
