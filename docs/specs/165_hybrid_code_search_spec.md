@@ -8,7 +8,7 @@
 | Type | `Feature` |
 | Stack | `.NET 10` |
 | Repository | `afonsoft/sandcastle` |
-| Status | `Approved` |
+| Status | `Completed` |
 | Ticket | #497 · Epic #492 |
 | Scope | `src/` + `tests/` |
 
