@@ -1,0 +1,59 @@
+@page "/admin/insights"
+@using Sandcastle.Client.Services
+@inherits AdminPageBase
+@inject SandcastleApiClient AppApi
+
+<PageTitle>@L["admin.title"] · @L["admin.nav_insights"]</PageTitle>
+
+@if (Checking || !Allowed)
+{
+    <div class="settings-wrap"><p class="empty-state">…</p></div>
+}
+else
+{
+    <div class="settings-wrap admin-wrap">
+        <h1>@L["admin.insights_title"]</h1>
+        <AdminNav />
+        @if (_stats is null)
+        {
+            <p class="empty-state">@L["common.loading"]</p>
+        }
+        else
+        {
+            <div class="usage-grid">
+                <div class="usage-card"><div class="num">@_stats.TotalSessionsAnalyzed</div><div class="lbl">@L["insights.total"]</div></div>
+                <div class="usage-card"><div class="num">@_stats.SuccessRate.ToString("P0")</div><div class="lbl">@L["insights.success_rate"]</div></div>
+                <div class="usage-card"><div class="num">@_stats.L2CoverageRate.ToString("P0")</div><div class="lbl">@L["insights.l2_coverage"]</div></div>
+            </div>
+            @if (_stats.Categories?.Count > 0)
+            {
+                <h3>@L["insights.categories"]</h3>
+                <div class="commit-list">
+                    @foreach (var x in _stats.Categories)
+                    {
+                        <div class="commit-item"><span class="sha">@x.Key</span><span class="msg">@x.Value</span></div>
+                    }
+                </div>
+            }
+            @if (_stats.SizeDistribution?.Count > 0)
+            {
+                <h3>@L["insights.size_distribution"]</h3>
+                <div class="commit-list">
+                    @foreach (var x in _stats.SizeDistribution)
+                    {
+                        <div class="commit-item"><span class="sha">@x.Key</span><span class="msg">@x.Value</span></div>
+                    }
+                </div>
+            }
+        }
+    </div>
+}
+
+@code {
+    private SandcastleApiClient.InsightsStatsItem? _stats;
+
+    protected override async Task LoadAsync()
+    {
+        _stats = await AppApi.GetInsightsStatsAsync();
+    }
+}

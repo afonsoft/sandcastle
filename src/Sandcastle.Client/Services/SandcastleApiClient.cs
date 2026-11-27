@@ -365,6 +365,44 @@ public sealed class SandcastleApiClient(HttpClient http)
         string? Url, DateTimeOffset? ExpiresAt);
 
     /// <summary>SPEC-155: <c>GET /app-conversations/{id}/runtime</c>.</summary>
+    public async Task<SessionInsightItem?> GetSessionInsightAsync(
+        string conversationId, CancellationToken ct = default)
+    {
+        var resp = await http.GetAsync(
+            $"/api/v1/app-conversations/{conversationId}/insights", ct);
+        if (!resp.IsSuccessStatusCode) { return null; }
+        return await resp.Content.ReadFromJsonAsync<SessionInsightItem>(ct);
+    }
+
+    public Task<InsightsStatsItem?> GetInsightsStatsAsync(
+        int days = 30, CancellationToken ct = default) =>
+        http.GetFromJsonAsync<InsightsStatsItem>(
+            $"/api/v1/insights/stats?days={days}", ct);
+
+    public sealed record SessionInsightItem(
+        Guid Id, Guid ConversationId, Guid? OrgId, string Outcome,
+        List<SessionIssueItem> Issues, List<string> DeadEnds,
+        List<PhaseCostItem> PhaseCosts, string? SuggestedPrompt,
+        List<string> Learnings, string? Model, DateTimeOffset CreatedAt,
+        string? Category, string? SizeTier, List<string>? ActionItems,
+        string? LlmSummary, Dictionary<string, string>? Timeline,
+        bool LlmAnalysisFailed);
+
+    public sealed record SessionIssueItem(
+        string Kind, string Severity, string Summary,
+        List<string>? EventIds);
+
+    public sealed record PhaseCostItem(
+        string Phase, long Tokens, double Seconds);
+
+    public sealed record InsightsStatsItem(
+        int TotalSessionsAnalyzed, int SuccessCount, int PartialCount,
+        int FailedCount, int UnclearCount, double SuccessRate,
+        Dictionary<string, int> TopIssues,
+        Dictionary<string, int>? SizeDistribution,
+        Dictionary<string, int>? Categories,
+        double L2CoverageRate);
+
     public async Task<RuntimeDto?> GetRuntimeAsync(
         string conversationId, CancellationToken ct = default) =>
         await http.GetFromJsonAsync<RuntimeDto>(

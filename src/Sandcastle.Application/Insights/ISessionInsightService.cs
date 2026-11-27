@@ -22,7 +22,13 @@ public sealed record SessionInsightDto(
     string? SuggestedPrompt,
     IReadOnlyList<string> Learnings,
     string? Model,
-    DateTimeOffset CreatedAt);
+    DateTimeOffset CreatedAt,
+    string? Category = null,
+    string? SizeTier = null,
+    IReadOnlyList<string>? ActionItems = null,
+    string? LlmSummary = null,
+    IReadOnlyDictionary<string, string>? Timeline = null,
+    bool LlmAnalysisFailed = false);
 
 public sealed record InsightsStatsDto(
     int TotalSessionsAnalyzed,
@@ -31,11 +37,14 @@ public sealed record InsightsStatsDto(
     int FailedCount,
     int UnclearCount,
     double SuccessRate,
-    IReadOnlyDictionary<string, int> TopIssues);
+    IReadOnlyDictionary<string, int> TopIssues,
+    IReadOnlyDictionary<string, int>? SizeDistribution = null,
+    IReadOnlyDictionary<string, int>? Categories = null,
+    double L2CoverageRate = 0);
 
 public interface ISessionInsightService
 {
     Task<SessionInsightDto> AnalyzeSessionAsync(Guid conversationId, bool force = false, CancellationToken ct = default);
     Task<SessionInsightDto?> GetSessionInsightAsync(Guid conversationId, CancellationToken ct = default);
-    Task<InsightsStatsDto> GetStatsAsync(Guid? orgId = null, CancellationToken ct = default);
+    Task<InsightsStatsDto> GetStatsAsync(Guid? orgId = null, int? days = null, CancellationToken ct = default);
 }

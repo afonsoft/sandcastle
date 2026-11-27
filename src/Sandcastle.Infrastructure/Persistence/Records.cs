@@ -501,6 +501,18 @@ public sealed class SessionInsightRecord : IOrgScoped
     public string? SuggestedPrompt { get; set; }
     public string? LearningsJson { get; set; }
     public string? Model { get; set; }
+    /// <summary>SPEC-166: LLM-assigned coarse category.</summary>
+    public string? Category { get; set; }
+    /// <summary>SPEC-166: XS/S/M/L/XL session-size tier.</summary>
+    public string? SizeTier { get; set; }
+    /// <summary>SPEC-166: serialized timeline object.</summary>
+    public string? TimelineJson { get; set; }
+    /// <summary>SPEC-166: serialized action-item array.</summary>
+    public string? ActionItemsJson { get; set; }
+    /// <summary>SPEC-166: LLM-written concise summary.</summary>
+    public string? LlmSummary { get; set; }
+    /// <summary>SPEC-166: L2 was attempted but failed/returned invalid JSON.</summary>
+    public bool LlmAnalysisFailed { get; set; }
     public DateTimeOffset CreatedAt { get; set; }
 }
 

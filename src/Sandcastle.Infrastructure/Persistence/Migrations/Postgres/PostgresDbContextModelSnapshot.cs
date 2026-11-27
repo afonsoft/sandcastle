@@ -2683,6 +2683,14 @@ namespace Sandcastle.Infrastructure.Persistence.Migrations.Postgres
                         .HasColumnType("uuid")
                         .HasColumnName("id");
 
+                    b.Property<string>("ActionItemsJson")
+                        .HasColumnType("text")
+                        .HasColumnName("action_items_json");
+
+                    b.Property<string>("Category")
+                        .HasColumnType("text")
+                        .HasColumnName("category");
+
                     b.Property<Guid>("ConversationId")
                         .HasColumnType("uuid")
                         .HasColumnName("conversation_id");
@@ -2703,6 +2711,14 @@ namespace Sandcastle.Infrastructure.Persistence.Migrations.Postgres
                         .HasColumnType("text")
                         .HasColumnName("learnings_json");
 
+                    b.Property<bool>("LlmAnalysisFailed")
+                        .HasColumnType("boolean")
+                        .HasColumnName("llm_analysis_failed");
+
+                    b.Property<string>("LlmSummary")
+                        .HasColumnType("text")
+                        .HasColumnName("llm_summary");
+
                     b.Property<string>("Model")
                         .HasColumnType("text")
                         .HasColumnName("model");
@@ -2720,9 +2736,17 @@ namespace Sandcastle.Infrastructure.Persistence.Migrations.Postgres
                         .HasColumnType("text")
                         .HasColumnName("phase_costs_json");
 
+                    b.Property<string>("SizeTier")
+                        .HasColumnType("text")
+                        .HasColumnName("size_tier");
+
                     b.Property<string>("SuggestedPrompt")
                         .HasColumnType("text")
                         .HasColumnName("suggested_prompt");
+
+                    b.Property<string>("TimelineJson")
+                        .HasColumnType("text")
+                        .HasColumnName("timeline_json");
 
                     b.HasKey("Id")
                         .HasName("pk_session_insights");

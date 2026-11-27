@@ -123,6 +123,9 @@ builder.Services.AddScoped<Sandcastle.Application.Wiki.IWikiRunner,
 builder.Services.AddScoped<Sandcastle.Application.Wiki.IWikiService,
     Sandcastle.Infrastructure.Wiki.WikiService>();
 builder.Services.AddHostedService<Sandcastle.Infrastructure.Wiki.WikiRunWorker>();
+builder.Services.Configure<Sandcastle.Infrastructure.Insights.InsightsOptions>(
+    builder.Configuration.GetSection(
+        Sandcastle.Infrastructure.Insights.InsightsOptions.Section));
 builder.Services.AddScoped<Sandcastle.Application.Insights.ISessionInsightService, Sandcastle.Infrastructure.Insights.SessionInsightService>();
 builder.Services.AddScoped<Sandcastle.Application.Delegation.IDelegationService, Sandcastle.Infrastructure.Delegation.DelegationService>();
 // SPEC-143: code scans — service (CRUD/findings/fix), orquestrador real

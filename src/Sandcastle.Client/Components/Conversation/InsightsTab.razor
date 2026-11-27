@@ -1,0 +1,57 @@
+@using Sandcastle.Client.Services
+@inject SandcastleApiClient Api
+@inject LocalizationService L
+
+@if (_insight is null)
+{
+    <div class="empty-state">@L["insights.empty"]</div>
+}
+else
+{
+    <div class="usage-grid">
+        <div class="usage-card"><div class="num">@_insight.Outcome</div><div class="lbl">@L["insights.outcome"]</div></div>
+        <div class="usage-card"><div class="num">@(_insight.Category ?? "—")</div><div class="lbl">@L["insights.category"]</div></div>
+        <div class="usage-card"><div class="num">@(_insight.SizeTier ?? "—")</div><div class="lbl">@L["insights.size"]</div></div>
+    </div>
+    @if (!string.IsNullOrWhiteSpace(_insight.LlmSummary))
+    {
+        <section class="commit-item"><span class="msg">@_insight.LlmSummary</span></section>
+    }
+    @if (_insight.ActionItems?.Count > 0)
+    {
+        <h3>@L["insights.action_items"]</h3>
+        <div class="commit-list">
+            @foreach (var item in _insight.ActionItems)
+            {
+                <div class="commit-item"><span class="msg">@item</span></div>
+            }
+        </div>
+    }
+    @if (_insight.Timeline?.Count > 0)
+    {
+        <h3>@L["insights.timeline"]</h3>
+        <div class="commit-list">
+            @foreach (var item in _insight.Timeline)
+            {
+                <div class="commit-item"><span class="sha">@item.Key</span><span class="msg">@item.Value</span></div>
+            }
+        </div>
+    }
+    @if (_insight.LlmAnalysisFailed)
+    {
+        <div class="empty-state">@L["insights.l2_failed"]</div>
+    }
+}
+
+@code {
+    [Parameter, EditorRequired] public ConversationStateService State { get; set; } = default!;
+    private SandcastleApiClient.SessionInsightItem? _insight;
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (State.Conversation is not null)
+        {
+            _insight = await Api.GetSessionInsightAsync(State.Conversation.Id);
+        }
+    }
+}

@@ -1002,5 +1002,20 @@
   "automations.stats_total": "総実行回数",
   "automations.stats_success_rate": "成功率（直近20件）",
   "automations.stats_consecutive_failures": "連続失敗",
-  "automations.stats_last_error": "最後のエラー"
+  "automations.stats_last_error": "最後のエラー",
+  "conv.tab_insights": "インサイト",
+  "insights.empty": "まだインサイトがありません。",
+  "insights.outcome": "結果",
+  "insights.category": "カテゴリ",
+  "insights.size": "サイズ",
+  "insights.action_items": "推奨アクション",
+  "insights.timeline": "タイムライン",
+  "insights.l2_failed": "LLM分析を利用できません。ヒューリスティックなインサイトを表示しています。",
+  "admin.nav_insights": "インサイト",
+  "admin.insights_title": "セッションインサイト",
+  "insights.total": "セッション",
+  "insights.success_rate": "成功率",
+  "insights.l2_coverage": "L2 カバレッジ",
+  "insights.categories": "カテゴリ",
+  "insights.size_distribution": "サイズ分布"
 }

@@ -1,8 +1,11 @@
+using System.Text;
 using System.Text.Json;
 
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 
+using Sandcastle.Application.Agent;
 using Sandcastle.Application.Insights;
 using Sandcastle.Infrastructure.Agent;
 using Sandcastle.Infrastructure.Conversations;
@@ -17,15 +20,22 @@ public sealed class SessionInsightService : ISessionInsightService
     private readonly ILogger<SessionInsightService> _logger;
 
     private readonly IServiceProvider _services;
+    private readonly IAgentLlmProvider? _llmProvider;
+    private readonly IOptions<InsightsOptions> _options;
 
     public SessionInsightService(
         AppDbContext db,
         ILogger<SessionInsightService> logger,
-        IServiceProvider services)
+        IServiceProvider services,
+        IAgentLlmProvider? llmProvider = null,
+        IOptions<InsightsOptions>? options = null)
     {
         _db = db;
         _logger = logger;
         _services = services;
+        _llmProvider = llmProvider;
+        _options = options ?? Microsoft.Extensions.Options.Options
+            .Create(new InsightsOptions());
     }
 
     public async Task<SessionInsightDto> AnalyzeSessionAsync(Guid conversationId, bool force = false, CancellationToken ct = default)
@@ -71,6 +81,38 @@ public sealed class SessionInsightService : ISessionInsightService
         insightRecord.LearningsJson = JsonSerializer.Serialize(a.Learnings);
         insightRecord.SuggestedPrompt = a.SuggestedPrompt;
         insightRecord.Model = conv.LlmModel ?? "gpt-4o";
+
+        if (_options.Value.LlmAnalysis)
+        {
+            try
+            {
+                if (_llmProvider is null)
+                {
+                    throw new InsightLlmAnalysisException(
+                        "LLM provider unavailable for session insight analysis");
+                }
+
+                var l2 = await AnalyzeWithLlmAsync(events, a, conv, ct);
+                insightRecord.Category = l2.Category;
+                insightRecord.SizeTier = l2.SizeTier;
+                insightRecord.TimelineJson = JsonSerializer.Serialize(l2.Timeline);
+                insightRecord.ActionItemsJson = JsonSerializer.Serialize(l2.ActionItems);
+                insightRecord.LlmSummary = l2.Summary;
+                insightRecord.LlmAnalysisFailed = false;
+            }
+            catch (Exception ex) when (ex is not OperationCanceledException)
+            {
+                if (force)
+                {
+                    throw new InsightLlmAnalysisException(
+                        "L2 session insight analysis failed", ex);
+                }
+
+                _logger.LogWarning(ex,
+                    "L2 insight analysis failed for {Id}; keeping L1", conversationId);
+                insightRecord.LlmAnalysisFailed = true;
+            }
+        }
 
         if (existing == null)
         {
@@ -136,6 +178,125 @@ public sealed class SessionInsightService : ISessionInsightService
             outcome, suggestedPrompt);
     }
 
+    internal sealed record L2Analysis(
+        string Category, string SizeTier, string Summary,
+        IReadOnlyList<string> ActionItems,
+        IReadOnlyDictionary<string, string> Timeline);
+
+    private async Task<L2Analysis> AnalyzeWithLlmAsync(
+        IReadOnlyList<EventRecord> events, Analysis analysis,
+        ConversationRecord conv, CancellationToken ct)
+    {
+        var sample = new StringBuilder();
+        foreach (var ev in events.Take(100))
+        {
+            var payload = SecretRedactor.Redact(
+                ev.Payload[..Math.Min(300, ev.Payload.Length)]);
+            sample.Append("- ").Append(ev.Kind).Append(": ")
+                .AppendLine(payload);
+            if (sample.Length > 20000) { break; }
+        }
+
+        var prompt = """
+            Analyze this agent session and return ONLY JSON with this shape:
+            {"category":"bugfix|feature|refactor|investigation|ops|other","size_tier":"XS|S|M|L|XL","summary":"one paragraph","action_items":["imperative follow-up"],"timeline":{"phase":"short note"}}
+
+            Conversation title: __TITLE__
+            Status: __STATUS__
+            Heuristic outcome: __OUTCOME__
+            Issue count: __ISSUES__
+            Events:
+            __SAMPLE__
+            """
+            .Replace("__TITLE__", conv.Title ?? "")
+            .Replace("__STATUS__", conv.ExecutionStatus ?? "")
+            .Replace("__OUTCOME__", analysis.Outcome)
+            .Replace("__ISSUES__", analysis.Issues.Count.ToString())
+            .Replace("__SAMPLE__", sample.ToString());
+        var text = new StringBuilder();
+        await foreach (var chunk in _llmProvider!.ChatStreamAsync(
+            [new LlmMessage("system",
+                "You classify completed software-agent sessions. Return strict JSON only."),
+                LlmMessage.User(prompt)],
+            [], new LlmOptions(Model: conv.LlmModel,
+                Temperature: 0.1, MaxTokens: 1200), ct))
+        {
+            if (chunk is TextDelta delta)
+            {
+                text.Append(delta.Text);
+            }
+        }
+
+        return ParseL2(text.ToString());
+    }
+
+    internal static L2Analysis ParseL2(string raw)
+    {
+        var trimmed = raw.Trim();
+        if (trimmed.StartsWith("```", StringComparison.Ordinal))
+        {
+            var firstNl = trimmed.IndexOf('\n');
+            var lastFence = trimmed.LastIndexOf("```", StringComparison.Ordinal);
+            if (firstNl >= 0 && lastFence > firstNl)
+            {
+                trimmed = trimmed[(firstNl + 1)..lastFence].Trim();
+            }
+        }
+
+        var start = trimmed.IndexOf('{');
+        var end = trimmed.LastIndexOf('}');
+        if (start < 0 || end <= start)
+        {
+            throw new InsightLlmAnalysisException("L2 response did not contain JSON");
+        }
+
+        using var doc = JsonDocument.Parse(trimmed[start..(end + 1)]);
+        var root = doc.RootElement;
+        static string RequiredString(JsonElement root, string name)
+        {
+            if (!root.TryGetProperty(name, out var value)
+                || value.ValueKind != JsonValueKind.String
+                || string.IsNullOrWhiteSpace(value.GetString()))
+            {
+                throw new InsightLlmAnalysisException(
+                    $"L2 response missing '{name}'");
+            }
+
+            return value.GetString()!.Trim();
+        }
+
+        var category = RequiredString(root, "category").ToLowerInvariant();
+        var sizeTier = RequiredString(root, "size_tier").ToUpperInvariant();
+        if (sizeTier is not ("XS" or "S" or "M" or "L" or "XL"))
+        {
+            throw new InsightLlmAnalysisException("invalid L2 size_tier");
+        }
+
+        var summary = RequiredString(root, "summary");
+        var actionItems = root.TryGetProperty("action_items", out var actions)
+            && actions.ValueKind == JsonValueKind.Array
+                ? actions.EnumerateArray()
+                    .Where(x => x.ValueKind == JsonValueKind.String)
+                    .Select(x => x.GetString()!)
+                    .Where(x => !string.IsNullOrWhiteSpace(x))
+                    .Take(10).ToArray()
+                : Array.Empty<string>();
+        var timeline = new Dictionary<string, string>(
+            StringComparer.OrdinalIgnoreCase);
+        if (root.TryGetProperty("timeline", out var tl)
+            && tl.ValueKind == JsonValueKind.Object)
+        {
+            foreach (var item in tl.EnumerateObject())
+            {
+                timeline[item.Name] = item.Value.ValueKind == JsonValueKind.String
+                    ? item.Value.GetString() ?? "" : item.Value.ToString();
+            }
+        }
+
+        return new L2Analysis(category, sizeTier, summary,
+            actionItems, timeline);
+    }
+
     // SPEC-63 RF-001a: learnings da sessão → fila de sugestões
     // (fire-and-forget; nunca falha a análise).
     private async Task SuggestLearningsAsync(
@@ -174,9 +335,14 @@ public sealed class SessionInsightService : ISessionInsightService
         return record == null ? null : ToDto(record);
     }
 
-    public async Task<InsightsStatsDto> GetStatsAsync(Guid? orgId = null, CancellationToken ct = default)
+    public async Task<InsightsStatsDto> GetStatsAsync(Guid? orgId = null, int? days = null, CancellationToken ct = default)
     {
         var query = _db.SessionInsights.AsNoTracking();
+        if (days is > 0)
+        {
+            var cutoff = DateTimeOffset.UtcNow.AddDays(-days.Value);
+            query = query.Where(x => x.CreatedAt >= cutoff);
+        }
         if (orgId.HasValue)
         {
             query = query.Where(s => s.OrgId == orgId.Value);
@@ -213,7 +379,19 @@ public sealed class SessionInsightService : ISessionInsightService
             }
         }
 
-        return new InsightsStatsDto(total, success, partial, failed, unclear, rate, topIssues);
+        var sizeDistribution = all
+            .Where(x => !string.IsNullOrWhiteSpace(x.SizeTier))
+            .GroupBy(x => x.SizeTier!)
+            .ToDictionary(g => g.Key, g => g.Count());
+        var categories = all
+            .Where(x => !string.IsNullOrWhiteSpace(x.Category))
+            .GroupBy(x => x.Category!)
+            .ToDictionary(g => g.Key, g => g.Count());
+        var l2Count = all.Count(x => !string.IsNullOrWhiteSpace(x.LlmSummary));
+        var l2Coverage = total > 0 ? (double)l2Count / total : 0;
+
+        return new InsightsStatsDto(total, success, partial, failed, unclear,
+            rate, topIssues, sizeDistribution, categories, l2Coverage);
     }
 
     private static SessionInsightDto ToDto(SessionInsightRecord r)
@@ -222,6 +400,15 @@ public sealed class SessionInsightService : ISessionInsightService
         var deadEnds = string.IsNullOrEmpty(r.DeadEndsJson) ? new List<string>() : JsonSerializer.Deserialize<List<string>>(r.DeadEndsJson) ?? new List<string>();
         var phaseCosts = string.IsNullOrEmpty(r.PhaseCostsJson) ? new List<PhaseCost>() : JsonSerializer.Deserialize<List<PhaseCost>>(r.PhaseCostsJson) ?? new List<PhaseCost>();
         var learnings = string.IsNullOrEmpty(r.LearningsJson) ? new List<string>() : JsonSerializer.Deserialize<List<string>>(r.LearningsJson) ?? new List<string>();
+
+        var actionItems = string.IsNullOrEmpty(r.ActionItemsJson)
+            ? new List<string>()
+            : JsonSerializer.Deserialize<List<string>>(r.ActionItemsJson)
+                ?? new List<string>();
+        var timeline = string.IsNullOrEmpty(r.TimelineJson)
+            ? new Dictionary<string, string>()
+            : JsonSerializer.Deserialize<Dictionary<string, string>>(r.TimelineJson)
+                ?? new Dictionary<string, string>();
 
         return new SessionInsightDto(
             r.Id,
@@ -234,6 +421,12 @@ public sealed class SessionInsightService : ISessionInsightService
             r.SuggestedPrompt,
             learnings,
             r.Model,
-            r.CreatedAt);
+            r.CreatedAt,
+            r.Category,
+            r.SizeTier,
+            actionItems,
+            r.LlmSummary,
+            timeline,
+            r.LlmAnalysisFailed);
     }
 }

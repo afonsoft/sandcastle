@@ -40,15 +40,20 @@ public static class SessionInsightEndpoints
             {
                 return Results.NotFound();
             }
+            catch (Sandcastle.Infrastructure.Insights.InsightLlmAnalysisException ex)
+            {
+                return Results.Problem(ex.Message, statusCode: 502);
+            }
         });
 
         // RF-002: Métricas e estatísticas agregadas
         group.MapGet("/insights/stats", async (
             [FromQuery] Guid? orgId,
+            [FromQuery] int? days,
             [FromServices] ISessionInsightService insightService,
             CancellationToken ct) =>
         {
-            var stats = await insightService.GetStatsAsync(orgId, ct);
+            var stats = await insightService.GetStatsAsync(orgId, days, ct);
             return Results.Ok(stats);
         });
 
