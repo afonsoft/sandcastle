@@ -2768,6 +2768,10 @@ namespace Sandcastle.Infrastructure.Persistence.Migrations.Postgres
                         .HasColumnType("uuid")
                         .HasColumnName("id");
 
+                    b.Property<string>("AllowedToolsJson")
+                        .HasColumnType("text")
+                        .HasColumnName("allowed_tools_json");
+
                     b.Property<string>("Content")
                         .IsRequired()
                         .HasColumnType("text")

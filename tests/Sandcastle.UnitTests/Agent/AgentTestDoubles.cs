@@ -219,6 +219,8 @@ internal sealed class AgentRunnerFixture : IAsyncDisposable
         sc.AddSingleton<ISandboxExecutor>(Executor);
         sc.AddSingleton<ISandboxService>(new FakeSandboxService(SandboxId));
         sc.AddSingleton<ITaskTrackerService, InMemoryTaskTrackerService>();
+        sc.AddScoped<Application.Skills.ISkillService,
+            Infrastructure.Skills.SkillService>();
         if (toolRegistry is not null)
         {
             sc.AddSingleton<IToolRegistry>(toolRegistry);

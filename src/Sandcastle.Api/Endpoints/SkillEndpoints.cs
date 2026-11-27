@@ -1,4 +1,5 @@
 using Sandcastle.Api.ProblemDetails;
+using Sandcastle.Application.Agent;
 using Sandcastle.Application.Skills;
 using Sandcastle.Domain.Skills;
 
@@ -16,6 +17,7 @@ public static class SkillEndpoints
     {
         app.MapGet("/api/v1/skills", ListAsync).WithTags(Skills);
         app.MapPost("/api/v1/skills", CreateAsync).WithTags(Skills);
+        app.MapGet("/api/v1/skills/tool-catalog", ToolCatalogAsync).WithTags(Skills);
         app.MapGet("/api/v1/skills/{id:guid}", GetAsync).WithTags(Skills);
         app.MapPatch("/api/v1/skills/{id:guid}", UpdateAsync).WithTags(Skills);
         app.MapDelete("/api/v1/skills/{id:guid}", DeleteAsync).WithTags(Skills);
@@ -23,6 +25,11 @@ public static class SkillEndpoints
             .WithTags(Skills);
         return app;
     }
+
+    /// <summary>Names of registered agent tools for allowed-tools editors.</summary>
+    private static IResult ToolCatalogAsync(IToolRegistry tools) =>
+        Results.Ok(tools.All.Select(t => t.Schema.Name)
+            .OrderBy(x => x, StringComparer.OrdinalIgnoreCase).ToArray());
 
     private static async Task<IResult> ListAsync(
         ISkillService skills, CancellationToken ct) =>
@@ -44,6 +51,7 @@ public static class SkillEndpoints
                 Triggers = req.Triggers?.Select(t => new SkillTrigger(
                         ParseTrigger(t.Type), t.Value))
                     .ToList() ?? [],
+                AllowedTools = req.AllowedTools,
                 Source = SkillSource.User,
             }, ct);
             return Results.Created($"/api/v1/skills/{skill.Id}", ToDto(skill));
@@ -70,7 +78,8 @@ public static class SkillEndpoints
                 new UpdateSkillRequest(req.Description, req.ContentMd,
                     req.Triggers?.Select(t => new SkillTrigger(
                         ParseTrigger(t.Type), t.Value)).ToList(),
-                    req.Enabled), ct);
+                    req.Enabled, req.AllowedTools,
+                    req.ReplaceAllowedTools), ct);
             return updated is { } s
                 ? Results.Ok(ToDto(s))
                 : SandcastleProblemFactory.Create(
@@ -114,18 +123,22 @@ public static class SkillEndpoints
         }),
         source = s.Source.ToString().ToLowerInvariant(),
         enabled = s.Enabled,
+        allowed_tools = s.AllowedTools,
         created_at = s.CreatedAt,
     };
 
     /// <summary>POST body.</summary>
     public sealed record CreateSkillRequest(
         string Name, string? Description, string ContentMd,
-        IReadOnlyList<TriggerDto>? Triggers);
+        IReadOnlyList<TriggerDto>? Triggers,
+        IReadOnlyList<string>? AllowedTools = null);
 
     /// <summary>PATCH body.</summary>
     public sealed record UpdateSkillDto(
         string? Description, string? ContentMd,
-        IReadOnlyList<TriggerDto>? Triggers, bool? Enabled);
+        IReadOnlyList<TriggerDto>? Triggers, bool? Enabled,
+        IReadOnlyList<string>? AllowedTools = null,
+        bool ReplaceAllowedTools = false);
 
     /// <summary>Trigger clause DTO.</summary>
     public sealed record TriggerDto(string Type, string? Value);

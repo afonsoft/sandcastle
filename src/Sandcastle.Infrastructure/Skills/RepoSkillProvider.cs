@@ -91,7 +91,7 @@ public sealed class RepoSkillProvider(ILogger<RepoSkillProvider> logger)
                             continue;
                         }
 
-                        var (name, desc, body) = ParseSkillMd(md);
+                        var (name, desc, body, allowedTools) = ParseSkillMd(md);
                         skills.Add(new Skill
                         {
                             Id = Guid.NewGuid(),
@@ -99,6 +99,7 @@ public sealed class RepoSkillProvider(ILogger<RepoSkillProvider> logger)
                                 skillPath.TrimEnd('/')),
                             Description = desc,
                             ContentMd = body,
+                            AllowedTools = allowedTools,
                             Source = SkillSource.Repo,
                             RepoPath = skillPath,
                             CreatedAt = DateTimeOffset.UtcNow,
@@ -122,31 +123,32 @@ public sealed class RepoSkillProvider(ILogger<RepoSkillProvider> logger)
     /// Minimal YAML frontmatter parse — <c>name</c>/<c>description</c>
     /// entre fences <c>---</c>; corpo vira ContentMd.
     /// </summary>
-    internal static (string? Name, string? Description, string Body)
-        ParseSkillMd(string md)
+    internal static (string? Name, string? Description, string Body,
+        IReadOnlyList<string>? AllowedTools) ParseSkillMd(string md)
     {
         var span = md.AsSpan().TrimStart('\uFEFF');
         if (!span.StartsWith("---"))
         {
-            return (null, null, md.Trim());
+            return (null, null, md.Trim(), null);
         }
 
         var nl = span.IndexOf('\n');
         if (nl < 0)
         {
-            return (null, null, md.Trim());
+            return (null, null, md.Trim(), null);
         }
 
         var rest = span[(nl + 1)..];
         var end = rest.ToString().IndexOf("\n---", StringComparison.Ordinal);
         if (end < 0)
         {
-            return (null, null, md.Trim());
+            return (null, null, md.Trim(), null);
         }
 
         var fm = rest[..end].ToString();
         var body = rest[(end + 4)..].ToString().Trim();
         string? name = null, desc = null;
+        IReadOnlyList<string>? allowedTools = null;
         foreach (var line in fm.Split('\n'))
         {
             var colon = line.IndexOf(':');
@@ -166,8 +168,14 @@ public sealed class RepoSkillProvider(ILogger<RepoSkillProvider> logger)
             {
                 desc = val;
             }
+            else if (key.Equals("allowed-tools",
+                StringComparison.OrdinalIgnoreCase))
+            {
+                allowedTools = Sandcastle.Application.Skills
+                    .SkillAllowedTools.ParseFrontmatter(val);
+            }
         }
 
-        return (name, desc, body);
+        return (name, desc, body, allowedTools);
     }
 }

@@ -2759,6 +2759,10 @@ namespace Sandcastle.Infrastructure.Persistence.Migrations
                         .HasColumnType("TEXT")
                         .HasColumnName("id");
 
+                    b.Property<string>("AllowedToolsJson")
+                        .HasColumnType("TEXT")
+                        .HasColumnName("allowed_tools_json");
+
                     b.Property<string>("Content")
                         .IsRequired()
                         .HasColumnType("TEXT")

@@ -302,7 +302,7 @@ public sealed class MarketplaceService(
                 $"skill entry '{entry.Id}' has no SKILL.md");
         }
 
-        var (name, desc, body) =
+        var (name, desc, body, allowedTools) =
             Skills.RepoSkillProvider.ParseSkillMd(skillMd);
         var skillId = Guid.NewGuid();
         db.Skills.Add(new SkillRecord
@@ -316,6 +316,8 @@ public sealed class MarketplaceService(
             TriggersJson = JsonSerializer.Serialize(
                 new[] { new { type = DefaultTriggerType, value = entry.Id } },
                 Json),
+            AllowedToolsJson = Sandcastle.Application.Skills
+                .SkillAllowedTools.ToJson(allowedTools),
             Source = MarketplaceSkillSource,
             Enabled = row.Enabled,
             CreatedAt = DateTimeOffset.UtcNow,

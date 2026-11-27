@@ -1017,5 +1017,7 @@
   "insights.success_rate": "成功率",
   "insights.l2_coverage": "L2 カバレッジ",
   "insights.categories": "カテゴリ",
-  "insights.size_distribution": "サイズ分布"
+  "insights.size_distribution": "サイズ分布",
+  "skills.allowed_tools": "allowed tools",
+  "skills.allowed_tools_placeholder": "ツール名をカンマ区切りで入力。空の場合は制限なし"
 }

@@ -47,6 +47,8 @@ public sealed class SkillRecord
     public string? Description { get; set; }
     public required string Content { get; set; }
     public string? TriggersJson { get; set; }
+    /// <summary>SPEC-168: JSON array/null — null means unrestricted.</summary>
+    public string? AllowedToolsJson { get; set; }
     public string? Source { get; set; }
     public bool Enabled { get; set; } = true;
     public DateTimeOffset CreatedAt { get; set; }
