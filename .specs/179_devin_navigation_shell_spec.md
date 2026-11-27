@@ -8,9 +8,11 @@
 | Type | `Frontend` |
 | Stack | `.NET 10 · Blazor WASM · ASP.NET Core · EF Core` |
 | Repository | `afonsoft/sandcastle` |
-| Status | `Draft` |
-| Ticket | TBD — criar issue/epic após aprovação |
+| Status | `Approved` |
+| Ticket | #553 · Epic #552 |
 | Scope | `src/` + `tests/` + `docs/` conforme requisitos |
+
+<!-- Aprovada em 2026-11-27 — issue #553, Epic #552. -->
 
 ## 1. User Story
 

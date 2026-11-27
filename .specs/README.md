@@ -205,25 +205,24 @@ próprio repo em `.agents/blueprint.yaml`. Aprovadas 2026-11-24 — Epic
 | 177 | mobile-workspace-ux (tabs, touch, safe-area) | Approved | #527 · Epic #520 |
 | 178 | team-agent-mailbox (`team_*` tools + delegate v2) | Approved | #528 · Epic #520 |
 
-### Onda I — cloud product parity deep dive (dez/2026) — Draft
+### Onda I — cloud product parity deep dive (dez/2026) — Approved
 
 Deep dive Sandcastle × OpenWebUiCode × OpenHands × OpenHands-Cloud ×
 Devin Cloud, registrado em
 `docs/research/2026-11-openwebui-openhands-cloud-deep-dive.md`. SPECs
-criadas como **Draft** em 2026-11-27; ainda sem issues/epic e sem
-implementação até aprovação explícita.
+aprovadas em 2026-11-27 — Epic #552.
 
 | SPEC | Título | Status | Ticket |
 |---|---|---|---|
-| 179 | devin-navigation-shell | Draft | TBD |
-| 180 | settings-profiles-control-center | Draft | TBD |
-| 181 | agent-definitions-prompt-runtime | Draft | TBD |
-| 182 | agent-tool-parity-v2 | Draft | TBD |
-| 183 | workflow-factories-autonomous-delivery | Draft | TBD |
-| 184 | cloud-runtime-control-plane | Draft | TBD |
-| 185 | cloud-observability-budgets | Draft | TBD |
-| 186 | collaboration-workspace | Draft | TBD |
-| 187 | extensions-integrations-hub | Draft | TBD |
-| 188 | chat-ux-cloud-parity | Draft | TBD |
-| 189 | knowledge-rag-context-platform | Draft | TBD |
-| 190 | enterprise-cloud-lifecycle | Draft | TBD |
+| 179 | devin-navigation-shell | Approved | #553 · Epic #552 |
+| 180 | settings-profiles-control-center | Approved | #554 · Epic #552 |
+| 181 | agent-definitions-prompt-runtime | Approved | #555 · Epic #552 |
+| 182 | agent-tool-parity-v2 | Approved | #556 · Epic #552 |
+| 183 | workflow-factories-autonomous-delivery | Approved | #557 · Epic #552 |
+| 184 | cloud-runtime-control-plane | Approved | #558 · Epic #552 |
+| 185 | cloud-observability-budgets | Approved | #559 · Epic #552 |
+| 186 | collaboration-workspace | Approved | #560 · Epic #552 |
+| 187 | extensions-integrations-hub | Approved | #561 · Epic #552 |
+| 188 | chat-ux-cloud-parity | Approved | #562 · Epic #552 |
+| 189 | knowledge-rag-context-platform | Approved | #563 · Epic #552 |
+| 190 | enterprise-cloud-lifecycle | Approved | #564 · Epic #552 |
