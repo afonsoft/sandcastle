@@ -43,15 +43,17 @@ public sealed class SessionInsightService : ISessionInsightService
         var existing = await _db.SessionInsights
             .FirstOrDefaultAsync(s => s.ConversationId == conversationId, ct);
 
-        if (existing != null && !force)
-        {
-            return ToDto(existing);
-        }
-
         var conv = await _db.Conversations.FindAsync(new object[] { conversationId }, ct);
         if (conv == null)
         {
             throw new KeyNotFoundException($"Conversation '{conversationId}' not found");
+        }
+
+        // SPEC-166 guardrail: cached L2 is reused only while the conversation
+        // has not changed since the insight was generated.
+        if (existing != null && !force && existing.CreatedAt >= conv.UpdatedAt)
+        {
+            return ToDto(existing);
         }
 
         _logger.LogInformation("Generating session insight for conversation {ConvId}", conversationId);
