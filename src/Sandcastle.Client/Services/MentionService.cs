@@ -47,14 +47,30 @@ public sealed class MentionService(HttpClient http)
             return cached;
         }
 
-        _pending?.Cancel();
-        using var linked = CancellationTokenSource.CreateLinkedTokenSource(ct);
-        _pending = linked;
+        var linked = CancellationTokenSource.CreateLinkedTokenSource(ct);
+        var previous = System.Threading.Interlocked.Exchange(ref _pending, linked);
+        if (previous is not null)
+        {
+            await previous.CancelAsync();
+            previous.Dispose();
+        }
         var url = "api/v1/mentions?q=" + Uri.EscapeDataString(query)
             + "&types=" + Uri.EscapeDataString(types)
             + "&limit=" + limit;
-        var page = await http.GetFromJsonAsync<MentionPage>(url, Json, linked.Token)
-            ?? new MentionPage([]);
+        MentionPage? page;
+        try
+        {
+            page = await http.GetFromJsonAsync<MentionPage>(url, Json, linked.Token);
+        }
+        finally
+        {
+            if (ReferenceEquals(_pending, linked))
+            {
+                _pending = null;
+            }
+            linked.Dispose();
+        }
+        page ??= new MentionPage([]);
         var items = (page.Items ?? []).Select(x =>
             new MentionItem(x.Type, x.Id, x.Label, x.Snippet, x.Icon))
             .ToList();

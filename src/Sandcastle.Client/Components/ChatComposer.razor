@@ -297,9 +297,15 @@
     private async Task OpenMention()
     {
         _mentionOpen = true;
-        _mentionCts?.Cancel();
+        var previousCts = _mentionCts;
+        if (previousCts is not null)
+        {
+            await previousCts.CancelAsync();
+            previousCts.Dispose();
+        }
         _mentionCts = new CancellationTokenSource();
-        var ct = _mentionCts.Token;
+        var cts = _mentionCts;
+        var ct = cts.Token;
         try
         {
             // SPEC-170 RF-001: debounce — digitação contínua cancela a
@@ -324,6 +330,14 @@
         }
         catch (OperationCanceledException) { /* query superseded */ }
         catch (Exception) { _mentionItems = []; }
+        finally
+        {
+            if (ReferenceEquals(_mentionCts, cts))
+            {
+                _mentionCts = null;
+            }
+            cts.Dispose();
+        }
     }
 
     private async Task OpenSlash()
