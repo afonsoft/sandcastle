@@ -83,6 +83,7 @@ public sealed class SessionInsightService : ISessionInsightService
         insightRecord.LearningsJson = JsonSerializer.Serialize(a.Learnings);
         insightRecord.SuggestedPrompt = a.SuggestedPrompt;
         insightRecord.Model = conv.LlmModel ?? "gpt-4o";
+        insightRecord.CreatedAt = DateTimeOffset.UtcNow;
 
         if (_options.Value.LlmAnalysis)
         {
