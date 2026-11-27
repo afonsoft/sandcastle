@@ -28,12 +28,13 @@ public static class SessionInsightEndpoints
         // RF-002: Forçar reanálise da sessão
         group.MapPost("/app-conversations/{id:guid}/insights/reanalyze", async (
             Guid id,
+            [FromQuery] bool force,
             [FromServices] ISessionInsightService insightService,
             CancellationToken ct) =>
         {
             try
             {
-                var insight = await insightService.AnalyzeSessionAsync(id, force: true, ct);
+                var insight = await insightService.AnalyzeSessionAsync(id, force, ct);
                 return Results.Ok(insight);
             }
             catch (KeyNotFoundException)
