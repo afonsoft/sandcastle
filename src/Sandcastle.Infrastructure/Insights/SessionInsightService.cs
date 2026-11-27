@@ -340,17 +340,20 @@ public sealed class SessionInsightService : ISessionInsightService
     public async Task<InsightsStatsDto> GetStatsAsync(Guid? orgId = null, int? days = null, CancellationToken ct = default)
     {
         var query = _db.SessionInsights.AsNoTracking();
-        if (days is > 0)
-        {
-            var cutoff = DateTimeOffset.UtcNow.AddDays(-days.Value);
-            query = query.Where(x => x.CreatedAt >= cutoff);
-        }
         if (orgId.HasValue)
         {
             query = query.Where(s => s.OrgId == orgId.Value);
         }
 
         var all = await query.ToListAsync(ct);
+        if (days is > 0)
+        {
+            // SQLite não traduz comparação de DateTimeOffset — o filtro fica
+            // em memória neste relatório agregado (já materializado).
+            var cutoff = DateTimeOffset.UtcNow.AddDays(-days.Value);
+            all = all.Where(x => x.CreatedAt >= cutoff).ToList();
+        }
+
         int total = all.Count;
         int success = all.Count(s => s.Outcome == "success");
         int partial = all.Count(s => s.Outcome == "partial");
