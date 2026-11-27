@@ -26,7 +26,8 @@ public sealed class ConversationHistoryBuilder(IServiceProvider services)
     public sealed record RebuiltHistory(
         List<LlmMessage> Messages,
         List<string?> EventIds,
-        string? LastEventId);
+        string? LastEventId,
+        IReadOnlyList<Domain.Skills.Skill> Skills);
 
     /// <summary>Rebuilds <paramref name="conv"/>'s history (resume-safe).</summary>
     public async Task<RebuiltHistory> BuildAsync(
@@ -48,10 +49,14 @@ public sealed class ConversationHistoryBuilder(IServiceProvider services)
         var (hasSystem, lastId) = ReplayEvents(
             all, forgotten, pruned, history, ids);
 
+        var skillResolution = await ResolveSkillsAsync(
+            conversationId, conv, all, ct);
+        var activeSkills = skillResolution.Skills;
         if (!hasSystem)
         {
             lastId = await AppendSystemPromptAsync(events, conversationId,
-                conv, tools, new(all, lastId, history, ids), ct);
+                conv, tools, new(all, lastId, history, ids),
+                activeSkills, skillResolution.Loaded, ct);
         }
 
         if (lastSummary is { Summary: { } summary })
@@ -67,7 +72,7 @@ public sealed class ConversationHistoryBuilder(IServiceProvider services)
             ids.Insert(insertAt, lastSummary.Id);
         }
 
-        return new RebuiltHistory(history, ids, lastId);
+        return new RebuiltHistory(history, ids, lastId, activeSkills);
     }
 
     private static async Task<List<EventBase>> LoadAllEventsAsync(
@@ -145,14 +150,17 @@ public sealed class ConversationHistoryBuilder(IServiceProvider services)
         List<EventBase> All, string? LastId,
         List<LlmMessage> History, List<string?> Ids);
 
-    private async Task<string?> AppendSystemPromptAsync(
-        IEventService events, Guid conversationId,
-        ConversationRecord conv, IToolRegistry tools,
-        HistorySlice h, CancellationToken ct)
+    private sealed record SkillResolution(
+        IReadOnlyList<Domain.Skills.Skill> Skills,
+        Discovery.RepoContextLoader.LoadedContext? Loaded);
+
+    private async Task<SkillResolution> ResolveSkillsAsync(
+        Guid conversationId, ConversationRecord conv,
+        IReadOnlyList<EventBase> all, CancellationToken ct)
     {
         // SPEC-11 RF-002: resolve skills por trigger (always/keyword/task)
         // usando a última mensagem do usuário e as tags da conversa.
-        var lastUserText = h.All.OfType<MessageEvent>()
+        var lastUserText = all.OfType<MessageEvent>()
             .Where(m => m.Source == EventSource.User)
             .Select(m => ToLlmMessage(m).Content)
             .LastOrDefault();
@@ -163,16 +171,28 @@ public sealed class ConversationHistoryBuilder(IServiceProvider services)
                 conv.CreatedByUserId, conv.OrgId?.ToString(), ct)
             : [];
 
-        // SPEC-25 RF-001/002: repo context + repo skills federadas.
-        string? repoContext = null;
+        // SPEC-25 RF-001/002: repo skills federadas (o markdown de
+        // contexto segue sendo carregado só quando o prompt é criado).
+        Discovery.RepoContextLoader.LoadedContext? loaded = null;
         if (services.GetService<Discovery.RepoContextLoader>()
             is { } repoLoader)
         {
-            var loaded = await repoLoader.LoadAsync(conv, h.All, ct);
-            repoContext = loaded.RenderedMarkdown;
+            loaded = await repoLoader.LoadAsync(conv, all, ct);
             skills = MergeRepoSkills(
                 skills, loaded.RepoSkills, lastUserText);
         }
+
+        return new SkillResolution(skills, loaded);
+    }
+
+    private async Task<string?> AppendSystemPromptAsync(
+        IEventService events, Guid conversationId,
+        ConversationRecord conv, IToolRegistry tools,
+        HistorySlice h, IReadOnlyList<Domain.Skills.Skill> skills,
+        Discovery.RepoContextLoader.LoadedContext? loaded,
+        CancellationToken ct)
+    {
+        var repoContext = loaded?.RenderedMarkdown;
 
         var userContextFiles =
             await LoadUserContextFilesAsync(conv, ct);

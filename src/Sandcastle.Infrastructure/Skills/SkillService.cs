@@ -44,6 +44,7 @@ public sealed partial class SkillService(AppDbContext db) : ISkillService
             Description = skill.Description,
             Content = skill.ContentMd,
             TriggersJson = JsonSerializer.Serialize(skill.Triggers, TriggerJson),
+            AllowedToolsJson = SkillAllowedTools.ToJson(skill.AllowedTools),
             Source = skill.Source.ToString().ToLowerInvariant(),
             Enabled = skill.Enabled,
             CreatedAt = now,
@@ -114,6 +115,11 @@ public sealed partial class SkillService(AppDbContext db) : ISkillService
         if (update.Enabled is { } enabled)
         {
             r.Enabled = enabled;
+        }
+
+        if (update.ReplaceAllowedTools)
+        {
+            r.AllowedToolsJson = SkillAllowedTools.ToJson(update.AllowedTools);
         }
 
         r.UpdatedAt = DateTimeOffset.UtcNow;
@@ -252,6 +258,7 @@ public sealed partial class SkillService(AppDbContext db) : ISkillService
         Description = r.Description,
         ContentMd = r.Content,
         Triggers = ParseTriggers(r.TriggersJson),
+        AllowedTools = SkillAllowedTools.ParseJson(r.AllowedToolsJson),
         Source = r.Source switch
         {
             Builtin => SkillSource.Builtin,

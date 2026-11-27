@@ -73,6 +73,38 @@ public sealed class SkillHookEndpointsTests : IDisposable
     }
 
     [Fact]
+    public async Task Skills_AllowedTools_RoundTrip_And_ToolCatalog()
+    {
+        var created = await _http.PostAsJsonAsync("/api/v1/skills", new
+        {
+            name = "scoped-skill",
+            content_md = "# body",
+            allowed_tools = new[] { "file_read" },
+            triggers = new[] { new { type = "always", value = (string?)null } },
+        });
+        created.StatusCode.ShouldBe(HttpStatusCode.Created);
+        var doc = await created.Content.ReadFromJsonAsync<JsonElement>();
+        var id = doc.GetProperty("id").GetGuid();
+        doc.GetProperty("allowed_tools")[0].GetString().ShouldBe("file_read");
+
+        var patch = await _http.PatchAsJsonAsync($"/api/v1/skills/{id}", new
+        {
+            allowed_tools = new[] { "file_read", "bash" },
+            replace_allowed_tools = true,
+        });
+        patch.StatusCode.ShouldBe(HttpStatusCode.OK);
+        var patched = await patch.Content.ReadFromJsonAsync<JsonElement>();
+        patched.GetProperty("allowed_tools").GetArrayLength().ShouldBe(2);
+
+        var catalog = await _http.GetFromJsonAsync<string[]>(
+            "/api/v1/skills/tool-catalog");
+        catalog!.ShouldContain("bash");
+
+        (await _http.DeleteAsync($"/api/v1/skills/{id}"))
+            .StatusCode.ShouldBe(HttpStatusCode.NoContent);
+    }
+
+    [Fact]
     public async Task Skill_Create_Rejects_Bad_Slug()
     {
         var resp = await _http.PostAsJsonAsync("/api/v1/skills", new

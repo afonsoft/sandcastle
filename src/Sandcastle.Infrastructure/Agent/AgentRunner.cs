@@ -290,6 +290,25 @@ public sealed class AgentRunner(
 
         var rebuilt = await builder.BuildAsync(
             conversationId, conv, effectiveTools, ct);
+        var knownToolNames = tools.All.Select(t => t.Schema.Name)
+            .ToHashSet(StringComparer.OrdinalIgnoreCase);
+        var unknownAllowed = rebuilt.Skills
+            .Where(s => s.AllowedTools is not null)
+            .SelectMany(s => s.AllowedTools!)
+            .Where(name => !knownToolNames.Contains(name))
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToArray();
+        if (unknownAllowed.Length > 0)
+        {
+            await events.AppendAsync(conversationId, new AgentDiagnosticEvent
+            {
+                Severity = "warn",
+                Code = "skill_unknown_allowed_tools",
+                Message = "unknown allowed-tools ignored: "
+                    + string.Join(", ", unknownAllowed),
+            }, ct);
+        }
+
         var history = rebuilt.Messages;
         var ids = rebuilt.EventIds;
         var lastEventId = rebuilt.LastEventId;
@@ -419,6 +438,7 @@ public sealed class AgentRunner(
             KeySource = keySource,
             LoopGuard = new AgentLoopGuard(
                 opt.MaxSameToolConsecutive, opt.MaxRepeatArgs),
+            ActiveSkills = rebuilt.Skills,
             History = history,
             Ids = ids,
             LastEventId = lastEventId,
@@ -1122,6 +1142,31 @@ public sealed class AgentRunner(
 
         ArgumentNullException.ThrowIfNull(tool);
 
+        // SPEC-168 RF-003: escopo de tools da skill ativa — enforcement no
+        // dispatch (não confia no prompt). União das listas declaradas;
+        // skill sem allowed-tools não restringe.
+        if (!Application.Skills.SkillAllowedTools.Allows(
+                st.ActiveSkills, call.Name, out var restrictingSkill))
+        {
+            var message = $"tool '{call.Name}' not allowed by skill " +
+                $"'{restrictingSkill}'";
+            st.LastEventId = (await st.Events.AppendAsync(conversationId,
+                new AgentDiagnosticEvent
+                {
+                    Severity = "warn",
+                    Code = "tool_blocked_by_skill",
+                    Message = message,
+                    ParentId = actionEvent.Id,
+                }, ct)).Id;
+            return await RejectCallAsync(st, conversationId, actionEvent,
+                call, ToolResult.Error(message),
+                JsonSerializer.Serialize(new
+                {
+                    error = "tool_blocked_by_skill",
+                    skill = restrictingSkill,
+                }), ct);
+        }
+
         // SPEC-164 RF-002: veto recuperável de loop — a call vira erro
         // explícito para o modelo e a run pode mudar de estratégia.
         var loopVerdict = st.LoopGuard.Register(call.Name, call.ArgumentsJson);
@@ -1818,6 +1863,7 @@ public sealed class AgentRunner(
         public required RunActivityTracker Activity { get; init; }
         public required IContextMeter ContextMeter { get; init; }
         public required PermissionEvaluator Permissions { get; init; }
+        public required IReadOnlyList<Domain.Skills.Skill> ActiveSkills { get; init; }
         public required PermissionedToolRegistry EffectiveTools { get; init; }
         public required SecurityPolicy Policy { get; init; }
         public ISecurityAnalyzer? Security { get; init; }

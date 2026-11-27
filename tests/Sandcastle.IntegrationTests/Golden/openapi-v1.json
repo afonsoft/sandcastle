@@ -750,6 +750,15 @@
       "CreateSkillRequest": {
         "description": "POST body.",
         "properties": {
+          "allowed_tools": {
+            "items": {
+              "type": "string"
+            },
+            "type": [
+              "null",
+              "array"
+            ]
+          },
           "content_md": {
             "type": "string"
           },
@@ -2774,6 +2783,15 @@
       "UpdateSkillDto": {
         "description": "PATCH body.",
         "properties": {
+          "allowed_tools": {
+            "items": {
+              "type": "string"
+            },
+            "type": [
+              "null",
+              "array"
+            ]
+          },
           "content_md": {
             "type": [
               "null",
@@ -2791,6 +2809,10 @@
               "null",
               "boolean"
             ]
+          },
+          "replace_allowed_tools": {
+            "default": false,
+            "type": "boolean"
           },
           "triggers": {
             "items": {
@@ -13462,6 +13484,25 @@
           }
         },
         "summary": "POST /api/v1/skills",
+        "tags": [
+          "Skills"
+        ]
+      }
+    },
+    "/api/v1/skills/tool-catalog": {
+      "get": {
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          }
+        },
+        "summary": "GET /api/v1/skills/tool-catalog",
         "tags": [
           "Skills"
         ]

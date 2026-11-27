@@ -1017,5 +1017,7 @@
   "insights.success_rate": "Success rate",
   "insights.l2_coverage": "L2 coverage",
   "insights.categories": "Categories",
-  "insights.size_distribution": "Size distribution"
+  "insights.size_distribution": "Size distribution",
+  "skills.allowed_tools": "Allowed tools",
+  "skills.allowed_tools_placeholder": "comma-separated tool names; blank = unrestricted"
 }

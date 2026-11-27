@@ -1017,5 +1017,7 @@
   "insights.success_rate": "成功率",
   "insights.l2_coverage": "L2 覆盖率",
   "insights.categories": "类别",
-  "insights.size_distribution": "规模分布"
+  "insights.size_distribution": "规模分布",
+  "skills.allowed_tools": "允许的工具",
+  "skills.allowed_tools_placeholder": "逗号分隔工具名称；留空表示不限制"
 }

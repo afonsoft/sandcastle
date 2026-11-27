@@ -1,5 +1,7 @@
 @inject HttpClient Http
 @inject Sandcastle.Client.Services.LocalizationService L
+@using System.Text.Json
+@using System.Text.Json.Serialization
 
 <p>@L["skills.subtitle"]</p>
 
@@ -16,6 +18,7 @@ else
                 <th>@L["customize.scope"]</th>
                 <th>@L["skills.source"]</th>
                 <th>@L["skills.description"]</th>
+                <th>@L["skills.allowed_tools"]</th>
                 <th>@L["skills.enabled"]</th>
             </tr>
         </thead>
@@ -27,6 +30,14 @@ else
                     <td><span class="badge">@ScopeLabel(s.Source)</span></td>
                     <td><span class="badge badge-dim">@SourceLabel(s.Source)</span></td>
                     <td>@s.Description</td>
+                    <td>
+                        <input type="text" list="skill-tool-names"
+                               aria-label="@L["skills.allowed_tools"]"
+                               placeholder="@L["skills.allowed_tools_placeholder"]"
+                               value="@AllowedToolsText(s)"
+                               disabled="@IsReadOnly(s)"
+                               @onchange="e => SaveAllowedToolsAsync(s, e.Value?.ToString())" />
+                    </td>
                     <td>
                         <input type="checkbox" checked="@s.Enabled"
                                aria-label="@L["skills.enabled"]"
@@ -45,6 +56,14 @@ else
     <input aria-label="@L["skills.desc_placeholder"]" placeholder="@L["skills.desc_placeholder"]" @bind="newDescription" />
     <textarea aria-label="@L["skills.content_placeholder"]" placeholder="@L["skills.content_placeholder"]" @bind="newContent" rows="6"
               style="width:100%"></textarea>
+    <input aria-label="@L["skills.allowed_tools"]" placeholder="@L["skills.allowed_tools_placeholder"]"
+           list="skill-tool-names" @bind="newAllowedTools" />
+    <datalist id="skill-tool-names">
+        @foreach (var tool in toolNames)
+        {
+            <option value="@tool"></option>
+        }
+    </datalist>
     <button @onclick="CreateAsync" disabled="@string.IsNullOrWhiteSpace(newName)">
         @L["common.create"]
     </button>
@@ -59,9 +78,23 @@ else
     private string? newName;
     private string? newDescription;
     private string? newContent;
+    private string? newAllowedTools;
     private string? error;
+    private string[] toolNames = [];
 
-    protected override async Task OnInitializedAsync() => await LoadAsync();
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadAsync();
+        try
+        {
+            toolNames = await Http.GetFromJsonAsync<string[]>(
+                "api/v1/skills/tool-catalog") ?? [];
+        }
+        catch (JsonException)
+        {
+            toolNames = [];
+        }
+    }
 
     private async Task LoadAsync() =>
         skills = await Http.GetFromJsonAsync<List<SkillDto>>("api/v1/skills");
@@ -74,6 +107,7 @@ else
             name = newName,
             description = newDescription,
             content_md = newContent ?? "",
+            allowed_tools = ParseTools(newAllowedTools),
             triggers = new[] { new { type = "always", value = (string?)null } },
         });
         if (!resp.IsSuccessStatusCode)
@@ -82,9 +116,29 @@ else
             return;
         }
 
-        newName = newDescription = newContent = null;
+        newName = newDescription = newContent = newAllowedTools = null;
         await LoadAsync();
     }
+
+    private async Task SaveAllowedToolsAsync(SkillDto skill, string? raw)
+    {
+        await Http.PatchAsJsonAsync($"api/v1/skills/{skill.Id}", new
+        {
+            allowed_tools = ParseTools(raw),
+            replace_allowed_tools = true,
+        });
+        await LoadAsync();
+    }
+
+    private static string[]? ParseTools(string? raw) =>
+        string.IsNullOrWhiteSpace(raw) ? null : raw.Split(',',
+            StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+
+    private static string AllowedToolsText(SkillDto skill) =>
+        skill.AllowedTools is null ? "" : string.Join(", ", skill.AllowedTools);
+
+    private static bool IsReadOnly(SkillDto skill) =>
+        skill.Source is "builtin" or "repo" or "marketplace";
 
     private async Task ToggleAsync(SkillDto skill)
     {
@@ -111,5 +165,7 @@ else
 
     private sealed record SkillDto(
         Guid Id, string Name, string? Description,
-        string Source, bool Enabled);
+        string Source, bool Enabled,
+        [property: JsonPropertyName("allowed_tools")]
+        IReadOnlyList<string>? AllowedTools);
 }

@@ -42,4 +42,6 @@ public sealed record UpdateSkillRequest(
     string? Description,
     string? ContentMd,
     IReadOnlyList<SkillTrigger>? Triggers,
-    bool? Enabled);
+    bool? Enabled,
+    IReadOnlyList<string>? AllowedTools = null,
+    bool ReplaceAllowedTools = false);

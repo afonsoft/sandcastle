@@ -56,6 +56,12 @@ public sealed record Skill
     public string? Description { get; init; }
     public required string ContentMd { get; init; }
     public IReadOnlyList<SkillTrigger> Triggers { get; init; } = [];
+
+    /// <summary>
+    /// SPEC-168: tools this skill may use — null means unrestricted;
+    /// an empty list means the skill declares no tool allowance.
+    /// </summary>
+    public IReadOnlyList<string>? AllowedTools { get; init; }
     public SkillSource Source { get; init; } = SkillSource.User;
 
     /// <summary>
