@@ -98,6 +98,7 @@ internal sealed class FakeEventService : IEventService
 internal sealed class FakeSandboxExecutor : ISandboxExecutor
 {
     private readonly Dictionary<string, string> _files = new();
+    public Dictionary<string, byte[]> BinaryFiles { get; } = new();
     public List<string> Commands { get; } = [];
     public Func<string, CommandResult>? ExecHandler { get; set; }
     public Func<string, IReadOnlyList<FileEntry>>? ListHandler { get; set; }
@@ -133,6 +134,13 @@ internal sealed class FakeSandboxExecutor : ISandboxExecutor
         Sandbox sandbox, string path, string content, CancellationToken ct)
     {
         _files[path] = content;
+        return Task.CompletedTask;
+    }
+
+    public Task WriteFileBytesAsync(
+        Sandbox sandbox, string path, byte[] content, CancellationToken ct)
+    {
+        BinaryFiles[path] = content;
         return Task.CompletedTask;
     }
 

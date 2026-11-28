@@ -1,3 +1,5 @@
+using System.Text.Json;
+
 using Docker.DotNet;
 using Docker.DotNet.Models;
 
@@ -6,8 +8,12 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
 
+using Sandcastle.Application.Agent;
+using Sandcastle.Application.Events;
 using Sandcastle.Application.Sandbox;
+using Sandcastle.Domain.Events;
 using Sandcastle.Domain.Sandbox;
+using Sandcastle.Infrastructure.Agent.Tools;
 using Sandcastle.Infrastructure.Persistence;
 using Sandcastle.Infrastructure.Sandbox;
 using Sandcastle.Sandboxing;
@@ -196,4 +202,61 @@ public sealed class DockerSandboxTests : IAsyncLifetime
         await Should.ThrowAsync<DockerContainerNotFoundException>(() =>
             _docker.Containers.InspectContainerAsync(c.ID));
     }
+    private sealed class NoopEventService : IEventService
+    {
+        public ValueTask<EventBase> AppendAsync(Guid conversationId, EventBase e, CancellationToken ct) => ValueTask.FromResult(e);
+        public Task<EventPage> SearchAsync(Guid conversationId, EventQuery q, CancellationToken ct) => Task.FromResult(new EventPage([], null));
+        public Task<long> CountAsync(Guid conversationId, EventQuery q, CancellationToken ct) => Task.FromResult(0L);
+        public Task<IReadOnlyList<EventBase>> GetBatchAsync(Guid conversationId, IReadOnlyCollection<string> ids, CancellationToken ct) => Task.FromResult<IReadOnlyList<EventBase>>([]);
+        public async IAsyncEnumerable<EventBase> SubscribeAsync(Guid conversationId, [System.Runtime.CompilerServices.EnumeratorCancellation] CancellationToken ct)
+        { await Task.CompletedTask; yield break; }
+    }
+
+    private ToolCallContext ToolCtx(Sandcastle.Domain.Sandbox.Sandbox sandbox) => new(
+        Guid.NewGuid(), sandbox, _executor, new NoopEventService(),
+        new ServiceCollection().BuildServiceProvider(), TimeSpan.FromSeconds(30));
+
+    private static JsonElement ToolArgs(object value) => JsonSerializer.SerializeToElement(value);
+
+    [Fact]
+    public async Task Spec182_InstantContext_Readfile_And_Tree_Run_In_Real_Sandbox()
+    {
+        if (!_dockerUp) return;
+        var sb = await StartAsync();
+        try
+        {
+            await _executor.ExecAsync(sb,
+                "mkdir -p /workspace/repo/docs && printf 'one\ntwo\nthree\n' > /workspace/repo/docs/a.txt",
+                TimeSpan.FromSeconds(15), CancellationToken.None);
+            var result = await BuiltinParityTools.InstantContext().Handler(ToolCtx(sb),
+                ToolArgs(new { commands = new[] { "readfile docs/a.txt 1 3", "tree docs 1" } }), CancellationToken.None);
+            result.IsError.ShouldBeFalse();
+            var xml = result.Observation.GetProperty("xml").GetString()!;
+            xml.ShouldContain("<ANSWER>");
+            xml.ShouldContain("two");
+            xml.ShouldContain("docs/a.txt");
+        }
+        finally
+        {
+            await _executor.ExecAsync(sb, "chmod -R a+w /workspace 2>/dev/null || true", TimeSpan.FromSeconds(10), CancellationToken.None);
+            await _service.DeleteAsync(sb.Id, CancellationToken.None);
+        }
+    }
+
+    [Fact]
+    public async Task Spec182_AgentValidate_CustomCommand_Runs_In_Real_Sandbox()
+    {
+        if (!_dockerUp) return;
+        var sb = await StartAsync();
+        try
+        {
+            var result = await BuiltinParityTools.AgentValidate().Handler(ToolCtx(sb),
+                ToolArgs(new { command = "echo validation-ok" }), CancellationToken.None);
+            result.IsError.ShouldBeFalse();
+            result.Observation.GetProperty("validated").GetBoolean().ShouldBeTrue();
+            result.Observation.GetProperty("output").GetString()!.ShouldContain("validation-ok");
+        }
+        finally { await _service.DeleteAsync(sb.Id, CancellationToken.None); }
+    }
+
 }
