@@ -213,3 +213,9 @@ Arquivado em 2026-10-19 pela SPEC-65 (gap-analysis).
 | 179 | devin-navigation-shell — shell estilo Devin, command center, telemetria UX, rotas foundation | PR #566 · #553 |
 | 180 | settings-profiles-control-center — provider connections, LLM/agent profiles, settings center v2 | PR #568 · #554 |
 | 181 | agent-definitions-prompt-runtime — persistent agent definitions, versioned prompt packs, safe skills/persona runtime | PR #570 · #555 |
+
+## Entregues (OpenWebUiCode chat parity follow-up)
+
+| SPEC | Título | Entrega |
+|---|---|---|
+| 191 | agent-github-pr-tools — list/view/diff/comment de PRs no loop do agente | PR #596 · #592 |
