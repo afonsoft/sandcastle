@@ -2248,7 +2248,25 @@ public sealed class SandcastleApiClient(HttpClient http)
 
     public async Task<IReadOnlyList<CollabCalendarEventDto>> ListCollabCalendarEventsAsync(CancellationToken ct = default) =>
         await http.GetFromJsonAsync<List<CollabCalendarEventDto>>("/api/v1/calendar/events", Json, ct) ?? [];
+    public Task<ExtensionSummaryDto?> GetExtensionSummaryAsync(CancellationToken ct = default) =>
+        GetOrNull<ExtensionSummaryDto>("/api/v1/extensions/summary", ct);
+    public async Task<IReadOnlyList<PluginDto>> ListPluginsAsync(CancellationToken ct = default) =>
+        await http.GetFromJsonAsync<List<PluginDto>>("/api/v1/plugins", Json, ct) ?? [];
+    public async Task<PluginDto?> SavePluginAsync(Guid? id, string name, string version, string manifest, string[] permissions, CancellationToken ct = default)
+    {
+        var payload = new { name, version, manifest_json = manifest, permissions, org_id = (Guid?)null };
+        var resp = id is null ? await http.PostAsJsonAsync("/api/v1/plugins", payload, Json, ct) : await http.PutAsJsonAsync($"/api/v1/plugins/{id}", payload, Json, ct);
+        return resp.IsSuccessStatusCode ? await resp.Content.ReadFromJsonAsync<PluginDto>(Json, ct) : null;
+    }
+    public async Task<bool> SetPluginEnabledAsync(Guid id, bool enabled, CancellationToken ct = default) =>
+        (await http.PostAsJsonAsync($"/api/v1/plugins/{id}/enabled", new { enabled }, Json, ct)).IsSuccessStatusCode;
+    public async Task<IntegrationTestResultDto?> TestIntegrationAsync(string provider, CancellationToken ct = default)
+    {
+        var resp = await http.PostAsJsonAsync($"/api/v1/integrations/{Uri.EscapeDataString(provider)}/test", new { }, Json, ct);
+        return resp.IsSuccessStatusCode ? await resp.Content.ReadFromJsonAsync<IntegrationTestResultDto>(Json, ct) : null;
+    }
 }
+
 
 
 /// <summary>SPEC-183: factory DTO.</summary>
@@ -2591,3 +2609,9 @@ public sealed record CollabNotificationDto(
 public sealed record CollabCalendarEventDto(
     string Id, string Source, string Title, string Status, string? Repository,
     string? UserId, DateTimeOffset StartAt, DateTimeOffset? EndAt, string DeepLink);
+/// <summary>SPEC-187: extensions summary.</summary>
+public sealed record ExtensionSummaryDto(int McpServers, int MarketplaceInstalled, int Plugins, int EnabledPlugins, int ScmConnections, int TicketConnections);
+/// <summary>SPEC-187: plugin installation.</summary>
+public sealed record PluginDto(Guid Id, Guid? OrgId, string OwnerUserId, string Name, string Version, string ManifestJson, string[] Permissions, bool Enabled, string? RollbackVersion, DateTimeOffset CreatedAt, DateTimeOffset UpdatedAt);
+/// <summary>SPEC-187: integration test result.</summary>
+public sealed record IntegrationTestResultDto(string Provider, bool Ok, string Detail);

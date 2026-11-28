@@ -1,31 +1,50 @@
 @using Sandcastle.Client.Services
 @page "/extensions"
 @inject LocalizationService L
+@inject SandcastleApiClient Api
 
-@* SPEC-179 RF-003: rota foundation do hub de extensions.
-   SPEC-187 expande para o hub completo de plugins/integrações. *@
 <PageTitle>@L["sidebar.extensions"] · Sandcastle</PageTitle>
-
-<section class="foundation-page">
-    <header class="foundation-head">
-        <h1>@L["extensions.title"]</h1>
-        <p>@L["extensions.foundation"]</p>
-    </header>
-    <div class="foundation-grid">
-        <a class="foundation-card" href="/settings/mcp">
-            <Icon Name="sparkles" Size="18" />
-            <strong>@L["sidebar.skills_mcp"]</strong>
-            <span>@L["extensions.mcp_hint"]</span>
-        </a>
-        <a class="foundation-card" href="/marketplace">
-            <Icon Name="package" Size="18" />
-            <strong>@L["sidebar.marketplace"]</strong>
-            <span>@L["extensions.marketplace_hint"]</span>
-        </a>
-        <a class="foundation-card" href="/customize">
-            <Icon Name="settings" Size="18" />
-            <strong>@L["sidebar.customize"]</strong>
-            <span>@L["extensions.customize_hint"]</span>
-        </a>
-    </div>
+<section class="foundation-page extensions-page">
+    <header class="foundation-head"><h1>@L["extensions.title"]</h1><p>@L["extensions.hub_subtitle"]</p></header>
+    @if (_summary is not null)
+    {
+        <div class="foundation-grid">
+            <a class="foundation-card" href="/settings/mcp"><Icon Name="sparkles" Size="18" /><strong>MCP</strong><span>@_summary.McpServers @L["extensions.servers"]</span></a>
+            <a class="foundation-card" href="/marketplace"><Icon Name="package" Size="18" /><strong>@L["sidebar.marketplace"]</strong><span>@_summary.MarketplaceInstalled @L["extensions.installed"]</span></a>
+            <a class="foundation-card" href="/admin/scm"><Icon Name="git-branch" Size="18" /><strong>SCM</strong><span>@_summary.ScmConnections @L["extensions.connections"]</span></a>
+            <a class="foundation-card" href="/admin/tickets"><Icon Name="alert" Size="18" /><strong>@L["extensions.tickets"]</strong><span>@_summary.TicketConnections @L["extensions.connections"]</span></a>
+        </div>
+    }
+    <section class="panel">
+        <h2>@L["extensions.plugins"]</h2>
+        <div class="field"><input aria-label="@L["extensions.plugin_name"]" placeholder="@L["extensions.plugin_name"]" @bind="_name" /><input aria-label="@L["extensions.version"]" placeholder="@L["extensions.version"]" @bind="_version" /><button @onclick="InstallAsync">@L["extensions.install"]</button></div>
+        @foreach (var p in _plugins)
+        {
+            <article class="message-card"><h3>@p.Name <small>v@p.Version</small></h3><p>@string.Join(", ", p.Permissions)</p><button class="secondary" @onclick="() => ToggleAsync(p)">@(p.Enabled ? L["extensions.disable"] : L["extensions.enable"])</button></article>
+        }
+    </section>
+    <section class="panel"><h2>@L["extensions.integrations"]</h2>
+        @foreach (var provider in _providers)
+        {
+            <button class="secondary" @onclick="() => TestAsync(provider)">@provider</button>
+        }
+        @if (_test is not null) { <p>@_test.Provider: @_test.Detail</p> }
+    </section>
 </section>
+@code {
+    private ExtensionSummaryDto? _summary;
+    private IReadOnlyList<PluginDto> _plugins = [];
+    private string _name = "";
+    private string _version = "1.0.0";
+    private IntegrationTestResultDto? _test;
+    private readonly string[] _providers = ["github", "gitlab", "slack", "linear", "jira", "n8n", "webhooks"];
+    protected override async Task OnInitializedAsync() { _summary = await Api.GetExtensionSummaryAsync(); _plugins = await Api.ListPluginsAsync(); }
+    private async Task InstallAsync()
+    {
+        if (string.IsNullOrWhiteSpace(_name)) return;
+        await Api.SavePluginAsync(null, _name, _version, """{"kind":"function","pipelines":[],"valves":{}}""", ["read_workspace"]);
+        _name = ""; _plugins = await Api.ListPluginsAsync(); _summary = await Api.GetExtensionSummaryAsync();
+    }
+    private async Task ToggleAsync(PluginDto p) { await Api.SetPluginEnabledAsync(p.Id, !p.Enabled); _plugins = await Api.ListPluginsAsync(); }
+    private async Task TestAsync(string provider) => _test = await Api.TestIntegrationAsync(provider);
+}
