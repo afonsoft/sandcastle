@@ -214,6 +214,8 @@ Arquivado em 2026-10-19 pela SPEC-65 (gap-analysis).
 | 180 | settings-profiles-control-center — provider connections, LLM/agent profiles, settings center v2 | PR #568 · #554 |
 | 181 | agent-definitions-prompt-runtime — persistent agent definitions, versioned prompt packs, safe skills/persona runtime | PR #570 · #555 |
 
-## Entregues
+## Entregues (OpenWebUiCode chat parity follow-up)
 
-- [SPEC-191 — Agent GitHub PR tools](191_agent_github_pr_tools_spec.md) — PRs #596/#archive.
+| SPEC | Título | Entrega |
+|---|---|---|
+| 191 | agent-github-pr-tools — list/view/diff/comment de PRs no loop do agente | PR #596 · #592 |
