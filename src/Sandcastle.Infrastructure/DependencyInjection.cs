@@ -726,6 +726,8 @@ public static class DependencyInjection
         services.AddScoped<
             Sandcastle.Application.Agent.ICondenser,
             Sandcastle.Infrastructure.Agent.Context.LlmSummarizingCondenser>();
+        services.AddSingleton<
+            Sandcastle.Infrastructure.Agent.Tools.ExtendContextBudget>();
         services.AddScoped<
             Sandcastle.Infrastructure.Agent.Context.ConversationHistoryBuilder>();
         services.AddScoped<

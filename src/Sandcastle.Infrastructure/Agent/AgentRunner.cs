@@ -667,6 +667,14 @@ public sealed class AgentRunner(
         LoopState st, Guid conversationId, CancellationToken ct)
     {
         var forced = ForcedTrigger(st.OverflowPending, st.StopLengthPending);
+        // SPEC-182 RF-003: extend_context concede uma trava explícita para
+        // uma compactação de emergência; compaction manual nunca é pulada.
+        if (forced is not null
+            && services.GetService<Tools.ExtendContextBudget>() is { } extendBudget
+            && extendBudget.TryConsume(conversationId.ToString()))
+        {
+            forced = null;
+        }
         var pendingInstructions = _compactInstructions;
         _compactRequested = false;
         _compactInstructions = null;

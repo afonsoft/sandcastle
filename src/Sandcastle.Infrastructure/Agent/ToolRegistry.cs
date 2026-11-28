@@ -35,6 +35,15 @@ public sealed class ToolRegistry : IToolRegistry
             "memory_get", "memory_set", "memory_search",
             // SPEC-125: segunda opinião sob demanda.
             "advisor",
+            // SPEC-182: aliases e tools operacionais pesadas/raras ficam
+            // descobríveis via tool_search sem duplicar o prompt inicial.
+            "shell_exec", "fetch_url", "todo_write",
+            "agent_validate", "instant_context", "memory_learn",
+            "reminder", "code_interpreter", "plan_exit", "mode_switch",
+            "unseen_messages", "context_compact", "context_recovery",
+            "extend_context", "context_usage", "browser_navigate",
+            "browser_observe", "browser_act", "browser_screenshot",
+            "browser_close", "generate_image", "generate_video",
         };
 
     /// <summary>Builds the built-in catalog.</summary>
@@ -107,6 +116,29 @@ public sealed class ToolRegistry : IToolRegistry
             // SPEC-47 RF-005: routines do owner da conversa.
             BuiltinTools.Routine(),
             BuiltinTools.InvokeSkill(),
+            // SPEC-182: parity tools + compatibility aliases.
+            BuiltinParityTools.AgentValidate(),
+            BuiltinParityTools.InstantContext(),
+            BuiltinParityTools.MemoryLearn(),
+            BuiltinParityTools.Reminder(),
+            BuiltinParityTools.CodeInterpreter(),
+            BuiltinParityTools.PlanExit(),
+            BuiltinParityTools.ModeSwitch(),
+            BuiltinParityTools.UnseenMessages(),
+            BuiltinParityTools.ContextCompact(),
+            BuiltinParityTools.ContextRecovery(),
+            BuiltinParityTools.ExtendContext(),
+            BuiltinParityTools.ContextUsage(),
+            BuiltinParityTools.BrowserNavigate(),
+            BuiltinParityTools.BrowserObserve(),
+            BuiltinParityTools.BrowserAct(),
+            BuiltinParityTools.BrowserScreenshot(),
+            BuiltinParityTools.BrowserClose(),
+            BuiltinParityTools.GenerateImage(),
+            BuiltinParityTools.GenerateVideo(),
+            BuiltinParityTools.ShellExecAlias(),
+            BuiltinParityTools.FetchUrlAlias(),
+            BuiltinParityTools.TodoWriteAlias(),
             .. options.Value.Subagents.MaxDepth >= 1
                 // SPEC-28: task/task_status/task_result só no nível do pai
                 // (filhos nunca recebem task — depth cap via preset).
