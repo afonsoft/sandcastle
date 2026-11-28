@@ -220,3 +220,4 @@ Arquivado em 2026-10-19 pela SPEC-65 (gap-analysis).
 |---|---|---|
 | 191 | agent-github-pr-tools — list/view/diff/comment de PRs no loop do agente | PR #596 · #592 |
 | 192 | rich-document-reader-tools — leitores bounded PDF/archive/SQLite no agente | PR #598 · #593 |
+| 193 | run-cognition-activity-ux — goal/wait/memory_reflect, fase analyzing, severidade advisor e activity UX | PR #600 · #594 |
