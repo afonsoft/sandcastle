@@ -693,6 +693,35 @@ public sealed class AdminApiClient(HttpClient http)
     public async Task<JsonElement> GetRunTraceAsync(Guid id, CancellationToken ct = default) =>
         await GetAsync<JsonElement>($"/api/v1/runs/{id}/trace", ct);
 
+    // ---- SPEC-190: enterprise lifecycle operations -----------------------
+
+    public async Task<IReadOnlyList<JsonElement>> GetLifecycleProvisioningAsync(CancellationToken ct = default) =>
+        await GetAsync<List<JsonElement>>("/api/v1/admin/lifecycle/provisioning", ct) ?? [];
+    public async Task<IReadOnlyList<JsonElement>> GetLifecycleOutboxAsync(string? status = null, CancellationToken ct = default) =>
+        await GetAsync<List<JsonElement>>("/api/v1/admin/lifecycle/outbox" + (string.IsNullOrWhiteSpace(status) ? "" : $"?status={Uri.EscapeDataString(status)}"), ct) ?? [];
+    public async Task<IReadOnlyList<JsonElement>> GetLifecycleJobsAsync(CancellationToken ct = default) =>
+        await GetAsync<List<JsonElement>>("/api/v1/admin/lifecycle/jobs", ct) ?? [];
+    public async Task<bool> CreateLifecycleProvisioningAsync(string email, CancellationToken ct = default)
+    {
+        var resp = Guard(await http.PostAsJsonAsync("/api/v1/admin/lifecycle/provisioning", new { email, org_id = (Guid?)null, quotas_json = (string?)null, feature_flags_json = (string?)null }, Json, ct));
+        return resp.IsSuccessStatusCode;
+    }
+    public async Task<bool> LifecycleProvisioningActionAsync(Guid id, string action, CancellationToken ct = default)
+    {
+        var resp = Guard(await http.PostAsync($"/api/v1/admin/lifecycle/provisioning/{id}/{action}", null, ct));
+        return resp.IsSuccessStatusCode;
+    }
+    public async Task<bool> ReplayLifecycleDeadLetterAsync(Guid id, CancellationToken ct = default)
+    {
+        var resp = Guard(await http.PostAsync($"/api/v1/admin/lifecycle/dead-letters/{id}/replay", null, ct));
+        return resp.IsSuccessStatusCode;
+    }
+    public async Task<bool> RunLifecycleJobAsync(string key, CancellationToken ct = default)
+    {
+        var resp = Guard(await http.PostAsync($"/api/v1/admin/lifecycle/jobs/{Uri.EscapeDataString(key)}", null, ct));
+        return resp.IsSuccessStatusCode;
+    }
+
     // ---- plumbing --------------------------------------------------------
 
     private async Task<T?> GetAsync<T>(string url, CancellationToken ct) =>

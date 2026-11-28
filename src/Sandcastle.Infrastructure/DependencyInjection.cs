@@ -481,6 +481,12 @@ public static class DependencyInjection
             Sandcastle.Infrastructure.Extensions.ExtensionHubService>();
         services.AddScoped<Sandcastle.Application.Knowledge.IKnowledgeRagService,
             Sandcastle.Infrastructure.Knowledge.KnowledgeRagService>();
+        services.AddScoped<Sandcastle.Application.Lifecycle.ILifecycleService,
+            Sandcastle.Infrastructure.Lifecycle.LifecycleService>();
+        if (!string.Equals(configuration["Lifecycle:Enabled"], "false", StringComparison.OrdinalIgnoreCase))
+        {
+            services.AddHostedService<Sandcastle.Infrastructure.Lifecycle.LifecycleOutboxWorker>();
+        }
         services.AddHostedService<
             Sandcastle.Infrastructure.Automations.AutomationScheduler>();
 

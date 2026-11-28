@@ -418,6 +418,7 @@ internal static class ProgramParts
         app.MapWorkflowEndpoints();
         app.MapRuntimeControlEndpoints();
         app.MapObservabilityEndpoints();
+        app.MapLifecycleEndpoints();
         app.MapCollaborationEndpoints();
         app.MapExtensionEndpoints();
         app.MapChatUxEndpoints();

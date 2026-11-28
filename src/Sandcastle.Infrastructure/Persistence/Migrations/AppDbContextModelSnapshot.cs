@@ -1820,6 +1820,187 @@ namespace Sandcastle.Infrastructure.Persistence.Migrations
                     b.ToTable("knowledge_suggestions", (string)null);
                 });
 
+            modelBuilder.Entity("Sandcastle.Infrastructure.Lifecycle.IntegrationOutboxEventRecord", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("TEXT")
+                        .HasColumnName("id");
+
+                    b.Property<int>("Attempts")
+                        .HasColumnType("INTEGER")
+                        .HasColumnName("attempts");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("TEXT")
+                        .HasColumnName("created_at");
+
+                    b.Property<DateTimeOffset?>("DeliveredAt")
+                        .HasColumnType("TEXT")
+                        .HasColumnName("delivered_at");
+
+                    b.Property<string>("EventType")
+                        .IsRequired()
+                        .HasMaxLength(120)
+                        .HasColumnType("TEXT")
+                        .HasColumnName("event_type");
+
+                    b.Property<string>("LastError")
+                        .HasColumnType("TEXT")
+                        .HasColumnName("last_error");
+
+                    b.Property<int>("MaxAttempts")
+                        .HasColumnType("INTEGER")
+                        .HasColumnName("max_attempts");
+
+                    b.Property<DateTimeOffset?>("NextRetryAt")
+                        .HasColumnType("TEXT")
+                        .HasColumnName("next_retry_at");
+
+                    b.Property<Guid?>("OrgId")
+                        .HasColumnType("TEXT")
+                        .HasColumnName("org_id");
+
+                    b.Property<string>("PayloadJson")
+                        .IsRequired()
+                        .HasColumnType("TEXT")
+                        .HasColumnName("payload_json");
+
+                    b.Property<string>("Provider")
+                        .IsRequired()
+                        .HasMaxLength(80)
+                        .HasColumnType("TEXT")
+                        .HasColumnName("provider");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasColumnType("TEXT")
+                        .HasColumnName("status");
+
+                    b.Property<string>("TargetUrl")
+                        .HasColumnType("TEXT")
+                        .HasColumnName("target_url");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("TEXT")
+                        .HasColumnName("updated_at");
+
+                    b.HasKey("Id")
+                        .HasName("pk_integration_outbox_events");
+
+                    b.HasIndex("Status", "NextRetryAt")
+                        .HasDatabaseName("ix_integration_outbox_events_status_next_retry_at");
+
+                    b.ToTable("integration_outbox_events", (string)null);
+                });
+
+            modelBuilder.Entity("Sandcastle.Infrastructure.Lifecycle.LifecycleJobRunRecord", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("TEXT")
+                        .HasColumnName("id");
+
+                    b.Property<DateTimeOffset?>("CompletedAt")
+                        .HasColumnType("TEXT")
+                        .HasColumnName("completed_at");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("TEXT")
+                        .HasColumnName("created_at");
+
+                    b.Property<string>("DetailsJson")
+                        .IsRequired()
+                        .HasColumnType("TEXT")
+                        .HasColumnName("details_json");
+
+                    b.Property<string>("JobKey")
+                        .IsRequired()
+                        .HasMaxLength(120)
+                        .HasColumnType("TEXT")
+                        .HasColumnName("job_key");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasColumnType("TEXT")
+                        .HasColumnName("status");
+
+                    b.HasKey("Id")
+                        .HasName("pk_lifecycle_job_runs");
+
+                    b.HasIndex("JobKey")
+                        .HasDatabaseName("ix_lifecycle_job_runs_job_key");
+
+                    b.ToTable("lifecycle_job_runs", (string)null);
+                });
+
+            modelBuilder.Entity("Sandcastle.Infrastructure.Lifecycle.LifecycleProvisioningRequestRecord", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("TEXT")
+                        .HasColumnName("id");
+
+                    b.Property<DateTimeOffset?>("ApprovedAt")
+                        .HasColumnType("TEXT")
+                        .HasColumnName("approved_at");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("TEXT")
+                        .HasColumnName("created_at");
+
+                    b.Property<string>("Email")
+                        .IsRequired()
+                        .HasMaxLength(320)
+                        .HasColumnType("TEXT")
+                        .HasColumnName("email");
+
+                    b.Property<string>("FeatureFlagsJson")
+                        .IsRequired()
+                        .HasColumnType("TEXT")
+                        .HasColumnName("feature_flags_json");
+
+                    b.Property<int>("InviteCount")
+                        .HasColumnType("INTEGER")
+                        .HasColumnName("invite_count");
+
+                    b.Property<string>("NormalizedEmail")
+                        .IsRequired()
+                        .HasMaxLength(320)
+                        .HasColumnType("TEXT")
+                        .HasColumnName("normalized_email");
+
+                    b.Property<DateTimeOffset?>("OnboardedAt")
+                        .HasColumnType("TEXT")
+                        .HasColumnName("onboarded_at");
+
+                    b.Property<Guid?>("OrgId")
+                        .HasColumnType("TEXT")
+                        .HasColumnName("org_id");
+
+                    b.Property<string>("QuotasJson")
+                        .IsRequired()
+                        .HasColumnType("TEXT")
+                        .HasColumnName("quotas_json");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasColumnType("TEXT")
+                        .HasColumnName("status");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("TEXT")
+                        .HasColumnName("updated_at");
+
+                    b.HasKey("Id")
+                        .HasName("pk_lifecycle_provisioning_requests");
+
+                    b.HasIndex("NormalizedEmail")
+                        .HasDatabaseName("ix_lifecycle_provisioning_requests_normalized_email");
+
+                    b.ToTable("lifecycle_provisioning_requests", (string)null);
+                });
+
             modelBuilder.Entity("Sandcastle.Infrastructure.Outpost.OutpostRecord", b =>
                 {
                     b.Property<Guid>("Id")
