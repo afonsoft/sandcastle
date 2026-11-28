@@ -228,7 +228,7 @@ public sealed class ConversationHistoryBuilder(IServiceProvider services)
             .OrderByDescending(p => p.Scope == "user")
             .ThenByDescending(p => p.Version)
             .FirstOrDefault();
-        if (pack is null) return null;
+        if (pack is null || string.IsNullOrWhiteSpace(pack.BasePrompt)) return null;
 
         var sections = new List<string>();
         void Add(string title, string? body)
@@ -244,7 +244,7 @@ public sealed class ConversationHistoryBuilder(IServiceProvider services)
             conv.Mode == "plan" ? pack.PlanModePrompt : pack.BuildModePrompt);
         Add("Advisor instructions", pack.AdvisorPrompt);
         Add("Permission judge instructions", pack.PermissionJudgePrompt);
-        return sections.Count == 0 ? null : "\n\n" + string.Join("\n\n", sections);
+        return "\n\n" + string.Join("\n\n", sections);
     }
 
     private async Task<string?> AppendSystemPromptAsync(
