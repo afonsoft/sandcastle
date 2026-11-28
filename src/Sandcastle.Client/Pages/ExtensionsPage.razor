@@ -1,0 +1,31 @@
+@using Sandcastle.Client.Services
+@page "/extensions"
+@inject LocalizationService L
+
+@* SPEC-179 RF-003: rota foundation do hub de extensions.
+   SPEC-187 expande para o hub completo de plugins/integrações. *@
+<PageTitle>@L["sidebar.extensions"] · Sandcastle</PageTitle>
+
+<section class="foundation-page">
+    <header class="foundation-head">
+        <h1>@L["extensions.title"]</h1>
+        <p>@L["extensions.foundation"]</p>
+    </header>
+    <div class="foundation-grid">
+        <a class="foundation-card" href="/settings/mcp">
+            <Icon Name="sparkles" Size="18" />
+            <strong>@L["sidebar.skills_mcp"]</strong>
+            <span>@L["extensions.mcp_hint"]</span>
+        </a>
+        <a class="foundation-card" href="/marketplace">
+            <Icon Name="package" Size="18" />
+            <strong>@L["sidebar.marketplace"]</strong>
+            <span>@L["extensions.marketplace_hint"]</span>
+        </a>
+        <a class="foundation-card" href="/customize">
+            <Icon Name="settings" Size="18" />
+            <strong>@L["sidebar.customize"]</strong>
+            <span>@L["extensions.customize_hint"]</span>
+        </a>
+    </div>
+</section>

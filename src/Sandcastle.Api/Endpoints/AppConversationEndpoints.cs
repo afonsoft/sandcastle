@@ -13,6 +13,7 @@ using Sandcastle.Application.Sandbox;
 using Sandcastle.Domain.Conversations;
 using Sandcastle.Domain.Events;
 using Sandcastle.Domain.Sandbox;
+using Sandcastle.Infrastructure.Persistence;
 
 namespace Sandcastle.Api.Endpoints;
 
@@ -170,16 +171,60 @@ public static class AppConversationEndpoints
         int? limit,
         string? attention,
         IAppConversationService svc,
+        AppDbContext db,
         CancellationToken ct)
     {
         var page = await svc.SearchAsync(new ConversationQuery(
             title__eq, created_at__gte, page_id, limit ?? 100,
             Attention: attention == "1" || attention == "true"), ct);
+        var items = page.Items.Select(ToDto).ToList();
+        var costs = await CostByConversationAsync(
+            db, page.Items.Select(c => c.Id), ct);
+        items = items.Select(i => costs.TryGetValue(Guid.Parse(i.Id), out var cost)
+            ? i with { CostUsd = cost } : i).ToList();
         return Results.Ok(new
         {
-            items = page.Items.Select(ToDto),
+            items,
             next_page_id = page.NextPageId,
         });
+    }
+
+    /// <summary>SPEC-179 RF-004: agrega custo de TokenEvents por conversa
+    /// apenas para a página retornada (sem varrer o ledger inteiro).</summary>
+    private static async Task<IReadOnlyDictionary<Guid, decimal>> CostByConversationAsync(
+        AppDbContext db, IEnumerable<Guid> conversationIds, CancellationToken ct)
+    {
+        var ids = conversationIds.Distinct().ToList();
+        if (ids.Count == 0)
+        {
+            return new Dictionary<Guid, decimal>();
+        }
+
+        var rows = await db.Events.AsNoTracking()
+            .Where(e => e.Kind == "TokenEvent" && ids.Contains(e.ConversationId))
+            .Select(e => new { e.ConversationId, e.Payload })
+            .ToListAsync(ct);
+        var costs = new Dictionary<Guid, decimal>();
+        foreach (var row in rows)
+        {
+            try
+            {
+                using var doc = JsonDocument.Parse(row.Payload);
+                if (doc.RootElement.TryGetProperty("cost_usd", out var cost)
+                    && cost.ValueKind == JsonValueKind.Number
+                    && cost.TryGetDecimal(out var value))
+                {
+                    costs[row.ConversationId] =
+                        costs.GetValueOrDefault(row.ConversationId) + value;
+                }
+            }
+            catch (JsonException)
+            {
+                // Payload corrompido não deve derrubar a listagem.
+            }
+        }
+
+        return costs;
     }
 
     private static async Task<IResult> ListAttentionAsync(

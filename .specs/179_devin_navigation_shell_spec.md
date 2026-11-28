@@ -8,7 +8,7 @@
 | Type | `Frontend` |
 | Stack | `.NET 10 · Blazor WASM · ASP.NET Core · EF Core` |
 | Repository | `afonsoft/sandcastle` |
-| Status | `Approved` |
+| Status | `In implementation` |
 | Ticket | #553 · Epic #552 |
 | Scope | `src/` + `tests/` + `docs/` conforme requisitos |
 

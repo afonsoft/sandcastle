@@ -1966,6 +1966,41 @@ public sealed class SandcastleApiClient(HttpClient http)
     /// <summary>SPEC-158 RF-005: URL do export (download autenticado).</summary>
     public static string ExportUrl => "/api/v1/users/me/export";
 
+    /// <summary>SPEC-179: contadores usados nos badges da shell.</summary>
+    public async Task<NavigationSummaryDto?> GetNavigationSummaryAsync(
+        CancellationToken ct = default)
+    {
+        try
+        {
+            return await http.GetFromJsonAsync<NavigationSummaryDto>(
+                "/api/v1/navigation/summary", Json, ct);
+        }
+        catch (HttpRequestException)
+        {
+            return null;
+        }
+    }
+
+    /// <summary>SPEC-179: telemetria UX best-effort (sem PII).</summary>
+    public async Task PostUxEventAsync(
+        string eventName, string route, int durationMs,
+        CancellationToken ct = default)
+    {
+        try
+        {
+            using var resp = await http.PostAsJsonAsync(
+                "/api/v1/ux-events",
+                new
+                {
+                    event_name = eventName,
+                    route,
+                    duration_ms = durationMs,
+                }, Json, ct);
+        }
+        catch (HttpRequestException) { /* telemetria nunca bloqueia UX */ }
+        catch (TaskCanceledException) { /* navegação/dispose */ }
+    }
+
     private static async Task<string?> ReadDetailAsync(
         HttpResponseMessage resp, CancellationToken ct)
     {
@@ -1984,6 +2019,11 @@ public sealed class SandcastleApiClient(HttpClient http)
     }
 
 }
+
+/// <summary>SPEC-179: resposta de <c>/navigation/summary</c>.</summary>
+public sealed record NavigationSummaryDto(
+    int AttentionCount, int RunningCount, int AutomationCount,
+    int FactoryCount, int ExtensionCount);
 
 /// <summary>SPEC-147 RF-004: resposta de <c>/usage/budget</c>.</summary>
 public sealed record UsageBudgetDto(

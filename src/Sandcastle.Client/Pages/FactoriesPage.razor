@@ -1,0 +1,26 @@
+@using Sandcastle.Client.Services
+@page "/factories"
+@inject LocalizationService L
+
+@* SPEC-179 RF-003: rota foundation de factories.
+   SPEC-183 implementa CRUD/templates/event center. *@
+<PageTitle>@L["sidebar.factories"] · Sandcastle</PageTitle>
+
+<section class="foundation-page">
+    <header class="foundation-head">
+        <h1>@L["factories.title"]</h1>
+        <p>@L["factories.foundation"]</p>
+    </header>
+    <div class="foundation-grid">
+        <a class="foundation-card" href="/automations">
+            <Icon Name="clock" Size="18" />
+            <strong>@L["sidebar.automations"]</strong>
+            <span>@L["factories.automations_hint"]</span>
+        </a>
+        <a class="foundation-card" href="/">
+            <Icon Name="chat" Size="18" />
+            <strong>@L["sidebar.conversations"]</strong>
+            <span>@L["factories.delivery_hint"]</span>
+        </a>
+    </div>
+</section>
