@@ -217,7 +217,7 @@ aprovadas em 2026-11-27 — Epic #552.
 | 179 | devin-navigation-shell | Completed | #553 · PR #566 · Epic #552 |
 | 180 | settings-profiles-control-center | Completed | #554 · PR #568 · Epic #552 |
 | 181 | agent-definitions-prompt-runtime | Completed | #555 · PR #570 · Epic #552 |
-| 182 | agent-tool-parity-v2 | Approved | #556 · Epic #552 |
+| 182 | agent-tool-parity-v2 | Completed | #556 · PR #572 · Epic #552 |
 | 183 | workflow-factories-autonomous-delivery | Approved | #557 · Epic #552 |
 | 184 | cloud-runtime-control-plane | Approved | #558 · Epic #552 |
 | 185 | cloud-observability-budgets | Approved | #559 · Epic #552 |
