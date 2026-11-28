@@ -106,6 +106,10 @@ public sealed class ToolRegistry : IToolRegistry
             BuiltinGitHubPrTools.ViewPullRequest(),
             BuiltinGitHubPrTools.ReadPullRequestDiff(),
             BuiltinGitHubPrTools.CommentPullRequest(),
+            // SPEC-192: rich document readers.
+            BuiltinDocumentTools.ReadPdf(),
+            BuiltinDocumentTools.ReadArchive(),
+            BuiltinDocumentTools.ReadSqlite(),
             // SPEC-43 RF-002: snapshot sob demanda (pre-refactor etc.).
             BuiltinTools.Checkpoint(),
             // SPEC-44 RF-001: pergunta ao usuário (interceptada no runner).
