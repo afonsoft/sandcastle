@@ -1,0 +1,122 @@
+@page "/admin/analytics"
+@using System.Text.Json
+@inherits AdminPageBase
+
+<PageTitle>@L["admin.title"] · @L["admin.nav_analytics"]</PageTitle>
+
+@if (Checking || !Allowed)
+{
+    <div class="settings-wrap"><p class="empty-state">…</p></div>
+}
+else
+{
+    <div class="settings-wrap admin-wrap analytics-page">
+        <h1>@L["analytics.title"]</h1>
+        <AdminNav />
+        @if (Error is not null) { <p class="admin-error">@Error</p> }
+        <p>@L["analytics.subtitle"]</p>
+        <div class="field admin-toolbar">
+            <select aria-label="@L["analytics.window"]" @bind="_days" @bind:after="LoadAnalyticsAsync">
+                <option value="7">7d</option><option value="30">30d</option><option value="90">90d</option>
+            </select>
+            <button @onclick="LoadAnalyticsAsync">@L["admin.refresh"]</button>
+        </div>
+
+        @if (_summary.ValueKind == JsonValueKind.Object)
+        {
+            <section class="usage-grid">
+                <div class="usage-card"><div class="num">@Num(_summary, "total_tokens")</div><div class="lbl">@L["analytics.tokens"]</div></div>
+                <div class="usage-card"><div class="num">$@Num(_summary, "total_cost_usd")</div><div class="lbl">@L["analytics.cost"]</div></div>
+                <div class="usage-card"><div class="num">@Num(_summary, "total_runs")</div><div class="lbl">@L["analytics.runs"]</div></div>
+                <div class="usage-card"><div class="num">@Num(_summary, "total_errors")</div><div class="lbl">@L["analytics.errors"]</div></div>
+            </section>
+
+            <h2>@L["analytics.series"]</h2>
+            <div class="analytics-series" aria-label="@L["analytics.series"]">
+                @if (_summary.TryGetProperty("series", out var series))
+                {
+                    var max = Math.Max(1, series.EnumerateArray().Select(x => x.TryGetProperty("tokens", out var t) ? t.GetInt64() : 0).Max());
+                    @foreach (var point in series.EnumerateArray())
+                    {
+                        var tokens = point.GetProperty("tokens").GetInt64();
+                        <div class="series-row">
+                            <span>@point.GetProperty("date").GetString()</span>
+                            <div class="series-track"><div class="series-bar" style="width:@((int)Math.Max(2, tokens * 100 / max))%"></div></div>
+                            <span>@tokens</span>
+                        </div>
+                    }
+                }
+            </div>
+
+            <h2>@L["analytics.models"]</h2>
+            <table class="table responsive-table">
+                <thead><tr><th>@L["runtime.image"]</th><th>@L["analytics.tokens"]</th><th>@L["analytics.cost"]</th><th>@L["analytics.latency"]</th></tr></thead>
+                <tbody>
+                @if (_summary.TryGetProperty("models", out var models))
+                {
+                    @foreach (var model in models.EnumerateArray())
+                    {
+                        <tr><td>@Str(model, "model")</td><td>@Num(model, "tokens")</td><td>$@Num(model, "cost_usd")</td><td>@Num(model, "average_latency_ms") ms</td></tr>
+                    }
+                }
+                </tbody>
+            </table>
+        }
+
+        <h2>@L["analytics.rankings"]</h2>
+        <table class="table responsive-table">
+            <thead><tr><th>@L["analytics.conversation"]</th><th>@L["analytics.tokens"]</th><th>@L["analytics.cost"]</th><th>@L["analytics.errors"]</th></tr></thead>
+            <tbody>
+            @foreach (var row in _rankings)
+            {
+                <tr><td>@Str(row, "label")</td><td>@Num(row, "tokens")</td><td>$@Num(row, "cost_usd")</td><td>@Num(row, "errors")</td></tr>
+            }
+            </tbody>
+        </table>
+
+        <h2>@L["trace.title"]</h2>
+        <div class="field admin-toolbar">
+            <input aria-label="@L["trace.conversation_id"]" placeholder="@L["trace.conversation_id"]" @bind="_traceId" />
+            <button @onclick="LoadTraceAsync">@L["trace.load"]</button>
+        </div>
+        @if (_trace.ValueKind == JsonValueKind.Object)
+        {
+            <p>@L["analytics.tokens"]: @Num(_trace, "total_tokens") · $@Num(_trace, "total_cost_usd") · @L["analytics.errors"]: @Num(_trace, "errors")</p>
+            <div class="trace-waterfall">
+                @if (_trace.TryGetProperty("items", out var items))
+                {
+                    @foreach (var item in items.EnumerateArray())
+                    {
+                        var duration = item.TryGetProperty("duration_ms", out var d) && d.ValueKind == JsonValueKind.Number ? d.GetDouble() : 1;
+                        <div class="trace-row trace-@Str(item, "type")">
+                            <span class="trace-name">@Str(item, "name")</span>
+                            <div class="series-track"><div class="series-bar" style="width:@Math.Clamp((int)(duration / 20), 2, 100)%"></div></div>
+                            <span>@Math.Round(duration) ms</span>
+                        </div>
+                    }
+                }
+            </div>
+        }
+    </div>
+}
+
+@code {
+    private JsonElement _summary;
+    private JsonElement _trace;
+    private IReadOnlyList<JsonElement> _rankings = [];
+    private int _days = 30;
+    private string _traceId = "";
+
+    protected override async Task LoadAsync() => await LoadAnalyticsAsync();
+    private async Task LoadAnalyticsAsync()
+    {
+        _summary = await Api.GetAnalyticsSummaryAsync(_days);
+        _rankings = await Api.GetAnalyticsRankingsAsync("conversation", _days);
+    }
+    private async Task LoadTraceAsync()
+    {
+        if (Guid.TryParse(_traceId, out var id)) _trace = await Api.GetRunTraceAsync(id);
+    }
+    private static string? Str(JsonElement el, string name) => el.TryGetProperty(name, out var v) && v.ValueKind != JsonValueKind.Null ? v.ToString() : null;
+    private static string Num(JsonElement el, string name) => el.TryGetProperty(name, out var v) && v.ValueKind != JsonValueKind.Null ? v.ToString() : "0";
+}

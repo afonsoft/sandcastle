@@ -1427,3 +1427,11 @@ a.chip.mention { text-decoration: none; }
 .runtime-page .responsive-table input[type="number"] { width: 4.5rem; }
 
 .runtime-capacity { margin-block: .75rem; }
+.analytics-series, .trace-waterfall { display: grid; gap: .35rem; margin-block: .75rem; }
+.series-row, .trace-row { align-items: center; display: grid; gap: .5rem; grid-template-columns: 7rem minmax(8rem,1fr) 5rem; }
+.trace-row { grid-template-columns: minmax(8rem,18rem) minmax(8rem,1fr) 5rem; }
+.series-track { background: var(--panel-border, #333); border-radius: .4rem; height: .6rem; overflow: hidden; }
+.series-bar { background: var(--accent, #6aa9ff); border-radius: .4rem; height: 100%; }
+.trace-error .series-bar { background: #d95f5f; }
+.analytics-page { max-width: 76rem; }
+.trace-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }

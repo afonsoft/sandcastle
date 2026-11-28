@@ -469,6 +469,12 @@ public static class DependencyInjection
             Sandcastle.Application.Runtime.RuntimePoolOverrides>();
         services.AddScoped<Sandcastle.Application.Runtime.IRuntimeControlService,
             Sandcastle.Infrastructure.Runtime.RuntimeControlService>();
+        services.Configure<Sandcastle.Application.Observability.ObservabilityOptions>(
+            configuration.GetSection("Observability"));
+        services.AddScoped<Sandcastle.Application.Observability.IObservabilityAnalyticsService,
+            Sandcastle.Infrastructure.Observability.ObservabilityAnalyticsService>();
+        services.AddHostedService<
+            Sandcastle.Infrastructure.Observability.ObservabilityWorker>();
         services.AddHostedService<
             Sandcastle.Infrastructure.Automations.AutomationScheduler>();
 

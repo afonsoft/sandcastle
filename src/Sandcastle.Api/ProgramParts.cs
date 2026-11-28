@@ -417,6 +417,7 @@ internal static class ProgramParts
         app.MapAutomationEndpoints();
         app.MapWorkflowEndpoints();
         app.MapRuntimeControlEndpoints();
+        app.MapObservabilityEndpoints();
         app.MapHookEndpoints();
         app.MapMcpEndpoints();
         app.MapOpenAiGatewayEndpoints();

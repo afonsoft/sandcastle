@@ -806,7 +806,7 @@ public sealed class AgentRunner(
                         break;
                     case CompletionEnd end:
                         responseId = await EmitCompletionEndAsync(
-                            st, end, conversationId, ct);
+                            st, end, conversationId, llmTimer.ElapsedMilliseconds, ct);
                         break;
                 }
             }
@@ -848,7 +848,7 @@ public sealed class AgentRunner(
     /// <summary>CompletionEnd: token event, metering e calibração do meter.</summary>
     private async Task<string> EmitCompletionEndAsync(
         LoopState st, CompletionEnd end, Guid conversationId,
-        CancellationToken ct)
+        long latencyMs, CancellationToken ct)
     {
         // SPEC-22 RF-001: calibração online do meter.
         st.ContextMeter.ObserveUsage(end.Usage.PromptTokens,
@@ -872,6 +872,7 @@ public sealed class AgentRunner(
             CostUsd = costUsd,
             Model = st.Model,
             Role = "code", // SPEC-149: wire name canônico da role
+            LatencyMs = latencyMs,
         }, ct);
         Telemetry.ScTelemetry.LlmTokens
             .WithLabels("prompt").Inc(end.Usage.PromptTokens);

@@ -678,6 +678,21 @@ public sealed class AdminApiClient(HttpClient http)
         return resp.IsSuccessStatusCode;
     }
 
+
+    // ---- SPEC-185: observability analytics/budgets -----------------------
+
+    public async Task<JsonElement> GetAnalyticsSummaryAsync(int days = 30, CancellationToken ct = default) =>
+        await GetAsync<JsonElement>($"/api/v1/admin/analytics/summary?days={days}", ct);
+
+    public async Task<IReadOnlyList<JsonElement>> GetAnalyticsRankingsAsync(string by = "conversation", int days = 30, CancellationToken ct = default) =>
+        await GetAsync<List<JsonElement>>($"/api/v1/admin/analytics/rankings?days={days}&by={Uri.EscapeDataString(by)}", ct) ?? [];
+
+    public async Task<IReadOnlyList<JsonElement>> GetOperationalBudgetsAsync(CancellationToken ct = default) =>
+        await GetAsync<List<JsonElement>>("/api/v1/admin/budgets", ct) ?? [];
+
+    public async Task<JsonElement> GetRunTraceAsync(Guid id, CancellationToken ct = default) =>
+        await GetAsync<JsonElement>($"/api/v1/runs/{id}/trace", ct);
+
     // ---- plumbing --------------------------------------------------------
 
     private async Task<T?> GetAsync<T>(string url, CancellationToken ct) =>

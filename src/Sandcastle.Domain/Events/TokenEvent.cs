@@ -36,4 +36,8 @@ public sealed record TokenEvent : EventBase
     /// <summary>Routing role — worker/summarizer/planner (SPEC-23 RF-004).</summary>
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public string? Role { get; init; }
+
+    /// <summary>SPEC-185: provider completion latency in milliseconds.</summary>
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public long? LatencyMs { get; init; }
 }
