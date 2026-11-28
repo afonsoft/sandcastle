@@ -2201,7 +2201,53 @@ public sealed class SandcastleApiClient(HttpClient http)
         return await http.GetFromJsonAsync<List<AutomationEventDto>>(url, Json, ct) ?? [];
     }
 
+    // ---- SPEC-186: collaboration workspace -----------------------------
 
+    public async Task<IReadOnlyList<CollabChannelDto>> ListCollabChannelsAsync(CancellationToken ct = default) =>
+        await http.GetFromJsonAsync<List<CollabChannelDto>>("/api/v1/channels", Json, ct) ?? [];
+
+    public async Task<CollabChannelDto?> CreateCollabChannelAsync(string name, string type, CancellationToken ct = default)
+    {
+        var resp = await http.PostAsJsonAsync("/api/v1/channels", new { name, type, org_id = (Guid?)null }, Json, ct);
+        return resp.IsSuccessStatusCode ? await resp.Content.ReadFromJsonAsync<CollabChannelDto>(Json, ct) : null;
+    }
+
+    public async Task<IReadOnlyList<CollabMessageDto>> ListCollabMessagesAsync(Guid channelId, CancellationToken ct = default) =>
+        await http.GetFromJsonAsync<List<CollabMessageDto>>($"/api/v1/channels/{channelId}/messages", Json, ct) ?? [];
+
+    public async Task<CollabMessageDto?> PostCollabMessageAsync(Guid channelId, string body, CancellationToken ct = default)
+    {
+        var resp = await http.PostAsJsonAsync($"/api/v1/channels/{channelId}/messages",
+            new { body, parent_id = (Guid?)null, conversation_id = (Guid?)null }, Json, ct);
+        return resp.IsSuccessStatusCode ? await resp.Content.ReadFromJsonAsync<CollabMessageDto>(Json, ct) : null;
+    }
+
+    public async Task<bool> ReactCollabMessageAsync(Guid messageId, string emoji, CancellationToken ct = default) =>
+        (await http.PostAsJsonAsync($"/api/v1/channel-messages/{messageId}/reactions", new { emoji }, Json, ct)).IsSuccessStatusCode;
+
+    public async Task<bool> MarkCollabChannelReadAsync(Guid channelId, CancellationToken ct = default) =>
+        (await http.PostAsync($"/api/v1/channels/{channelId}/read", null, ct)).IsSuccessStatusCode;
+
+    public async Task<IReadOnlyList<CollabNoteDto>> ListCollabNotesAsync(CancellationToken ct = default) =>
+        await http.GetFromJsonAsync<List<CollabNoteDto>>("/api/v1/notes", Json, ct) ?? [];
+
+    public async Task<CollabNoteDto?> SaveCollabNoteAsync(Guid? id, string title, string body, CancellationToken ct = default)
+    {
+        var payload = new { title, body, org_id = (Guid?)null, conversation_id = (Guid?)null, knowledge_link = (string?)null };
+        var resp = id is null
+            ? await http.PostAsJsonAsync("/api/v1/notes", payload, Json, ct)
+            : await http.PutAsJsonAsync($"/api/v1/notes/{id}", payload, Json, ct);
+        return resp.IsSuccessStatusCode ? await resp.Content.ReadFromJsonAsync<CollabNoteDto>(Json, ct) : null;
+    }
+
+    public async Task<IReadOnlyList<CollabNotificationDto>> ListCollabNotificationsAsync(CancellationToken ct = default) =>
+        await http.GetFromJsonAsync<List<CollabNotificationDto>>("/api/v1/notifications", Json, ct) ?? [];
+
+    public async Task<bool> MarkCollabNotificationReadAsync(Guid id, CancellationToken ct = default) =>
+        (await http.PostAsync($"/api/v1/notifications/{id}/read", null, ct)).IsSuccessStatusCode;
+
+    public async Task<IReadOnlyList<CollabCalendarEventDto>> ListCollabCalendarEventsAsync(CancellationToken ct = default) =>
+        await http.GetFromJsonAsync<List<CollabCalendarEventDto>>("/api/v1/calendar/events", Json, ct) ?? [];
 }
 
 
@@ -2523,3 +2569,25 @@ public sealed record NotificationPrefsDto(
     bool RunFinished,
     bool RunFailed,
     string? WebhookUrl);
+
+/// <summary>SPEC-186: collaboration channel.</summary>
+public sealed record CollabChannelDto(
+    Guid Id, Guid? OrgId, string OwnerUserId, string Name, string Type,
+    bool Pinned, int UnreadCount, DateTimeOffset CreatedAt, DateTimeOffset UpdatedAt);
+/// <summary>SPEC-186: channel message.</summary>
+public sealed record CollabMessageDto(
+    Guid Id, Guid ChannelId, string SenderUserId, string Body,
+    Guid? ParentId, Guid? ConversationId, string ReactionsJson, DateTimeOffset CreatedAt);
+/// <summary>SPEC-186: collaborative note.</summary>
+public sealed record CollabNoteDto(
+    Guid Id, Guid? OrgId, string OwnerUserId, string Title, string Body,
+    int Version, Guid? ConversationId, string? KnowledgeLink,
+    DateTimeOffset CreatedAt, DateTimeOffset UpdatedAt);
+/// <summary>SPEC-186: notification feed item.</summary>
+public sealed record CollabNotificationDto(
+    Guid Id, Guid? OrgId, string UserId, string Type, string Title,
+    string? Body, string? DeepLink, bool Read, DateTimeOffset CreatedAt);
+/// <summary>SPEC-186: consolidated calendar event.</summary>
+public sealed record CollabCalendarEventDto(
+    string Id, string Source, string Title, string Status, string? Repository,
+    string? UserId, DateTimeOffset StartAt, DateTimeOffset? EndAt, string DeepLink);

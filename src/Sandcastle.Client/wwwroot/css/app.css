@@ -1435,3 +1435,15 @@ a.chip.mention { text-decoration: none; }
 .trace-error .series-bar { background: #d95f5f; }
 .analytics-page { max-width: 76rem; }
 .trace-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.collab-page { max-width: 76rem; }
+.collab-grid { display: grid; gap: 1rem; grid-template-columns: minmax(13rem, 18rem) 1fr; }
+.channel-row { align-items: center; background: transparent; border: 0; border-radius: .5rem; display: flex; justify-content: space-between; padding: .55rem; text-align: left; width: 100%; }
+.channel-row.active, .channel-row:hover { background: var(--panel-bg-hover, rgba(127,127,127,.14)); }
+.messages-list { display: grid; gap: .65rem; margin-bottom: 1rem; }
+.message-card { border: 1px solid var(--panel-border, #444); border-radius: .6rem; padding: .7rem; }
+.message-card.unread { border-color: var(--accent, #6aa9ff); }
+.message-meta { color: var(--muted, #999); font-size: .8rem; }
+.composer-row { display: flex; gap: .5rem; }
+.composer-row input { flex: 1; }
+.note-editor { min-height: 24rem; width: 100%; }
+@media (max-width: 760px) { .collab-grid { grid-template-columns: 1fr; } }

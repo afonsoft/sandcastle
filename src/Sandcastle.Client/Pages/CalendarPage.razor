@@ -1,0 +1,23 @@
+@page "/calendar"
+@using Sandcastle.Client.Services
+@inject SandcastleApiClient Api
+@inject LocalizationService L
+
+<PageTitle>@L["calendar.title"]</PageTitle>
+<div class="settings-wrap collab-page">
+    <h1>@L["calendar.title"]</h1>
+    <p>@L["calendar.subtitle"]</p>
+    <table class="table responsive-table">
+        <thead><tr><th>@L["calendar.when"]</th><th>@L["calendar.source"]</th><th>@L["calendar.event"]</th><th>@L["runtime.status"]</th><th>@L["calendar.repository"]</th></tr></thead>
+        <tbody>
+        @foreach (var e in _events)
+        {
+            <tr><td>@e.StartAt.ToLocalTime().ToString("g")</td><td>@e.Source</td><td><a href="@e.DeepLink">@e.Title</a></td><td>@e.Status</td><td>@e.Repository</td></tr>
+        }
+        </tbody>
+    </table>
+</div>
+@code {
+    private IReadOnlyList<CollabCalendarEventDto> _events = [];
+    protected override async Task OnInitializedAsync() => _events = await Api.ListCollabCalendarEventsAsync();
+}

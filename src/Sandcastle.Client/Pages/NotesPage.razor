@@ -1,0 +1,54 @@
+@page "/notes"
+@using Sandcastle.Client.Services
+@inject SandcastleApiClient Api
+@inject LocalizationService L
+
+<PageTitle>@L["notes.title"]</PageTitle>
+<div class="settings-wrap collab-page">
+    <h1>@L["notes.title"]</h1>
+    <p>@L["notes.subtitle"]</p>
+    <div class="collab-grid">
+        <aside class="panel">
+            <button @onclick="NewNote">@L["notes.new"]</button>
+            @foreach (var n in _notes)
+            {
+                <button class="channel-row @(n.Id == _selected?.Id ? "active" : "")" @onclick="() => Select(n)">
+                    <span>@n.Title</span><span>v@n.Version</span>
+                </button>
+            }
+        </aside>
+        <section class="panel">
+            @if (_selected is null)
+            {
+                <p class="empty-state">@L["notes.empty"]</p>
+            }
+            else
+            {
+                <input aria-label="@L["notes.name"]" @bind="_title" @onfocusout="SaveAsync" />
+                <textarea class="note-editor" aria-label="@L["notes.editor"]" @bind="_body" @onfocusout="SaveAsync"></textarea>
+                <p class="message-meta">@L["notes.autosave"] · v@_selected.Version · @_selected.UpdatedAt.ToLocalTime().ToString("g")</p>
+            }
+        </section>
+    </div>
+</div>
+
+@code {
+    private IReadOnlyList<CollabNoteDto> _notes = [];
+    private CollabNoteDto? _selected;
+    private string _title = "";
+    private string _body = "";
+
+    protected override async Task OnInitializedAsync()
+    {
+        _notes = await Api.ListCollabNotesAsync();
+        if (_notes.FirstOrDefault() is { } first) Select(first);
+    }
+    private void NewNote() { _selected = new CollabNoteDto(Guid.Empty, null, "", L["notes.untitled"], "", 0, null, null, DateTimeOffset.Now, DateTimeOffset.Now); _title = _selected.Title; _body = ""; }
+    private void Select(CollabNoteDto note) { _selected = note; _title = note.Title; _body = note.Body; }
+    private async Task SaveAsync()
+    {
+        if (_selected is null || string.IsNullOrWhiteSpace(_title)) return;
+        var saved = await Api.SaveCollabNoteAsync(_selected.Id == Guid.Empty ? null : _selected.Id, _title, _body);
+        if (saved is not null) { _selected = saved; _notes = await Api.ListCollabNotesAsync(); }
+    }
+}

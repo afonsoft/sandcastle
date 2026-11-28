@@ -1,0 +1,85 @@
+@page "/channels"
+@using Sandcastle.Client.Services
+@inject SandcastleApiClient Api
+@inject LocalizationService L
+
+<PageTitle>@L["channels.title"]</PageTitle>
+<div class="settings-wrap collab-page">
+    <h1>@L["channels.title"]</h1>
+    <p>@L["channels.subtitle"]</p>
+    <div class="collab-grid">
+        <aside class="panel">
+            <div class="field">
+                <input aria-label="@L["channels.new"]" placeholder="@L["channels.new"]" @bind="_newChannel" />
+                <button @onclick="CreateChannelAsync">@L["common.create"]</button>
+            </div>
+            @foreach (var c in _channels)
+            {
+                <button class="channel-row @(c.Id == _selected ? "active" : "")" @onclick="() => SelectAsync(c.Id)">
+                    <span>@c.Name</span>
+                    @if (c.UnreadCount > 0) { <span class="badge-n">@c.UnreadCount</span> }
+                </button>
+            }
+        </aside>
+        <section class="panel">
+            @if (_selected is null)
+            {
+                <p class="empty-state">@L["channels.empty"]</p>
+            }
+            else
+            {
+                <div class="messages-list">
+                    @foreach (var m in _messages)
+                    {
+                        <article class="message-card">
+                            <div class="message-meta">@m.SenderUserId · @m.CreatedAt.ToLocalTime().ToString("g")</div>
+                            <div>@m.Body</div>
+                            @if (m.ConversationId is { } cid) { <a href="/conversations/@cid">@L["channels.open_conversation"]</a> }
+                            <button class="secondary" @onclick="() => ReactAsync(m.Id)">👍</button>
+                        </article>
+                    }
+                </div>
+                <div class="composer-row">
+                    <input aria-label="@L["channels.message"]" placeholder="@L["channels.message"]" @bind="_body" />
+                    <button @onclick="PostAsync">@L["common.send"]</button>
+                </div>
+            }
+        </section>
+    </div>
+</div>
+
+@code {
+    private IReadOnlyList<CollabChannelDto> _channels = [];
+    private IReadOnlyList<CollabMessageDto> _messages = [];
+    private Guid? _selected;
+    private string _newChannel = "";
+    private string _body = "";
+
+    protected override async Task OnInitializedAsync() => _channels = await Api.ListCollabChannelsAsync();
+    private async Task CreateChannelAsync()
+    {
+        if (string.IsNullOrWhiteSpace(_newChannel)) return;
+        var row = await Api.CreateCollabChannelAsync(_newChannel, "group");
+        if (row is not null) { _newChannel = ""; _channels = await Api.ListCollabChannelsAsync(); await SelectAsync(row.Id); }
+    }
+    private async Task SelectAsync(Guid id)
+    {
+        _selected = id;
+        _messages = await Api.ListCollabMessagesAsync(id);
+        await Api.MarkCollabChannelReadAsync(id);
+    }
+    private async Task PostAsync()
+    {
+        if (_selected is { } id && !string.IsNullOrWhiteSpace(_body))
+        {
+            await Api.PostCollabMessageAsync(id, _body);
+            _body = "";
+            _messages = await Api.ListCollabMessagesAsync(id);
+        }
+    }
+    private async Task ReactAsync(Guid id)
+    {
+        await Api.ReactCollabMessageAsync(id, "👍");
+        if (_selected is { } cid) _messages = await Api.ListCollabMessagesAsync(cid);
+    }
+}
