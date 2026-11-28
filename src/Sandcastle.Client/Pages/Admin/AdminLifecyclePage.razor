@@ -1,0 +1,87 @@
+@page "/admin/lifecycle"
+@using System.Text.Json
+@inherits AdminPageBase
+
+<PageTitle>@L["admin.title"] · @L["admin.nav_lifecycle"]</PageTitle>
+
+@if (Checking || !Allowed)
+{
+    <div class="settings-wrap"><p class="empty-state">…</p></div>
+}
+else
+{
+    <div class="settings-wrap admin-wrap">
+        <h1>@L["lifecycle.title"]</h1>
+        <AdminNav />
+        @if (Error is not null) { <p class="admin-error">@Error</p> }
+        <p>@L["lifecycle.subtitle"] <a href="https://github.com/afonsoft/sandcastle/blob/main/docs/enterprise-lifecycle.md">runbook</a></p>
+        <button @onclick="ReloadAsync">@L["admin.refresh"]</button>
+
+        <section class="panel">
+            <h2>@L["lifecycle.provisioning"]</h2>
+            <div class="row"><input aria-label="@L["lifecycle.email"]" placeholder="@L["lifecycle.email"]" @bind="_email" /><button @onclick="CreateProvisioningAsync">@L["lifecycle.add_waitlist"]</button></div>
+            <table class="table responsive-table"><thead><tr><th>@L["lifecycle.email"]</th><th>@L["lifecycle.status"]</th><th>@L["lifecycle.invites"]</th><th>@L["lifecycle.actions"]</th></tr></thead><tbody>
+            @foreach (var row in _provisioning)
+            {
+                <tr><td>@Str(row,"email")</td><td>@Str(row,"status")</td><td>@Str(row,"invite_count")</td><td>
+                    <button @onclick='() => ProvisionActionAsync(row, "invite")'>@L["lifecycle.invite"]</button>
+                    <button @onclick='() => ProvisionActionAsync(row, "approve")'>@L["lifecycle.approve"]</button>
+                    <button @onclick='() => ProvisionActionAsync(row, "onboarded")'>@L["lifecycle.onboarded"]</button>
+                </td></tr>
+            }
+            </tbody></table>
+        </section>
+
+        <section class="panel">
+            <h2>@L["lifecycle.outbox"]</h2>
+            <table class="table responsive-table"><thead><tr><th>@L["lifecycle.provider"]</th><th>@L["lifecycle.event"]</th><th>@L["lifecycle.status"]</th><th>@L["lifecycle.attempts"]</th><th>@L["lifecycle.actions"]</th></tr></thead><tbody>
+            @foreach (var row in _outbox)
+            {
+                <tr><td>@Str(row,"provider")</td><td>@Str(row,"event_type")</td><td>@Str(row,"status")</td><td>@Str(row,"attempts")/@Str(row,"max_attempts")</td><td>
+                    @if (Str(row,"status") == "dead_letter") { <button @onclick="() => ReplayAsync(row)">@L["lifecycle.replay"]</button> }
+                </td></tr>
+            }
+            </tbody></table>
+        </section>
+
+        <section class="panel">
+            <h2>@L["lifecycle.jobs"]</h2>
+            <div class="row">
+                @foreach (var key in JobKeys) { <button @onclick="() => RunJobAsync(key)">@key</button> }
+            </div>
+            <table class="table responsive-table"><thead><tr><th>@L["lifecycle.job"]</th><th>@L["lifecycle.status"]</th><th>@L["lifecycle.details"]</th><th>@L["lifecycle.created"]</th></tr></thead><tbody>
+            @foreach (var row in _jobs)
+            {
+                <tr><td>@Str(row,"job_key")</td><td>@Str(row,"status")</td><td><code>@Str(row,"details_json")</code></td><td>@Str(row,"created_at")</td></tr>
+            }
+            </tbody></table>
+        </section>
+    </div>
+}
+
+@code {
+    private static readonly string[] JobKeys = ["proactive-conversation-cleanup", "start-task-cleanup", "abandoned-sandbox-cleanup", "integration-resync"];
+    private IReadOnlyList<JsonElement> _provisioning = [];
+    private IReadOnlyList<JsonElement> _outbox = [];
+    private IReadOnlyList<JsonElement> _jobs = [];
+    private string _email = "";
+    protected override async Task LoadAsync() => await ReloadAsync();
+    private async Task ReloadAsync()
+    {
+        _provisioning = await Api.GetLifecycleProvisioningAsync();
+        _outbox = await Api.GetLifecycleOutboxAsync();
+        _jobs = await Api.GetLifecycleJobsAsync();
+    }
+    private async Task CreateProvisioningAsync()
+    {
+        if (string.IsNullOrWhiteSpace(_email)) return;
+        if (await Api.CreateLifecycleProvisioningAsync(_email)) { _email = ""; await ReloadAsync(); }
+    }
+    private async Task ProvisionActionAsync(JsonElement row, string action)
+    { if (await Api.LifecycleProvisioningActionAsync(row.GetProperty("id").GetGuid(), action)) await ReloadAsync(); }
+    private async Task ReplayAsync(JsonElement row)
+    { if (await Api.ReplayLifecycleDeadLetterAsync(row.GetProperty("id").GetGuid())) await ReloadAsync(); }
+    private async Task RunJobAsync(string key)
+    { if (await Api.RunLifecycleJobAsync(key)) await ReloadAsync(); }
+    private static string? Str(JsonElement el, string name) => el.TryGetProperty(name, out var v) && v.ValueKind != JsonValueKind.Null ? v.ToString() : null;
+}
