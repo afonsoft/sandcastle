@@ -48,5 +48,6 @@
       '''sk-live-abcdef1234''',
       '''sk-live-wxyz''',
       '''sk-live-1234567890abcdef''',
+      '''test-secret-1234567890abcdef''',
       '''0123456789ab''',
     ]
