@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+
 using Sandcastle.Application.Conversations;
 using Sandcastle.Application.Identity;
 using Sandcastle.Infrastructure.Persistence;
@@ -29,9 +30,14 @@ public static class ChatUxEndpoints
             .ToListAsync(ct);
         return Results.Ok(rows.OrderBy(r => r.CreatedAt).Select(r => new
         {
-            id = r.Id, title = r.Title, parent_conversation_id = r.ParentConversationId,
-            status = r.ExecutionStatus, created_at = r.CreatedAt, updated_at = r.UpdatedAt,
-            pull_request_url = r.PullRequestUrl, current = r.Id == id,
+            id = r.Id,
+            title = r.Title,
+            parent_conversation_id = r.ParentConversationId,
+            status = r.ExecutionStatus,
+            created_at = r.CreatedAt,
+            updated_at = r.UpdatedAt,
+            pull_request_url = r.PullRequestUrl,
+            current = r.Id == id,
         }));
     }
 
@@ -62,7 +68,9 @@ public static class ChatUxEndpoints
             pull_request_url = c.PullRequestUrl,
             pull_request_number = c.PullRequestNumber,
             pull_request_state = c.PullRequestState ?? (c.PullRequestUrl is null ? "none" : "unknown"),
-            checks = Array.Empty<object>(), review_comments = Array.Empty<object>(), preview_links = Array.Empty<string>(),
+            checks = Array.Empty<object>(),
+            review_comments = Array.Empty<object>(),
+            preview_links = Array.Empty<string>(),
             updated_at = c.UpdatedAt,
         });
     }

@@ -9376,6 +9376,76 @@
         ]
       }
     },
+    "/api/v1/conversations/{id}/branch": {
+      "post": {
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ForkConversationRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          }
+        },
+        "summary": "POST /api/v1/conversations/{id:guid}/branch",
+        "tags": [
+          "Sandcastle.Api"
+        ]
+      }
+    },
+    "/api/v1/conversations/{id}/branches": {
+      "get": {
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          }
+        },
+        "summary": "GET /api/v1/conversations/{id:guid}/branches",
+        "tags": [
+          "Sandcastle.Api"
+        ]
+      }
+    },
     "/api/v1/conversations/{id}/handoff-package": {
       "get": {
         "description": "On-demand package of the live sandbox diff (uncommitted \u002B committed changes vs base), cached for Handoff:PackageTtlMin minutes; ?regenerate=1 bypasses. Dead sandboxes serve the last snapshot until it is invalidated by new HEAD.",
@@ -9457,6 +9527,36 @@
         "summary": "Handoff package \u2014 sandbox diff vs base (SPEC-150)",
         "tags": [
           "Conversations"
+        ]
+      }
+    },
+    "/api/v1/conversations/{id}/pr-status": {
+      "get": {
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          }
+        },
+        "summary": "GET /api/v1/conversations/{id:guid}/pr-status",
+        "tags": [
+          "Sandcastle.Api"
         ]
       }
     },
