@@ -148,6 +148,7 @@ public class Spec179NavigationShellTests : BunitContext
             {
                 "/api/v1/extensions/summary" => """{"mcp_servers":1,"marketplace_installed":2,"plugins":0,"enabled_plugins":0,"scm_connections":1,"ticket_connections":1}""",
                 "/api/v1/plugins" => "[]",
+                "/api/v1/app-conversations/search" => """{"items":[],"next_page_id":null}""",
                 _ => "null",
             };
             return Task.FromResult(new HttpResponseMessage(System.Net.HttpStatusCode.OK)
