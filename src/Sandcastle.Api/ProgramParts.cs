@@ -420,6 +420,7 @@ internal static class ProgramParts
         app.MapObservabilityEndpoints();
         app.MapCollaborationEndpoints();
         app.MapExtensionEndpoints();
+app.MapChatUxEndpoints();
         app.MapHookEndpoints();
         app.MapMcpEndpoints();
         app.MapOpenAiGatewayEndpoints();
