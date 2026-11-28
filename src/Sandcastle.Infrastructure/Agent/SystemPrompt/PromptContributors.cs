@@ -236,6 +236,24 @@ public sealed class BlueprintKnowledgeContributor : IAgentPromptContributor
 }
 
 /// <summary>
+/// SPEC-195 RF-004: shared project memory/files available to coordinator
+/// and worker conversations. The content is bounded and non-privileged.
+/// </summary>
+public sealed class ProjectContextContributor : IAgentPromptContributor
+{
+    /// <inheritdoc />
+    public int Order => 47;
+
+    /// <inheritdoc />
+    public PromptCacheTier CacheTier => PromptCacheTier.Dynamic;
+
+    /// <inheritdoc />
+    public Task<IReadOnlyList<string>> ContributeAsync(AgentPromptContext ctx) =>
+        Task.FromResult<IReadOnlyList<string>>(
+            string.IsNullOrWhiteSpace(ctx.ProjectContext) ? [] : [ctx.ProjectContext]);
+}
+
+/// <summary>
 /// SPEC-194 RF-004: progressive disclosure catalog — visible skills that
 /// were not fully injected are advertised only by name/description. The
 /// agent can load one on demand through <c>invoke_skill</c>.
@@ -409,9 +427,12 @@ public sealed class DelegationPolicyContributor : IAgentPromptContributor
             "Subagent delegation: delegate well-scoped slices to specialist "
                 + "subagents via the `task` tool — valid `subagent_type` "
                 + $"values: {catalog}. You orchestrate: plan, delegate, "
-                + "review; subagents execute in this same sandbox. Never "
-                + "delegate steps that require user approval, and validate "
-                + "subagent output before integrating it.",
+                + "review; subagents execute in this same sandbox. In project "
+                + "workspaces, coordinators own decomposition, prioritization "
+                + "and review; workers own bounded implementation slices and "
+                + "must report evidence/status without changing project scope "
+                + "or security constraints. Never delegate steps that require "
+                + "user approval, and validate subagent output before integrating it.",
         ]);
     }
 }

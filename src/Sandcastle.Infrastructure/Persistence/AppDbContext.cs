@@ -66,6 +66,10 @@ public class AppDbContext : DbContext, IDataProtectionKeyContext
     public DbSet<Sandcastle.Infrastructure.Knowledge.KnowledgeCollectionRecord> KnowledgeCollections => Set<Sandcastle.Infrastructure.Knowledge.KnowledgeCollectionRecord>();
     public DbSet<Sandcastle.Infrastructure.Knowledge.KnowledgeDocumentRecord> KnowledgeDocuments => Set<Sandcastle.Infrastructure.Knowledge.KnowledgeDocumentRecord>();
     public DbSet<Sandcastle.Infrastructure.Knowledge.KnowledgeChunkRecord> KnowledgeChunks => Set<Sandcastle.Infrastructure.Knowledge.KnowledgeChunkRecord>();
+    public DbSet<ProjectRecord> Projects => Set<ProjectRecord>();
+    public DbSet<ProjectWorkerRecord> ProjectWorkers => Set<ProjectWorkerRecord>();
+    public DbSet<ProjectMemoryRecord> ProjectMemories => Set<ProjectMemoryRecord>();
+    public DbSet<ProjectFileRecord> ProjectFiles => Set<ProjectFileRecord>();
 
     /// <summary>Sandbox containers bound to conversations.</summary>
     public DbSet<Sandcastle.Infrastructure.Sandbox.SandboxRecord> Sandboxes =>

@@ -2377,6 +2377,117 @@
         },
         "type": "object"
       },
+      "ProjectFileRequest": {
+        "description": "Shared text file payload.",
+        "properties": {
+          "content_type": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "text_content": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        },
+        "required": [
+          "content_type",
+          "text_content"
+        ],
+        "type": "object"
+      },
+      "ProjectMemoryRequest": {
+        "description": "Shared memory payload.",
+        "properties": {
+          "value": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        },
+        "required": [
+          "value"
+        ],
+        "type": "object"
+      },
+      "ProjectUpsertRequest": {
+        "description": "Project create/update payload.",
+        "properties": {
+          "agent_profile_id": {
+            "format": "uuid",
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "coordinator_message": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "description": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "name": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "repositories": {
+            "items": {
+              "type": "string"
+            },
+            "type": [
+              "null",
+              "array"
+            ]
+          },
+          "scope": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "start_coordinator": {
+            "type": [
+              "null",
+              "boolean"
+            ]
+          }
+        },
+        "required": [
+          "name",
+          "description",
+          "repositories",
+          "scope",
+          "start_coordinator",
+          "agent_profile_id",
+          "coordinator_message"
+        ],
+        "type": "object"
+      },
+      "ProjectWorkerRequest": {
+        "description": "Worker attach payload.",
+        "properties": {
+          "conversation_id": {
+            "format": "uuid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "conversation_id"
+        ],
+        "type": "object"
+      },
       "PromptPackRequest": {
         "properties": {
           "advisor_prompt": {
@@ -14994,6 +15105,397 @@
         ]
       }
     },
+    "/api/v1/projects": {
+      "get": {
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          }
+        },
+        "summary": "GET /api/v1/projects/",
+        "tags": [
+          "Projects"
+        ]
+      },
+      "post": {
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ProjectUpsertRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          }
+        },
+        "summary": "POST /api/v1/projects/",
+        "tags": [
+          "Projects"
+        ]
+      }
+    },
+    "/api/v1/projects/{id}": {
+      "get": {
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          }
+        },
+        "summary": "GET /api/v1/projects/{id:guid}",
+        "tags": [
+          "Projects"
+        ]
+      },
+      "patch": {
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ProjectUpsertRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          }
+        },
+        "summary": "PATCH /api/v1/projects/{id:guid}",
+        "tags": [
+          "Projects"
+        ]
+      }
+    },
+    "/api/v1/projects/{id}/archive": {
+      "post": {
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          }
+        },
+        "summary": "POST /api/v1/projects/{id:guid}/archive",
+        "tags": [
+          "Projects"
+        ]
+      }
+    },
+    "/api/v1/projects/{id}/files/{path}": {
+      "delete": {
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          }
+        },
+        "summary": "DELETE /api/v1/projects/{id:guid}/files/{*path}",
+        "tags": [
+          "Projects"
+        ]
+      },
+      "put": {
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ProjectFileRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          }
+        },
+        "summary": "PUT /api/v1/projects/{id:guid}/files/{*path}",
+        "tags": [
+          "Projects"
+        ]
+      }
+    },
+    "/api/v1/projects/{id}/memory/{key}": {
+      "delete": {
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "key",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          }
+        },
+        "summary": "DELETE /api/v1/projects/{id:guid}/memory/{key}",
+        "tags": [
+          "Projects"
+        ]
+      },
+      "put": {
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "key",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ProjectMemoryRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          }
+        },
+        "summary": "PUT /api/v1/projects/{id:guid}/memory/{key}",
+        "tags": [
+          "Projects"
+        ]
+      }
+    },
+    "/api/v1/projects/{id}/workers": {
+      "post": {
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ProjectWorkerRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          }
+        },
+        "summary": "POST /api/v1/projects/{id:guid}/workers",
+        "tags": [
+          "Projects"
+        ]
+      }
+    },
+    "/api/v1/projects/{id}/workers/{conversationId}": {
+      "delete": {
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "conversationId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          }
+        },
+        "summary": "DELETE /api/v1/projects/{id:guid}/workers/{conversationId:guid}",
+        "tags": [
+          "Projects"
+        ]
+      }
+    },
     "/api/v1/prompt-packs": {
       "get": {
         "responses": {
@@ -19624,6 +20126,9 @@
     },
     {
       "name": "Alerts"
+    },
+    {
+      "name": "Projects"
     },
     {
       "name": "Evals"

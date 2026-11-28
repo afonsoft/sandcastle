@@ -31,6 +31,9 @@ public sealed class AgentPromptContext
     /// </summary>
     public IReadOnlyList<Domain.Skills.Skill>? SkillCatalog { get; init; }
 
+    /// <summary>SPEC-195: bounded shared project workspace context.</summary>
+    public string? ProjectContext { get; init; }
+
     /// <summary>
     /// SPEC-157 RF-004: context files anexados do workspace —
     /// <c>(filename, text, truncated)</c> já truncado em 8KB por arquivo.

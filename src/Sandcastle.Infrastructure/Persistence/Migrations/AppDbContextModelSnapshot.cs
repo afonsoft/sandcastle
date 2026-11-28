@@ -3468,6 +3468,210 @@ namespace Sandcastle.Infrastructure.Persistence.Migrations
                     b.ToTable("plans", (string)null);
                 });
 
+            modelBuilder.Entity("Sandcastle.Infrastructure.Persistence.ProjectFileRecord", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("TEXT")
+                        .HasColumnName("id");
+
+                    b.Property<string>("ContentType")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("TEXT")
+                        .HasColumnName("content_type");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("TEXT")
+                        .HasColumnName("created_at");
+
+                    b.Property<string>("Path")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("TEXT")
+                        .HasColumnName("path");
+
+                    b.Property<Guid>("ProjectId")
+                        .HasColumnType("TEXT")
+                        .HasColumnName("project_id");
+
+                    b.Property<int>("SizeBytes")
+                        .HasColumnType("INTEGER")
+                        .HasColumnName("size_bytes");
+
+                    b.Property<string>("TextContent")
+                        .IsRequired()
+                        .HasColumnType("TEXT")
+                        .HasColumnName("text_content");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("TEXT")
+                        .HasColumnName("updated_at");
+
+                    b.Property<string>("UpdatedByUserId")
+                        .HasColumnType("TEXT")
+                        .HasColumnName("updated_by_user_id");
+
+                    b.HasKey("Id")
+                        .HasName("pk_project_files");
+
+                    b.HasIndex("ProjectId", "Path")
+                        .IsUnique()
+                        .HasDatabaseName("ix_project_files_project_id_path");
+
+                    b.ToTable("project_files", (string)null);
+                });
+
+            modelBuilder.Entity("Sandcastle.Infrastructure.Persistence.ProjectMemoryRecord", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("TEXT")
+                        .HasColumnName("id");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("TEXT")
+                        .HasColumnName("created_at");
+
+                    b.Property<string>("Key")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("TEXT")
+                        .HasColumnName("key");
+
+                    b.Property<Guid>("ProjectId")
+                        .HasColumnType("TEXT")
+                        .HasColumnName("project_id");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("TEXT")
+                        .HasColumnName("updated_at");
+
+                    b.Property<string>("UpdatedByUserId")
+                        .HasColumnType("TEXT")
+                        .HasColumnName("updated_by_user_id");
+
+                    b.Property<string>("Value")
+                        .IsRequired()
+                        .HasMaxLength(8192)
+                        .HasColumnType("TEXT")
+                        .HasColumnName("value");
+
+                    b.HasKey("Id")
+                        .HasName("pk_project_memories");
+
+                    b.HasIndex("ProjectId", "Key")
+                        .IsUnique()
+                        .HasDatabaseName("ix_project_memories_project_id_key");
+
+                    b.ToTable("project_memories", (string)null);
+                });
+
+            modelBuilder.Entity("Sandcastle.Infrastructure.Persistence.ProjectRecord", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("TEXT")
+                        .HasColumnName("id");
+
+                    b.Property<DateTimeOffset?>("ArchivedAt")
+                        .HasColumnType("TEXT")
+                        .HasColumnName("archived_at");
+
+                    b.Property<Guid?>("CoordinatorConversationId")
+                        .HasColumnType("TEXT")
+                        .HasColumnName("coordinator_conversation_id");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("TEXT")
+                        .HasColumnName("created_at");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(4000)
+                        .HasColumnType("TEXT")
+                        .HasColumnName("description");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("TEXT")
+                        .HasColumnName("name");
+
+                    b.Property<Guid?>("OrgId")
+                        .HasColumnType("TEXT")
+                        .HasColumnName("org_id");
+
+                    b.Property<string>("OwnerId")
+                        .HasMaxLength(64)
+                        .HasColumnType("TEXT")
+                        .HasColumnName("owner_id");
+
+                    b.Property<string>("RepositoriesJson")
+                        .IsRequired()
+                        .HasColumnType("TEXT")
+                        .HasColumnName("repositories_json");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("TEXT")
+                        .HasColumnName("status");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("TEXT")
+                        .HasColumnName("updated_at");
+
+                    b.HasKey("Id")
+                        .HasName("pk_projects");
+
+                    b.HasIndex("CoordinatorConversationId")
+                        .HasDatabaseName("ix_projects_coordinator_conversation_id");
+
+                    b.HasIndex("OrgId")
+                        .HasDatabaseName("ix_projects_org_id");
+
+                    b.HasIndex("OwnerId")
+                        .HasDatabaseName("ix_projects_owner_id");
+
+                    b.ToTable("projects", (string)null);
+                });
+
+            modelBuilder.Entity("Sandcastle.Infrastructure.Persistence.ProjectWorkerRecord", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("TEXT")
+                        .HasColumnName("id");
+
+                    b.Property<string>("AddedByUserId")
+                        .HasColumnType("TEXT")
+                        .HasColumnName("added_by_user_id");
+
+                    b.Property<Guid>("ConversationId")
+                        .HasColumnType("TEXT")
+                        .HasColumnName("conversation_id");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("TEXT")
+                        .HasColumnName("created_at");
+
+                    b.Property<Guid>("ProjectId")
+                        .HasColumnType("TEXT")
+                        .HasColumnName("project_id");
+
+                    b.HasKey("Id")
+                        .HasName("pk_project_workers");
+
+                    b.HasIndex("ConversationId")
+                        .HasDatabaseName("ix_project_workers_conversation_id");
+
+                    b.HasIndex("ProjectId", "ConversationId")
+                        .IsUnique()
+                        .HasDatabaseName("ix_project_workers_project_id_conversation_id");
+
+                    b.ToTable("project_workers", (string)null);
+                });
+
             modelBuilder.Entity("Sandcastle.Infrastructure.Persistence.PromptPackRecord", b =>
                 {
                     b.Property<Guid>("Id")

@@ -506,3 +506,62 @@ public sealed class PromptPackConfiguration
         b.Property(e => e.Name).HasMaxLength(80);
     }
 }
+
+/// <inheritdoc />
+public sealed class ProjectConfiguration : IEntityTypeConfiguration<ProjectRecord>
+{
+    /// <inheritdoc />
+    public void Configure(EntityTypeBuilder<ProjectRecord> b)
+    {
+        b.ToTable("projects");
+        b.HasKey(e => e.Id);
+        b.Property(e => e.OwnerId).HasMaxLength(64);
+        b.Property(e => e.Name).HasMaxLength(200);
+        b.Property(e => e.Description).HasMaxLength(4000);
+        b.Property(e => e.Status).HasMaxLength(20);
+        b.HasIndex(e => e.OwnerId);
+        b.HasIndex(e => e.OrgId);
+        b.HasIndex(e => e.CoordinatorConversationId);
+    }
+}
+
+/// <inheritdoc />
+public sealed class ProjectWorkerConfiguration : IEntityTypeConfiguration<ProjectWorkerRecord>
+{
+    /// <inheritdoc />
+    public void Configure(EntityTypeBuilder<ProjectWorkerRecord> b)
+    {
+        b.ToTable("project_workers");
+        b.HasKey(e => e.Id);
+        b.HasIndex(e => new { e.ProjectId, e.ConversationId }).IsUnique();
+        b.HasIndex(e => e.ConversationId);
+    }
+}
+
+/// <inheritdoc />
+public sealed class ProjectMemoryConfiguration : IEntityTypeConfiguration<ProjectMemoryRecord>
+{
+    /// <inheritdoc />
+    public void Configure(EntityTypeBuilder<ProjectMemoryRecord> b)
+    {
+        b.ToTable("project_memories");
+        b.HasKey(e => e.Id);
+        b.Property(e => e.Key).HasMaxLength(200);
+        b.Property(e => e.Value).HasMaxLength(8192);
+        b.HasIndex(e => new { e.ProjectId, e.Key }).IsUnique();
+    }
+}
+
+/// <inheritdoc />
+public sealed class ProjectFileConfiguration : IEntityTypeConfiguration<ProjectFileRecord>
+{
+    /// <inheritdoc />
+    public void Configure(EntityTypeBuilder<ProjectFileRecord> b)
+    {
+        b.ToTable("project_files");
+        b.HasKey(e => e.Id);
+        b.Property(e => e.Path).HasMaxLength(500);
+        b.Property(e => e.ContentType).HasMaxLength(100);
+        b.HasIndex(e => new { e.ProjectId, e.Path }).IsUnique();
+    }
+}

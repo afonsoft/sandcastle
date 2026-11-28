@@ -1,0 +1,137 @@
+@page "/projects/{Id:guid}"
+@using Sandcastle.Client.Services
+@inject SandcastleApiClient Api
+@inject LocalizationService L
+@inject NavigationManager Nav
+
+<PageTitle>@(_project?.Name ?? L["projects.title"]) · Sandcastle</PageTitle>
+
+<div class="settings-wrap">
+    <p class="sub"><a href="/projects">← @L["projects.title"]</a></p>
+    @if (_project is null)
+    {
+        <p class="sub">@L["projects.loading"]</p>
+    }
+    else
+    {
+        <h1>@_project.Name</h1>
+        <p class="sub" style="color:var(--sc-fg-dim)">@_project.Description</p>
+        <p><strong>@L["projects.repositories"]:</strong> @string.Join(", ", _project.Repositories)</p>
+        @if (_project.CoordinatorConversationId is { } coordinator)
+        {
+            <p><a class="btn" href="/conversations/@coordinator">@L["projects.open_coordinator"]</a></p>
+        }
+
+        <section class="panel">
+            <h2>@L["projects.workers"]</h2>
+            @if (_project.Workers is { Length: > 0 })
+            {
+                <ul>
+                @foreach (var w in _project.Workers)
+                {
+                    <li><a href="/conversations/@w.ConversationId">@w.ConversationId</a>
+                        <button class="btn" @onclick="() => DetachAsync(w.ConversationId)">@L["projects.detach"]</button></li>
+                }
+                </ul>
+            }
+            else { <p class="sub">@L["projects.no_workers"]</p> }
+            <div class="form-grid">
+                <input @bind="_workerId" placeholder="@L["projects.worker_placeholder"]" aria-label="@L["projects.worker_placeholder"]" />
+                <button class="btn" @onclick="AttachAsync">@L["projects.attach"]</button>
+            </div>
+        </section>
+
+        <section class="panel">
+            <h2>@L["projects.memory"]</h2>
+            @if (_project.Memories is { Length: > 0 })
+            {
+                <dl>
+                @foreach (var m in _project.Memories)
+                {
+                    <dt>@m.Key</dt><dd>@m.Value</dd>
+                }
+                </dl>
+            }
+            else { <p class="sub">@L["projects.no_memory"]</p> }
+            <div class="form-grid">
+                <input @bind="_memoryKey" placeholder="@L["projects.memory_key"]" aria-label="@L["projects.memory_key"]" />
+                <input @bind="_memoryValue" placeholder="@L["projects.memory_value"]" aria-label="@L["projects.memory_value"]" />
+                <button class="btn" @onclick="SaveMemoryAsync">@L["projects.save_memory"]</button>
+            </div>
+        </section>
+
+        <section class="panel">
+            <h2>@L["projects.files"]</h2>
+            @if (_project.Files is { Length: > 0 })
+            {
+                <table class="table"><tbody>
+                @foreach (var f in _project.Files)
+                {
+                    <tr><td>@f.Path</td><td>@f.ContentType</td><td>@f.SizeBytes</td></tr>
+                }
+                </tbody></table>
+            }
+            else { <p class="sub">@L["projects.no_files"]</p> }
+            <div class="form-grid">
+                <input @bind="_filePath" placeholder="docs/plan.md" aria-label="@L["projects.file_path"]" />
+                <textarea @bind="_fileText" rows="3" aria-label="@L["projects.file_text"]"></textarea>
+                <button class="btn" @onclick="SaveFileAsync">@L["projects.save_file"]</button>
+            </div>
+        </section>
+
+        <button class="btn danger" @onclick="ArchiveAsync">@L["projects.archive"]</button>
+    }
+</div>
+
+@code {
+    [Parameter] public Guid Id { get; set; }
+    private ProjectDto? _project;
+    private string _workerId = "";
+    private string _memoryKey = "";
+    private string _memoryValue = "";
+    private string _filePath = "";
+    private string _fileText = "";
+
+    protected override async Task OnParametersSetAsync() => await ReloadAsync();
+
+    private async Task ReloadAsync() => _project = await Api.GetProjectAsync(Id);
+
+    private async Task AttachAsync()
+    {
+        if (Guid.TryParse(_workerId, out var id) && await Api.AttachProjectWorkerAsync(Id, id))
+        {
+            _workerId = "";
+            await ReloadAsync();
+        }
+    }
+
+    private async Task DetachAsync(Guid conversationId)
+    {
+        if (await Api.DetachProjectWorkerAsync(Id, conversationId)) await ReloadAsync();
+    }
+
+    private async Task SaveMemoryAsync()
+    {
+        if (!string.IsNullOrWhiteSpace(_memoryKey)
+            && await Api.PutProjectMemoryAsync(Id, _memoryKey, _memoryValue))
+        {
+            _memoryKey = _memoryValue = "";
+            await ReloadAsync();
+        }
+    }
+
+    private async Task SaveFileAsync()
+    {
+        if (!string.IsNullOrWhiteSpace(_filePath)
+            && await Api.PutProjectFileAsync(Id, _filePath, _fileText))
+        {
+            _filePath = _fileText = "";
+            await ReloadAsync();
+        }
+    }
+
+    private async Task ArchiveAsync()
+    {
+        if (await Api.ArchiveProjectAsync(Id)) Nav.NavigateTo("/projects");
+    }
+}
