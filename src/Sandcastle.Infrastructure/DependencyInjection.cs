@@ -477,6 +477,8 @@ public static class DependencyInjection
             Sandcastle.Infrastructure.Observability.ObservabilityWorker>();
         services.AddScoped<Sandcastle.Application.Collaboration.ICollaborationService,
             Sandcastle.Infrastructure.Collaboration.CollaborationService>();
+        services.AddScoped<Sandcastle.Application.Extensions.IExtensionHubService,
+            Sandcastle.Infrastructure.Extensions.ExtensionHubService>();
         services.AddHostedService<
             Sandcastle.Infrastructure.Automations.AutomationScheduler>();
 

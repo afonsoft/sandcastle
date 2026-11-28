@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
+
 using Sandcastle.Infrastructure.Persistence;
 
 namespace Sandcastle.Infrastructure.Extensions;
