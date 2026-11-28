@@ -8,8 +8,8 @@
 | Type | `Feature` |
 | Stack | `.NET 10 · ASP.NET Core · Blazor WASM` |
 | Repository | `afonsoft/sandcastle` |
-| Status | `Approved` |
-| Ticket | #605 · Epic #603 |
+| Status | `Completed` |
+| Ticket | #612 · Epic #610 |
 | Source analysis | `docs/research/2026-11-autonomous-agent-parity-deep-dive.md` |
 
 ## 1. Problem
