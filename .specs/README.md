@@ -223,3 +223,17 @@ aprovadas em 2026-11-27 — Epic #552.
 | 186 | collaboration-workspace | Approved | #560 · Epic #552 |
 | 187 | extensions-integrations-hub | Approved | #561 · Epic #552 |
 | 188 | chat-ux-cloud-parity | Approved | #562 · Epic #552 |
+
+### Onda J — autonomous-agent product parity (nov/2026) — Approved
+
+Deep dive Sandcastle × OpenWebUiCode × OpenHands × Cursor × Devin × Claude Code,
+registrado em `docs/research/2026-11-autonomous-agent-parity-deep-dive.md`.
+Aprovado pelo usuário em 2026-11-28.
+
+| SPEC | Título | Status | Ticket |
+|---|---|---|---|
+| 194 | prompt-cache-progressive-skills | Approved | #604 · Epic #603 |
+| 195 | project-coordinator-workspaces | Approved | #605 · Epic #603 |
+| 196 | run-evidence-progress-ux | Approved | #606 · Epic #603 |
+| 197 | model-aware-agent-instructions | Approved | #607 · Epic #603 |
+| 198 | visual-docs-refresh | Approved | #608 · Epic #603 |
