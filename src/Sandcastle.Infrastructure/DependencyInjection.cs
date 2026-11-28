@@ -479,6 +479,8 @@ public static class DependencyInjection
             Sandcastle.Infrastructure.Collaboration.CollaborationService>();
         services.AddScoped<Sandcastle.Application.Extensions.IExtensionHubService,
             Sandcastle.Infrastructure.Extensions.ExtensionHubService>();
+        services.AddScoped<Sandcastle.Application.Knowledge.IKnowledgeRagService,
+            Sandcastle.Infrastructure.Knowledge.KnowledgeRagService>();
         services.AddHostedService<
             Sandcastle.Infrastructure.Automations.AutomationScheduler>();
 

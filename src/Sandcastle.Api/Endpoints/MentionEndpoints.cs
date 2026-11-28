@@ -101,6 +101,14 @@ public static class MentionEndpoints
                 .Where(k => Matches(k.Title, query) || Matches(k.Content, query))
                 .Select(k => new MentionItem("knowledge", k.Id.ToString(),
                     k.Title, Snippet(k.Content), "book")));
+
+            var collectionRows = await db.KnowledgeCollections.AsNoTracking()
+                .Take(200).ToListAsync(ct);
+            items.AddRange(collectionRows
+                .Where(c => userId is null || c.OwnerUserId == userId)
+                .Where(c => Matches(c.Name, query) || Matches(c.Description, query) || Matches(c.RepoPath, query))
+                .Select(c => new MentionItem("knowledge", c.Id.ToString(),
+                    c.Name, Snippet(c.Description ?? c.RepoPath ?? "collection"), "book")));
         }
 
         return Results.Ok(new

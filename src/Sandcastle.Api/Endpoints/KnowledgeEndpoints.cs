@@ -77,6 +77,20 @@ public static class KnowledgeEndpoints
                 ? Results.Ok(await memory.ListOrgAsync(
                     org.OrgId, query, ct))
                 : Results.Ok(Array.Empty<object>()));
+
+        // SPEC-189: knowledge collections/documents + hybrid retrieval.
+        g.MapGet("/collections", async (ICurrentUserAccessor current, IKnowledgeRagService rag, CancellationToken ct) =>
+            Results.Ok(await rag.ListCollectionsAsync(current.User!.UserId, ct)));
+        g.MapPost("/collections", async (KnowledgeCollectionUpsert req, ICurrentUserAccessor current, IKnowledgeRagService rag, CancellationToken ct) =>
+            Results.Created("/api/v1/knowledge/collections", await rag.CreateCollectionAsync(req, current.User!.UserId, ct)));
+        g.MapDelete("/collections/{id:guid}", async (Guid id, ICurrentUserAccessor current, IKnowledgeRagService rag, CancellationToken ct) =>
+            await rag.DeleteCollectionAsync(id, current.User!.UserId, ct) ? Results.NoContent() : Results.NotFound());
+        g.MapGet("/collections/{id:guid}/documents", async (Guid id, ICurrentUserAccessor current, IKnowledgeRagService rag, CancellationToken ct) =>
+            Results.Ok(await rag.ListDocumentsAsync(id, current.User!.UserId, ct)));
+        g.MapPost("/collections/{id:guid}/documents", async (Guid id, KnowledgeDocumentUpsert req, ICurrentUserAccessor current, IKnowledgeRagService rag, CancellationToken ct) =>
+            await rag.IngestDocumentAsync(id, req, current.User!.UserId, ct) is { } doc ? Results.Created($"/api/v1/knowledge/documents/{doc.Id}", doc) : Results.NotFound());
+        g.MapPost("/query", async (KnowledgeQueryRequest req, ICurrentUserAccessor current, IKnowledgeRagService rag, CancellationToken ct) =>
+            Results.Ok(await rag.QueryAsync(req with { Take = req.Take <= 0 ? 8 : req.Take }, current.User!.UserId, ct)));
         return app;
     }
 

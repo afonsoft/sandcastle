@@ -1452,3 +1452,5 @@ a.chip.mention { text-decoration: none; }
 .branch-row { display: grid; gap: .2rem; margin-bottom: .5rem; }
 @media (max-width: 760px) { .branch-pr-panel { grid-template-columns: 1fr; } }
 .panel-head { align-items: center; display: flex; justify-content: space-between; }
+.knowledge-v2 { margin-bottom: 1rem; padding: 1rem; }
+.knowledge-v2 textarea { min-height: 8rem; width: 100%; }

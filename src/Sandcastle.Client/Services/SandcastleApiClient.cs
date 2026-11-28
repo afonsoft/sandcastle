@@ -2277,6 +2277,26 @@ public sealed class SandcastleApiClient(HttpClient http)
 
     public Task<ConversationPrStatusDto?> GetConversationPrStatusAsync(string id, CancellationToken ct = default) =>
         GetOrNull<ConversationPrStatusDto>($"/api/v1/conversations/{id}/pr-status", ct);
+
+    public async Task<IReadOnlyList<KnowledgeCollectionDto>> ListKnowledgeCollectionsAsync(CancellationToken ct = default) =>
+        await http.GetFromJsonAsync<List<KnowledgeCollectionDto>>("/api/v1/knowledge/collections", Json, ct) ?? [];
+    public async Task<KnowledgeCollectionDto?> CreateKnowledgeCollectionAsync(string name, string? repo, CancellationToken ct = default)
+    {
+        var resp = await http.PostAsJsonAsync("/api/v1/knowledge/collections", new { name, repo_path = repo, description = (string?)null, org_id = (Guid?)null }, Json, ct);
+        return resp.IsSuccessStatusCode ? await resp.Content.ReadFromJsonAsync<KnowledgeCollectionDto>(Json, ct) : null;
+    }
+    public async Task<IReadOnlyList<KnowledgeDocumentDto>> ListKnowledgeDocumentsAsync(Guid collectionId, CancellationToken ct = default) =>
+        await http.GetFromJsonAsync<List<KnowledgeDocumentDto>>($"/api/v1/knowledge/collections/{collectionId}/documents", Json, ct) ?? [];
+    public async Task<KnowledgeDocumentDto?> IngestKnowledgeDocumentAsync(Guid collectionId, string title, string content, CancellationToken ct = default)
+    {
+        var resp = await http.PostAsJsonAsync($"/api/v1/knowledge/collections/{collectionId}/documents", new { title, source_uri = $"manual:{title}", content }, Json, ct);
+        return resp.IsSuccessStatusCode ? await resp.Content.ReadFromJsonAsync<KnowledgeDocumentDto>(Json, ct) : null;
+    }
+    public async Task<KnowledgeQueryResponseDto?> QueryKnowledgeAsync(string query, Guid? collectionId, bool includeWeb = false, CancellationToken ct = default)
+    {
+        var resp = await http.PostAsJsonAsync("/api/v1/knowledge/query", new { query, collection_id = collectionId, repo_path = (string?)null, take = 8, include_web = includeWeb }, Json, ct);
+        return resp.IsSuccessStatusCode ? await resp.Content.ReadFromJsonAsync<KnowledgeQueryResponseDto>(Json, ct) : null;
+    }
 }
 
 
@@ -2631,3 +2651,11 @@ public sealed record IntegrationTestResultDto(string Provider, bool Ok, string D
 public sealed record ConversationBranchDto(Guid Id, string? Title, Guid? ParentConversationId, string? Status, DateTimeOffset CreatedAt, DateTimeOffset UpdatedAt, string? PullRequestUrl, bool Current);
 /// <summary>SPEC-188: contextual PR status.</summary>
 public sealed record ConversationPrStatusDto(string? Repository, string? PullRequestUrl, int? PullRequestNumber, string PullRequestState, JsonElement Checks, JsonElement ReviewComments, string[] PreviewLinks, DateTimeOffset UpdatedAt);
+/// <summary>SPEC-189: knowledge collection.</summary>
+public sealed record KnowledgeCollectionDto(Guid Id, Guid? OrgId, string OwnerUserId, string Name, string? RepoPath, string? Description, int DocumentCount, int ChunkCount, DateTimeOffset CreatedAt, DateTimeOffset UpdatedAt);
+/// <summary>SPEC-189: knowledge document.</summary>
+public sealed record KnowledgeDocumentDto(Guid Id, Guid CollectionId, string Title, string SourceUri, string ContentHash, int ChunkCount, string LineageJson, DateTimeOffset CreatedAt);
+/// <summary>SPEC-189: knowledge citation.</summary>
+public sealed record KnowledgeCitationDto(Guid DocumentId, Guid ChunkId, string Title, string SourceUri, int Ordinal, string Excerpt, double Score);
+/// <summary>SPEC-189: retrieval response.</summary>
+public sealed record KnowledgeQueryResponseDto(string Query, string Mode, KnowledgeCitationDto[] Citations, bool EmbeddingAvailable);

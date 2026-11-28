@@ -36,3 +36,27 @@ public interface IKnowledgeService
         Guid id, string? reason, CancellationToken ct);
     Task<KnowledgeGroomReport> GroomAsync(CancellationToken ct);
 }
+/// <summary>SPEC-189: knowledge collection scoped by user/org/repo.</summary>
+public sealed record KnowledgeCollectionInfo(Guid Id, Guid? OrgId, string OwnerUserId, string Name, string? RepoPath, string? Description, int DocumentCount, int ChunkCount, DateTimeOffset CreatedAt, DateTimeOffset UpdatedAt);
+/// <summary>SPEC-189: collection mutation payload.</summary>
+public sealed record KnowledgeCollectionUpsert(string Name, string? RepoPath, string? Description, Guid? OrgId);
+/// <summary>SPEC-189: ingested document.</summary>
+public sealed record KnowledgeDocumentInfo(Guid Id, Guid CollectionId, string Title, string SourceUri, string ContentHash, int ChunkCount, string LineageJson, DateTimeOffset CreatedAt);
+/// <summary>SPEC-189: document ingestion payload.</summary>
+public sealed record KnowledgeDocumentUpsert(string Title, string SourceUri, string Content);
+/// <summary>SPEC-189: retrieval citation.</summary>
+public sealed record KnowledgeCitation(Guid DocumentId, Guid ChunkId, string Title, string SourceUri, int Ordinal, string Excerpt, double Score);
+/// <summary>SPEC-189: retrieval response.</summary>
+public sealed record KnowledgeQueryResponse(string Query, string Mode, IReadOnlyList<KnowledgeCitation> Citations, bool EmbeddingAvailable);
+/// <summary>SPEC-189: retrieval request.</summary>
+public sealed record KnowledgeQueryRequest(string Query, Guid? CollectionId, string? RepoPath, int Take, bool IncludeWeb = false);
+
+public interface IKnowledgeRagService
+{
+    Task<IReadOnlyList<KnowledgeCollectionInfo>> ListCollectionsAsync(Guid userId, CancellationToken ct);
+    Task<KnowledgeCollectionInfo> CreateCollectionAsync(KnowledgeCollectionUpsert request, Guid userId, CancellationToken ct);
+    Task<bool> DeleteCollectionAsync(Guid id, Guid userId, CancellationToken ct);
+    Task<IReadOnlyList<KnowledgeDocumentInfo>> ListDocumentsAsync(Guid collectionId, Guid userId, CancellationToken ct);
+    Task<KnowledgeDocumentInfo?> IngestDocumentAsync(Guid collectionId, KnowledgeDocumentUpsert request, Guid userId, CancellationToken ct);
+    Task<KnowledgeQueryResponse> QueryAsync(KnowledgeQueryRequest request, Guid userId, CancellationToken ct);
+}

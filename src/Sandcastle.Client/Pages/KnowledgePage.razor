@@ -7,6 +7,35 @@
 
 <h2>@L["knowledge.title"]</h2>
 
+<section class="knowledge-v2 panel">
+    <h3>@L["knowledge.collections"]</h3>
+    <div class="row">
+        <input aria-label="@L["knowledge.collection_name"]" placeholder="@L["knowledge.collection_name"]" @bind="_collectionName" />
+        <input aria-label="@L["knowledge.repo_filter"]" placeholder="@L["knowledge.repo_filter"]" @bind="_collectionRepo" />
+        <button @onclick="CreateCollectionAsync">@L["knowledge.create_collection"]</button>
+    </div>
+    <div class="row">
+        <select aria-label="@L["knowledge.collections"]" @bind="_selectedCollectionId" @bind:after="LoadDocumentsAsync">
+            <option value="">@L["knowledge.select_collection"]</option>
+            @foreach (var c in _collections) { <option value="@c.Id">@c.Name (@c.DocumentCount/@c.ChunkCount)</option> }
+        </select>
+    </div>
+    @if (SelectedCollectionGuid() is { } collectionId)
+    {
+        <h3>@L["knowledge.documents"]</h3>
+        <div class="row"><input aria-label="@L["knowledge.document_title"]" placeholder="@L["knowledge.document_title"]" @bind="_docTitle" /><button @onclick="() => IngestAsync(collectionId)">@L["knowledge.ingest"]</button></div>
+        <textarea aria-label="@L["knowledge.document_content"]" @bind="_docContent"></textarea>
+        @foreach (var d in _documents) { <div class="message-card"><strong>@d.Title</strong> · @d.ChunkCount @L["knowledge.chunks"] · @d.ContentHash</div> }
+        <h3>@L["knowledge.test_retrieval"]</h3>
+        <div class="row"><input aria-label="@L["knowledge.query"]" placeholder="@L["knowledge.query"]" @bind="_query" /><label><input type="checkbox" @bind="_includeWeb" /> @L["knowledge.include_web"]</label><button @onclick="() => QueryAsync(collectionId)">@L["knowledge.query_button"]</button></div>
+        @if (_response is not null)
+        {
+            <p>@L["knowledge.mode"]: @_response.Mode · embeddings: @_response.EmbeddingAvailable</p>
+            @foreach (var c in _response.Citations) { <article class="message-card"><strong>@c.Title</strong> <span>@c.Score.ToString("F2")</span><p>@c.Excerpt</p><a href="@c.SourceUri">@c.SourceUri</a></article> }
+        }
+    }
+</section>
+
 <div class="knowledge">
     <div class="row">
         <select aria-label="@L["knowledge.title"]" @bind="_filter" @bind:after="LoadAsync">
@@ -68,9 +97,42 @@
     private IReadOnlyList<KnowledgeSuggestionItem>? _items;
     private string _filter = "pending";
     private bool _busy;
+    private IReadOnlyList<KnowledgeCollectionDto> _collections = [];
+    private IReadOnlyList<KnowledgeDocumentDto> _documents = [];
+    private KnowledgeQueryResponseDto? _response;
+    private string _collectionName = "";
+    private string _collectionRepo = "";
+    private string _selectedCollectionId = "";
+    private string _docTitle = "";
+    private string _docContent = "";
+    private string _query = "";
+    private bool _includeWeb;
 
     protected override async Task OnInitializedAsync()
-        => await LoadAsync();
+    {
+        await LoadAsync();
+        _collections = await Api.ListKnowledgeCollectionsAsync();
+    }
+
+    private Guid? SelectedCollectionGuid() => Guid.TryParse(_selectedCollectionId, out var id) ? id : null;
+    private async Task CreateCollectionAsync()
+    {
+        if (string.IsNullOrWhiteSpace(_collectionName)) return;
+        var row = await Api.CreateKnowledgeCollectionAsync(_collectionName, string.IsNullOrWhiteSpace(_collectionRepo) ? null : _collectionRepo);
+        if (row is not null) { _collectionName = ""; _collections = await Api.ListKnowledgeCollectionsAsync(); _selectedCollectionId = row.Id.ToString(); await LoadDocumentsAsync(); }
+    }
+    private async Task LoadDocumentsAsync()
+    {
+        _documents = SelectedCollectionGuid() is { } id ? await Api.ListKnowledgeDocumentsAsync(id) : [];
+        _response = null;
+    }
+    private async Task IngestAsync(Guid id)
+    {
+        if (string.IsNullOrWhiteSpace(_docTitle) || string.IsNullOrWhiteSpace(_docContent)) return;
+        await Api.IngestKnowledgeDocumentAsync(id, _docTitle, _docContent);
+        _docTitle = ""; _docContent = ""; await LoadDocumentsAsync(); _collections = await Api.ListKnowledgeCollectionsAsync();
+    }
+    private async Task QueryAsync(Guid id) => _response = await Api.QueryKnowledgeAsync(_query, id, _includeWeb);
 
     private async Task LoadAsync()
         => _items = await Api.ListKnowledgeSuggestionsAsync(
