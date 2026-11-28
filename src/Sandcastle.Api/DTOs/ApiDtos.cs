@@ -93,6 +93,8 @@ public sealed record AppConversationDto
     public IReadOnlyList<string>? Repositories { get; init; }
     /// <summary>SPEC-146 RF-004: PRs por repo criados pela conversa.</summary>
     public IReadOnlyList<ConversationPullRequestDto>? PullRequests { get; init; }
+    /// <summary>SPEC-179: custo agregado dos TokenEvents na listagem.</summary>
+    public decimal? CostUsd { get; init; }
     public DateTimeOffset CreatedAt { get; init; }
     public DateTimeOffset UpdatedAt { get; init; }
 }

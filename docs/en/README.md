@@ -22,6 +22,7 @@ Documentation index (English). Versão em português na raiz: [`../README.md`](.
   revert with drift guard (SPEC-43).
 - [features/attention-inbox.md](features/attention-inbox.md) — inbox of
   conversations waiting on you + `ask_user` (SPEC-44).
+- [features/navigation-shell.md](features/navigation-shell.md) — Devin-style shell, breadcrumbs, command center, focus mode and UX telemetry (SPEC-179).
 - [features/composer.md](features/composer.md) — rich @mentions (files + entities), /slash, drafts, uploads (SPECs 45/170).
 - [features/i18n.md](features/i18n.md) — `LocalizationService`, fallback,
   parity, selector (SPEC-46).

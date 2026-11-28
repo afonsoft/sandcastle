@@ -1367,6 +1367,59 @@
         ],
         "type": "object"
       },
+      "NavigationSummaryResponse": {
+        "description": "Contadores agregados dos badges da shell.",
+        "properties": {
+          "attention_count": {
+            "format": "int32",
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ]
+          },
+          "automation_count": {
+            "format": "int32",
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ]
+          },
+          "extension_count": {
+            "format": "int32",
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ]
+          },
+          "factory_count": {
+            "format": "int32",
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ]
+          },
+          "running_count": {
+            "format": "int32",
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ]
+          }
+        },
+        "required": [
+          "attention_count",
+          "running_count",
+          "automation_count",
+          "factory_count",
+          "extension_count"
+        ],
+        "type": "object"
+      },
       "OrgCreateRequest": {
         "description": "Org create body.",
         "properties": {
@@ -2915,6 +2968,33 @@
           "key",
           "base_url"
         ],
+        "type": "object"
+      },
+      "UxEventRequest": {
+        "description": "Payload de telemetria UX (route vira apenas \u00E1rea/categoria).",
+        "properties": {
+          "duration_ms": {
+            "format": "int32",
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "null",
+              "integer",
+              "string"
+            ]
+          },
+          "event_name": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "route": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        },
         "type": "object"
       },
       "WebhookEventRequest": {
@@ -9380,6 +9460,32 @@
         ]
       }
     },
+    "/api/v1/navigation/summary": {
+      "get": {
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NavigationSummaryResponse"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          }
+        },
+        "summary": "GET /api/v1/navigation/summary",
+        "tags": [
+          "Navigation"
+        ]
+      }
+    },
     "/api/v1/organizations": {
       "get": {
         "responses": {
@@ -14484,6 +14590,45 @@
         ]
       }
     },
+    "/api/v1/ux-events": {
+      "post": {
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UxEventRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "202": {
+            "description": "Accepted"
+          },
+          "400": {
+            "content": {
+              "application/problem\u002Bjson": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          }
+        },
+        "summary": "POST /api/v1/ux-events",
+        "tags": [
+          "Navigation"
+        ]
+      }
+    },
     "/api/v1/webhooks/alerts/{source_id}": {
       "post": {
         "parameters": [
@@ -15465,6 +15610,9 @@
     },
     {
       "name": "Mentions"
+    },
+    {
+      "name": "Navigation"
     },
     {
       "name": "Settings"

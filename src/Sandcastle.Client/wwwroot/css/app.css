@@ -1289,3 +1289,43 @@ a.chip.mention { text-decoration: none; }
 .cal-side { flex: 0 1 300px; min-width: 220px; }
 .cal-side ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
 .cal-side li { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; font-size: .85rem; }
+
+/* SPEC-179: Devin-style desktop topbar + focus mode. */
+.desktop-topbar {
+    display: flex; align-items: center; gap: 10px; flex: none;
+    min-height: 42px; padding: 6px 14px;
+    border-bottom: 1px solid var(--sc-border);
+    background: var(--sc-bg);
+}
+.breadcrumbs { display: flex; align-items: center; gap: 6px; min-width: 0; font-size: 12.5px; color: var(--sc-fg-dim); }
+.crumb { color: var(--sc-fg-dim); text-decoration: none; white-space: nowrap; }
+.crumb:hover { color: var(--sc-fg); }
+.crumb.current { color: var(--sc-fg); font-weight: 600; white-space: nowrap; }
+.crumb-sep { color: var(--sc-fg-dim); opacity: .65; }
+.nav-pill { display: inline-flex; align-items: center; gap: 5px; font-size: 12px; color: var(--sc-fg-dim); border: 1px solid var(--sc-border); border-radius: 999px; padding: 3px 8px; }
+.nav-pill .dot { width: 7px; height: 7px; border-radius: 50%; display: inline-block; }
+.nav-pill .dot.running { background: var(--sc-green); }
+.nav-pill .dot.waiting { background: var(--sc-purple); }
+.cmdk-open { display: inline-flex; align-items: center; gap: 7px; border: 1px solid var(--sc-border); border-radius: 7px; background: var(--sc-bg-2); color: var(--sc-fg-dim); padding: 5px 8px; cursor: pointer; }
+.cmdk-open:hover { color: var(--sc-fg); border-color: var(--sc-accent); }
+.kbd { font-size: 10.5px; border: 1px solid var(--sc-border); border-bottom-width: 2px; border-radius: 4px; padding: 1px 4px; }
+@media (min-width: 861px) {
+    .shell.focus-mode .sidebar { display: none; }
+    .shell.focus-mode .content { width: 100%; }
+}
+.focus-toggle[aria-pressed="true"] { color: var(--sc-accent); background: var(--sc-accent-soft); }
+
+/* SPEC-179: foundation routes (/extensions, /factories). */
+.foundation-page { max-width: 980px; padding: 28px; margin: 0 auto; }
+.foundation-head h1 { margin: 0 0 8px; font-size: 24px; }
+.foundation-head p { margin: 0 0 22px; color: var(--sc-fg-dim); }
+.foundation-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 14px; }
+.foundation-card { display: flex; flex-direction: column; gap: 8px; min-height: 118px; padding: 16px; border: 1px solid var(--sc-border); border-radius: var(--sc-radius); background: var(--sc-bg-2); color: var(--sc-fg); text-decoration: none; }
+.foundation-card:hover { border-color: var(--sc-accent); text-decoration: none; }
+.foundation-card span { color: var(--sc-fg-dim); font-size: 13px; line-height: 1.45; }
+
+@media (max-width: 860px) {
+    .desktop-topbar { display: none; }
+    .foundation-page { padding: 18px; }
+}
+.conv-cost { flex: none; color: var(--sc-fg-dim); font-size: 10.5px; font-variant-numeric: tabular-nums; }

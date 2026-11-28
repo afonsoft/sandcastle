@@ -105,6 +105,8 @@ public sealed class ConversationItem
     public IReadOnlyList<string> Repositories { get; init; } = [];
     /// <summary>SPEC-146: PRs por repo (null/empty = nenhum).</summary>
     public IReadOnlyList<PullRequestItem> PullRequests { get; init; } = [];
+    /// <summary>SPEC-179: custo agregado exibido na lista de sessões.</summary>
+    public decimal? CostUsd { get; init; }
     public DateTimeOffset CreatedAt { get; init; }
     public DateTimeOffset UpdatedAt { get; init; }
 }
