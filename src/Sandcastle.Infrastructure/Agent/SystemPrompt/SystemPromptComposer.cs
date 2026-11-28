@@ -5,22 +5,32 @@ using Sandcastle.Application.Agent;
 namespace Sandcastle.Infrastructure.Agent.SystemPrompt;
 
 /// <summary>
-/// Ordered, failure-tolerant composer (SPEC-90 RF-004): runs
-/// <see cref="IAgentPromptContributor"/>s in ascending
-/// <see cref="IAgentPromptContributor.Order"/>, concatenates non-empty
-/// sections with a blank line and tolerates a throwing contributor —
-/// the failed section is omitted, a warning is logged and the rest of
-/// the prompt still builds.
+/// Concatenates sections from <see cref="IAgentPromptContributor"/>s in
+/// ascending <see cref="IAgentPromptContributor.Order"/> (SPEC-90 RF-001).
+/// A throwing contributor is tolerated (warning logged, section omitted) —
+/// see SPEC-90 NFR-002. SPEC-194 RF-001 groups cache-stable sections before
+/// run-dependent sections so providers can reuse a stable prompt prefix.
 /// </summary>
 public sealed class SystemPromptComposer(
     IEnumerable<IAgentPromptContributor> contributors,
     ILogger<SystemPromptComposer> logger)
 {
-    /// <summary>Builds the full system prompt for <paramref name="ctx"/>.</summary>
     public async Task<string> ComposeAsync(AgentPromptContext ctx)
+        => (await ComposeDetailedAsync(ctx)).Text;
+
+    /// <summary>
+    /// SPEC-194 RF-002: composes the prompt and returns per-section cache
+    /// metadata for diagnostics/events. Provider wire behavior is unchanged;
+    /// only ordering and diagnostics are introduced here.
+    /// </summary>
+    public async Task<PromptComposition> ComposeDetailedAsync(AgentPromptContext ctx)
     {
-        var sections = new List<string>();
-        foreach (var contributor in contributors.OrderBy(c => c.Order))
+        var sections = new List<(string Text, PromptSectionInfo Info)>();
+        var ordered = contributors
+            .OrderBy(c => c.CacheTier)
+            .ThenBy(c => c.Order);
+
+        foreach (var contributor in ordered)
         {
             IReadOnlyList<string> contributed;
             try
@@ -35,13 +45,30 @@ public sealed class SystemPromptComposer(
                 continue;
             }
 
-            sections.AddRange(contributed
+            foreach (var section in contributed
                 .Where(s => !string.IsNullOrWhiteSpace(s))
-                .Select(s => s.TrimEnd()));
+                .Select(s => s.TrimEnd()))
+            {
+                sections.Add((section, new PromptSectionInfo(
+                    contributor.GetType().Name,
+                    contributor.Order,
+                    contributor.CacheTier,
+                    section.Length)));
+            }
         }
 
-        return sections.Count == 0
-            ? string.Empty
-            : string.Join("\n\n", sections) + "\n";
+        if (sections.Count == 0)
+        {
+            return new PromptComposition(string.Empty, [], 0, 0);
+        }
+
+        var text = string.Join("\n\n", sections.Select(s => s.Text)) + "\n";
+        return new PromptComposition(
+            text,
+            sections.Select(s => s.Info).ToList(),
+            sections.Where(s => s.Info.Tier == PromptCacheTier.Static)
+                .Sum(s => s.Info.Chars),
+            sections.Where(s => s.Info.Tier == PromptCacheTier.Dynamic)
+                .Sum(s => s.Info.Chars));
     }
 }

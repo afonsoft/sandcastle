@@ -22,8 +22,14 @@ public sealed class AgentPromptContext
     /// <summary>Tool schemas enabled for this run.</summary>
     public required IReadOnlyList<ToolSchema> Tools { get; init; }
 
-    /// <summary>Skills resolved for the conversation (db + repo).</summary>
+    /// <summary>Skills resolved for full injection in the conversation (db + repo).</summary>
     public IReadOnlyList<Domain.Skills.Skill>? Skills { get; init; }
+
+    /// <summary>
+    /// SPEC-194 RF-004: non-injected visible skills advertised only as
+    /// name/description for progressive disclosure via <c>invoke_skill</c>.
+    /// </summary>
+    public IReadOnlyList<Domain.Skills.Skill>? SkillCatalog { get; init; }
 
     /// <summary>
     /// SPEC-157 RF-004: context files anexados do workspace —
@@ -104,6 +110,27 @@ public sealed class AgentPromptContext
             ?? Task.FromResult(string.Empty);
 }
 
+/// <summary>SPEC-194 RF-001: cache stability tier of a prompt contributor.</summary>
+public enum PromptCacheTier
+{
+    /// <summary>Stable across turns; safe in a cacheable prefix.</summary>
+    Static = 0,
+
+    /// <summary>Request/run-dependent content; emitted after static sections.</summary>
+    Dynamic = 1,
+}
+
+/// <summary>Composition metadata for one emitted prompt section.</summary>
+public sealed record PromptSectionInfo(
+    string Contributor, int Order, PromptCacheTier Tier, int Chars);
+
+/// <summary>Composed prompt plus cache-tier diagnostics.</summary>
+public sealed record PromptComposition(
+    string Text,
+    IReadOnlyList<PromptSectionInfo> Sections,
+    int StaticChars,
+    int DynamicChars);
+
 /// <summary>
 /// Contributor of one system-prompt section (SPEC-90 RF-001): the old
 /// static <c>SystemPromptBuilder</c> blocks became contributors with a
@@ -114,8 +141,11 @@ public sealed class AgentPromptContext
 /// </summary>
 public interface IAgentPromptContributor
 {
-    /// <summary>Position in the concatenation (lower first).</summary>
+    /// <summary>Position in the concatenation (lower first, within its cache tier).</summary>
     int Order { get; }
+
+    /// <summary>SPEC-194 RF-001: cache stability tier; static by default.</summary>
+    PromptCacheTier CacheTier => PromptCacheTier.Static;
 
     /// <summary>
     /// Produces the contributor's prompt sections (0..N strings, kept in

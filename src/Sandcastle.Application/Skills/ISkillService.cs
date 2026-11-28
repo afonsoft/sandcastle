@@ -34,7 +34,8 @@ public interface ISkillService
     /// </summary>
     Task<IReadOnlyList<Skill>> ResolveForConversationAsync(
         Guid conversationId, string? message, string? taskTag,
-        string? ownerId, string? orgId, CancellationToken ct);
+        string? ownerId, string? orgId, CancellationToken ct,
+        IReadOnlyList<string>? paths = null);
 }
 
 /// <summary>Mutable fields of a skill.</summary>

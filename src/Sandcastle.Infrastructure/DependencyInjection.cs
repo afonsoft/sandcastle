@@ -788,6 +788,10 @@ public static class DependencyInjection
         services.AddSingleton<
             Sandcastle.Application.Agent.IAgentPromptContributor,
             Sandcastle.Infrastructure.Agent.SystemPrompt
+                .SkillCatalogContributor>();
+        services.AddSingleton<
+            Sandcastle.Application.Agent.IAgentPromptContributor,
+            Sandcastle.Infrastructure.Agent.SystemPrompt
                 .SkillsContributor>();
         services.AddSingleton<
             Sandcastle.Application.Agent.IAgentPromptContributor,
