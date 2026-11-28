@@ -25,7 +25,7 @@ public class Spec179NavigationShellTests : BunitContext
         L10nStub.Register(this);
         var toasts = new ToastService();
         Services.AddSingleton(toasts);
-        var api = new SandcastleApiClient(new HttpClient
+        var api = new SandcastleApiClient(new HttpClient(new RoutingApiHandler())
         {
             BaseAddress = new Uri("http://localhost:8080"),
         });
@@ -110,8 +110,9 @@ public class Spec179NavigationShellTests : BunitContext
     public void Foundation_Routes_Render_Product_Entrypoints()
     {
         var extensions = Render<ExtensionsPage>();
-        extensions.Find("a.foundation-card[href='/settings/mcp']")
-            .ShouldNotBeNull();
+        extensions.WaitForAssertion(() =>
+            extensions.Find("a.foundation-card[href='/settings/mcp']")
+                .ShouldNotBeNull());
         extensions.Find("a.foundation-card[href='/marketplace']")
             .ShouldNotBeNull();
 
@@ -136,6 +137,25 @@ public class Spec179NavigationShellTests : BunitContext
             cut.Find("a.sb-item[href='/conversations/abc-def'] .dot")
                 .ClassList.ShouldContain("attention-confirmation"));
         cut.Find(".conv-cost").TextContent.Trim().ShouldBe("$0.01");
+    }
+
+    private sealed class RoutingApiHandler : HttpMessageHandler
+    {
+        protected override Task<HttpResponseMessage> SendAsync(
+            HttpRequestMessage request, CancellationToken cancellationToken)
+        {
+            var json = request.RequestUri!.AbsolutePath switch
+            {
+                "/api/v1/extensions/summary" => """{"mcp_servers":1,"marketplace_installed":2,"plugins":0,"enabled_plugins":0,"scm_connections":1,"ticket_connections":1}""",
+                "/api/v1/plugins" => "[]",
+                _ => "null",
+            };
+            return Task.FromResult(new HttpResponseMessage(System.Net.HttpStatusCode.OK)
+            {
+                Content = new StringContent(json, System.Text.Encoding.UTF8,
+                    "application/json"),
+            });
+        }
     }
 
     private sealed class StaticJsonHandler(string json) : HttpMessageHandler

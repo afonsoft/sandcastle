@@ -10,6 +10,7 @@ using Octokit;
 
 using Sandcastle.Application.Contracts;
 using Sandcastle.Application.Scm;
+using Sandcastle.Infrastructure.Agent;
 
 namespace Sandcastle.Infrastructure.Scm;
 
@@ -105,6 +106,78 @@ public sealed class GitHubScmProvider(
         {
             return null;
         }
+    }
+
+    /// <inheritdoc />
+    public async Task<IReadOnlyList<ScmPullRequestListItem>> ListPullRequestsAsync(
+        ScmConnection connection, string repository, string state,
+        int limit, CancellationToken ct)
+    {
+        var (owner, name) = SplitRepo(repository);
+        var client = await clients.ForConnectionAsync(connection, ct);
+        var request = new PullRequestRequest
+        {
+            State = state.ToLowerInvariant() switch
+            {
+                "closed" => ItemStateFilter.Closed,
+                "all" => ItemStateFilter.All,
+                _ => ItemStateFilter.Open,
+            },
+            SortProperty = PullRequestSort.Updated,
+            SortDirection = SortDirection.Descending,
+        };
+        var options = new ApiOptions
+        {
+            PageCount = 1,
+            PageSize = Math.Clamp(limit, 1, 100),
+        };
+        var prs = await client.PullRequest.GetAllForRepository(
+            owner, name, request, options);
+        return prs.Select(p => new ScmPullRequestListItem(
+            p.HtmlUrl, p.Number, p.State.StringValue, p.Title,
+            p.User?.Login, p.Draft, p.Head.Ref, p.Base.Ref,
+            p.UpdatedAt)).ToList();
+    }
+
+    /// <inheritdoc />
+    public async Task<ScmPullRequestDetails?> GetPullRequestDetailsAsync(
+        ScmConnection connection, string repository, int number,
+        CancellationToken ct)
+    {
+        var (owner, name) = SplitRepo(repository);
+        var client = await clients.ForConnectionAsync(connection, ct);
+        PullRequest pr;
+        try
+        {
+            pr = await client.PullRequest.Get(owner, name, number);
+        }
+        catch (NotFoundException)
+        {
+            return null;
+        }
+
+        var checks = await GetCheckRunsAsync(
+            connection, repository, pr.Head.Sha, ct);
+        var reviews = await client.PullRequest.Review.GetAll(
+            owner, name, number);
+        static string Excerpt(string? body)
+        {
+            var redacted = SecretRedactor.Redact(body ?? "");
+            return redacted.Length <= 1_200
+                ? redacted : redacted[..1_200] + "\n[truncated]";
+        }
+        return new ScmPullRequestDetails(
+            pr.HtmlUrl, pr.Number, pr.State.StringValue, pr.Merged,
+            pr.Title, pr.User?.Login, pr.Draft, pr.Head.Sha,
+            pr.Head.Ref, pr.Base.Ref, Excerpt(pr.Body),
+            pr.ChangedFiles, pr.Additions, pr.Deletions,
+            checks.Count,
+            checks.Count(c => c.Conclusion is "success" or "neutral" or "skipped"),
+            checks.Count(c => c.Conclusion is "failure" or "timed_out" or "action_required" or "cancelled"),
+            checks.Count(c => c.Conclusion is null),
+            reviews.Count(r => r.State.StringValue.Equals("approved", StringComparison.OrdinalIgnoreCase)),
+            reviews.Count(r => r.State.StringValue.Equals("changes_requested", StringComparison.OrdinalIgnoreCase)),
+            pr.UpdatedAt);
     }
 
     /// <inheritdoc />

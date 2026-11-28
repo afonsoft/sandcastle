@@ -56,6 +56,7 @@ public static class ToolActivityMap
             _ when Contains(name, "file_list", "file_grep", "file_glob",
                 "grep", "glob", "find", "lsp_", "worktree_diff",
                 "tool_search", "agent_catalog") => "chat.activity.search_code",
+            _ when name.StartsWith("github_", StringComparison.Ordinal) => "chat.activity.github_pr",
             _ when Contains(name, "pull_request", "git") => "chat.activity.git",
             _ when Contains(name, "plan", "spec") => "chat.activity.plan",
             _ when Contains(name, "ask_user", "question") => "chat.activity.question",

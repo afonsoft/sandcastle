@@ -228,6 +228,42 @@ public sealed record ScmPullRequestFile(
     int Deletions,
     string? Patch);
 
+/// <summary>SPEC-191: resumo de PR em listagem agent-readable.</summary>
+public sealed record ScmPullRequestListItem(
+    string Url,
+    int Number,
+    string State,
+    string Title,
+    string? Author,
+    bool Draft,
+    string HeadRef,
+    string BaseRef,
+    DateTimeOffset? UpdatedAt);
+
+/// <summary>SPEC-191: visão detalhada e redigida de um PR.</summary>
+public sealed record ScmPullRequestDetails(
+    string Url,
+    int Number,
+    string State,
+    bool Merged,
+    string Title,
+    string? Author,
+    bool Draft,
+    string HeadSha,
+    string HeadRef,
+    string BaseRef,
+    string BodyExcerpt,
+    int ChangedFiles,
+    int Additions,
+    int Deletions,
+    int ChecksTotal,
+    int ChecksPassing,
+    int ChecksFailing,
+    int ChecksPending,
+    int ReviewsApproved,
+    int ReviewsChangesRequested,
+    DateTimeOffset? UpdatedAt);
+
 /// <summary>
 /// SPEC-140 RF-003: comentário inline ancorado numa linha do lado novo
 /// (<c>RIGHT</c>) do diff — <see cref="Line"/> é o número de linha do
@@ -316,6 +352,25 @@ public interface IScmProvider
     /// </summary>
     Task<ScmConnectionDiagnostic> TestConnectionAsync(
         ScmConnection connection, CancellationToken ct);
+
+    /// <summary>
+    /// SPEC-191 RF-001: lista PRs do repositório com filtro de estado
+    /// (<c>open</c>/<c>closed</c>/<c>all</c>) e limite bounded. Providers sem
+    /// suporte lançam <see cref="NotSupportedException"/>.
+    /// </summary>
+    Task<IReadOnlyList<ScmPullRequestListItem>> ListPullRequestsAsync(
+        ScmConnection connection, string repository, string state,
+        int limit, CancellationToken ct) =>
+        throw new NotSupportedException();
+
+    /// <summary>
+    /// SPEC-191 RF-002: detalhes do PR incluindo excerpt do body, checks e
+    /// agregados de review. Null = não encontrado.
+    /// </summary>
+    Task<ScmPullRequestDetails?> GetPullRequestDetailsAsync(
+        ScmConnection connection, string repository, int number,
+        CancellationToken ct) =>
+        throw new NotSupportedException();
 
     /// <summary>
     /// SPEC-140 RF-002: lista os arquivos alterados no PR com patch

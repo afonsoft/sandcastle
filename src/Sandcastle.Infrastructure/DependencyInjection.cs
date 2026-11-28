@@ -161,6 +161,8 @@ public static class DependencyInjection
             Sandcastle.Application.Scm.IScmPullRequestService,
             Sandcastle.Infrastructure.Scm.ScmPullRequestService>();
         services.AddScoped<
+            Sandcastle.Infrastructure.Scm.ScmAgentPullRequestService>();
+        services.AddScoped<
             Sandcastle.Application.Scm.IScmStatusReporter,
             Sandcastle.Infrastructure.Scm.ScmStatusReporter>();
         services.AddScoped<

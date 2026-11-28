@@ -1278,5 +1278,6 @@
   "lifecycle.job": "Job",
   "lifecycle.details": "Detalhes",
   "lifecycle.created": "Criado",
-  "lifecycle.invite": "Convidar"
+  "lifecycle.invite": "Convidar",
+  "chat.activity.github_pr": "Inspecionando pull request do GitHub"
 }
