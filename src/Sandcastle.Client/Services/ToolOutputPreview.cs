@@ -27,19 +27,41 @@ public static class ToolOutputPreview
         if (observation.ValueKind == JsonValueKind.String)
             return Preview(observation.GetString() ?? "", 2, 160);
         if (observation.ValueKind != JsonValueKind.Object) return null;
-        var parts = new List<string>();
-        if (observation.TryGetProperty("count", out var count)
-            && count.ValueKind == JsonValueKind.Number) parts.Add($"{count.GetInt32()} items");
-        if (observation.TryGetProperty("pages_read", out var pages)
-            && pages.ValueKind == JsonValueKind.Number) parts.Add($"{pages.GetInt32()} pages");
-        if (observation.TryGetProperty("rows_returned", out var rows)
-            && rows.ValueKind == JsonValueKind.Number) parts.Add($"{rows.GetInt32()} rows");
+        var parts = MetricParts(observation).Concat(PathParts(observation)).ToList();
+        return parts.Count > 0
+            ? string.Join(" · ", parts.Take(3))
+            : EmbeddedPreview(observation);
+    }
+
+    private static IEnumerable<string> MetricParts(JsonElement observation)
+    {
+        foreach (var (field, label) in new[]
+        {
+            ("count", "items"), ("pages_read", "pages"), ("rows_returned", "rows"),
+        })
+        {
+            if (observation.TryGetProperty(field, out var value)
+                && value.ValueKind == JsonValueKind.Number)
+            {
+                yield return $"{value.GetInt32()} {label}";
+            }
+        }
+    }
+
+    private static IEnumerable<string> PathParts(JsonElement observation)
+    {
         foreach (var field in new[] { "path", "archive", "job_id", "key" })
         {
-            if (observation.TryGetProperty(field, out var p)
-                && p.ValueKind == JsonValueKind.String) parts.Add(p.GetString()!);
+            if (observation.TryGetProperty(field, out var value)
+                && value.ValueKind == JsonValueKind.String)
+            {
+                yield return value.GetString()!;
+            }
         }
-        if (parts.Count > 0) return string.Join(" · ", parts.Take(3));
+    }
+
+    private static string? EmbeddedPreview(JsonElement observation)
+    {
         foreach (var field in new[] { "output", "diff", "patch", "text" })
         {
             if (observation.TryGetProperty(field, out var output)
