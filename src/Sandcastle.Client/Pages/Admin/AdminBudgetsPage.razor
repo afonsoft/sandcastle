@@ -1,0 +1,38 @@
+@page "/admin/budgets"
+@using System.Text.Json
+@inherits AdminPageBase
+
+<PageTitle>@L["admin.title"] · @L["admin.nav_budgets"]</PageTitle>
+
+@if (Checking || !Allowed)
+{
+    <div class="settings-wrap"><p class="empty-state">…</p></div>
+}
+else
+{
+    <div class="settings-wrap admin-wrap">
+        <h1>@L["budgets.title"]</h1>
+        <AdminNav />
+        @if (Error is not null) { <p class="admin-error">@Error</p> }
+        <p>@L["budgets.subtitle"]</p>
+        <button @onclick="LoadAsync">@L["admin.refresh"]</button>
+        <table class="table responsive-table">
+            <thead><tr><th>@L["budgets.org"]</th><th>@L["budgets.plan"]</th><th>@L["analytics.tokens"]</th><th>@L["budgets.limit"]</th><th>@L["analytics.cost"]</th><th>@L["runtime.health"]</th><th>@L["runtime.alerts"]</th></tr></thead>
+            <tbody>
+            @foreach (var row in _rows)
+            {
+                <tr>
+                    <td>@Str(row, "org_name")</td><td>@Str(row, "plan_name")</td><td>@Num(row, "tokens_used")</td><td>@Num(row, "token_limit")</td><td>$@Num(row, "cost_usd")</td><td>@Str(row, "level")</td><td>@Str(row, "alert")</td>
+                </tr>
+            }
+            </tbody>
+        </table>
+    </div>
+}
+
+@code {
+    private IReadOnlyList<JsonElement> _rows = [];
+    protected override async Task LoadAsync() => _rows = await Api.GetOperationalBudgetsAsync();
+    private static string? Str(JsonElement el, string name) => el.TryGetProperty(name, out var v) && v.ValueKind != JsonValueKind.Null ? v.ToString() : null;
+    private static string Num(JsonElement el, string name) => el.TryGetProperty(name, out var v) && v.ValueKind != JsonValueKind.Null ? v.ToString() : "—";
+}
