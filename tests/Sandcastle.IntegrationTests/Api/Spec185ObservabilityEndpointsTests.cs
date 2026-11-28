@@ -1,13 +1,16 @@
 using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json;
+
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
+
 using Sandcastle.Infrastructure.Conversations;
 using Sandcastle.Infrastructure.Eventing;
 using Sandcastle.Infrastructure.Persistence;
+
 using Shouldly;
 
 namespace Sandcastle.IntegrationTests.Api;
@@ -45,13 +48,19 @@ public sealed class Spec185ObservabilityEndpointsTests : IDisposable
             var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
             db.Conversations.Add(new ConversationRecord
             {
-                Id = conversationId, Title = "trace run", ExecutionStatus = "Running",
-                CreatedByUserId = Guid.NewGuid().ToString(), CreatedAt = DateTimeOffset.UtcNow,
+                Id = conversationId,
+                Title = "trace run",
+                ExecutionStatus = "Running",
+                CreatedByUserId = Guid.NewGuid().ToString(),
+                CreatedAt = DateTimeOffset.UtcNow,
                 UpdatedAt = DateTimeOffset.UtcNow,
             });
             db.Events.Add(new EventRecord
             {
-                Id = "obs-1", ConversationId = conversationId, Kind = "TokenEvent", Source = "agent",
+                Id = "obs-1",
+                ConversationId = conversationId,
+                Kind = "TokenEvent",
+                Source = "agent",
                 TimestampTicks = DateTimeOffset.UtcNow.UtcTicks,
                 Payload = """{"kind":"TokenEvent","model":"gpt-5","prompt_tokens":4,"completion_tokens":3,"cost_usd":0.01,"latency_ms":50}""",
             });

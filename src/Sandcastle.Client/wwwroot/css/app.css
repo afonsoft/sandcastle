@@ -1433,3 +1433,5 @@ a.chip.mention { text-decoration: none; }
 .series-track { background: var(--panel-border, #333); border-radius: .4rem; height: .6rem; overflow: hidden; }
 .series-bar { background: var(--accent, #6aa9ff); border-radius: .4rem; height: 100%; }
 .trace-error .series-bar { background: #d95f5f; }
+.analytics-page { max-width: 76rem; }
+.trace-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }

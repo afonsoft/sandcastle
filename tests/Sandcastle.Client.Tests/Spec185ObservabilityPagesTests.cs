@@ -1,10 +1,14 @@
 using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json;
+
 using Bunit;
+
 using Microsoft.Extensions.DependencyInjection;
+
 using Sandcastle.Client.Pages.Admin;
 using Sandcastle.Client.Services;
+
 using Shouldly;
 
 namespace Sandcastle.Client.Tests;
@@ -30,12 +34,16 @@ public sealed class Spec185ObservabilityPagesTests : BunitContext
             {
                 series = new[] { new { date = "2026-11-28", tokens = 15, cost_usd = .01, runs = 1, errors = 0 } },
                 models = new[] { new { model = "gpt-5", provider = "unknown", tokens = 15, cost_usd = .01, runs = 1, average_latency_ms = 120, errors = 0 } },
-                total_tokens = 15, total_cost_usd = .01, total_runs = 1, total_errors = 0,
+                total_tokens = 15,
+                total_cost_usd = .01,
+                total_runs = 1,
+                total_errors = 0,
             });
             if (url.Contains("analytics/rankings")) return Json(new[] { new { id = "c", label = "run", tokens = 15, cost_usd = .01, runs = 1, errors = 0 } });
             if (url.Contains("admin/budgets")) return Json(new[] { new { org_id = Guid.NewGuid(), org_name = "Org", plan_name = "pro", tokens_used = 90, token_limit = 100, cost_usd = 2, used_percent = .9, level = "warning", enforcement_enabled = true, alert = "token budget 90%" } });
             return Json(new { });
-        })) { BaseAddress = new Uri("http://localhost:8080") };
+        }))
+        { BaseAddress = new Uri("http://localhost:8080") };
         var api = new AdminApiClient(http);
         Services.AddSingleton(api);
         Services.AddSingleton(new AdminState(api));

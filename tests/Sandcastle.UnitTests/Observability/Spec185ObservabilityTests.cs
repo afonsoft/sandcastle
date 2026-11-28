@@ -1,6 +1,7 @@
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
+
 using Sandcastle.Application.Identity;
 using Sandcastle.Application.Observability;
 using Sandcastle.Domain.Identity;
@@ -9,6 +10,7 @@ using Sandcastle.Infrastructure.Eventing;
 using Sandcastle.Infrastructure.Identity;
 using Sandcastle.Infrastructure.Observability;
 using Sandcastle.Infrastructure.Persistence;
+
 using Shouldly;
 
 namespace Sandcastle.UnitTests.Observability;
@@ -34,19 +36,30 @@ public sealed class Spec185ObservabilityTests
         var conversationId = Guid.NewGuid();
         db.Conversations.Add(new ConversationRecord
         {
-            Id = conversationId, Title = "run", CreatedByUserId = userId.ToString(),
-            ExecutionStatus = "Running", CreatedAt = DateTimeOffset.UtcNow,
+            Id = conversationId,
+            Title = "run",
+            CreatedByUserId = userId.ToString(),
+            ExecutionStatus = "Running",
+            CreatedAt = DateTimeOffset.UtcNow,
             UpdatedAt = DateTimeOffset.UtcNow,
         });
         db.Events.Add(new EventRecord
         {
-            Id = "e1", ConversationId = conversationId, Kind = "TokenEvent", Source = "agent",
-            TimestampTicks = DateTimeOffset.UtcNow.UtcTicks, Payload = """{"kind":"TokenEvent","model":"gpt-5","prompt_tokens":10,"completion_tokens":5,"cost_usd":0.01,"latency_ms":120}""",
+            Id = "e1",
+            ConversationId = conversationId,
+            Kind = "TokenEvent",
+            Source = "agent",
+            TimestampTicks = DateTimeOffset.UtcNow.UtcTicks,
+            Payload = """{"kind":"TokenEvent","model":"gpt-5","prompt_tokens":10,"completion_tokens":5,"cost_usd":0.01,"latency_ms":120}""",
         });
         db.Events.Add(new EventRecord
         {
-            Id = "e2", ConversationId = conversationId, Kind = "ActionEvent", Source = "agent",
-            TimestampTicks = DateTimeOffset.UtcNow.UtcTicks, Payload = """{"kind":"ActionEvent","tool_name":"shell","tool_call_id":"call1"}""",
+            Id = "e2",
+            ConversationId = conversationId,
+            Kind = "ActionEvent",
+            Source = "agent",
+            TimestampTicks = DateTimeOffset.UtcNow.UtcTicks,
+            Payload = """{"kind":"ActionEvent","tool_name":"shell","tool_call_id":"call1"}""",
         });
         await db.SaveChangesAsync();
         var svc = new ObservabilityAnalyticsService(db, new FakePlans(),
