@@ -223,6 +223,5 @@ aprovadas em 2026-11-27 — Epic #552.
 | 186 | collaboration-workspace | Approved | #560 · Epic #552 |
 | 187 | extensions-integrations-hub | Approved | #561 · Epic #552 |
 | 188 | chat-ux-cloud-parity | Approved | #562 · Epic #552 |
-| 191 | agent-github-pr-tools | Approved | #592 · Epic #591 |
 | 192 | rich-document-reader-tools | Approved | #593 · Epic #591 |
 | 193 | run-cognition-activity-ux | Approved | #594 · Epic #591 |
