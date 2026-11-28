@@ -1616,6 +1616,142 @@ namespace Sandcastle.Infrastructure.Persistence.Migrations
                     b.ToTable("plugins", (string)null);
                 });
 
+            modelBuilder.Entity("Sandcastle.Infrastructure.Knowledge.KnowledgeChunkRecord", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("TEXT")
+                        .HasColumnName("id");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("TEXT")
+                        .HasColumnName("created_at");
+
+                    b.Property<Guid>("DocumentId")
+                        .HasColumnType("TEXT")
+                        .HasColumnName("document_id");
+
+                    b.Property<string>("EmbeddingJson")
+                        .HasColumnType("TEXT")
+                        .HasColumnName("embedding_json");
+
+                    b.Property<int>("Ordinal")
+                        .HasColumnType("INTEGER")
+                        .HasColumnName("ordinal");
+
+                    b.Property<string>("Text")
+                        .IsRequired()
+                        .HasColumnType("TEXT")
+                        .HasColumnName("text");
+
+                    b.HasKey("Id")
+                        .HasName("pk_knowledge_chunks");
+
+                    b.HasIndex("DocumentId", "Ordinal")
+                        .HasDatabaseName("ix_knowledge_chunks_document_id_ordinal");
+
+                    b.ToTable("knowledge_chunks", (string)null);
+                });
+
+            modelBuilder.Entity("Sandcastle.Infrastructure.Knowledge.KnowledgeCollectionRecord", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("TEXT")
+                        .HasColumnName("id");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("TEXT")
+                        .HasColumnName("created_at");
+
+                    b.Property<string>("Description")
+                        .HasColumnType("TEXT")
+                        .HasColumnName("description");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("TEXT")
+                        .HasColumnName("name");
+
+                    b.Property<Guid?>("OrgId")
+                        .HasColumnType("TEXT")
+                        .HasColumnName("org_id");
+
+                    b.Property<string>("OwnerUserId")
+                        .IsRequired()
+                        .HasColumnType("TEXT")
+                        .HasColumnName("owner_user_id");
+
+                    b.Property<string>("RepoPath")
+                        .HasColumnType("TEXT")
+                        .HasColumnName("repo_path");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("TEXT")
+                        .HasColumnName("updated_at");
+
+                    b.HasKey("Id")
+                        .HasName("pk_knowledge_collections");
+
+                    b.HasIndex("OrgId")
+                        .HasDatabaseName("ix_knowledge_collections_org_id");
+
+                    b.HasIndex("OwnerUserId")
+                        .HasDatabaseName("ix_knowledge_collections_owner_user_id");
+
+                    b.ToTable("knowledge_collections", (string)null);
+                });
+
+            modelBuilder.Entity("Sandcastle.Infrastructure.Knowledge.KnowledgeDocumentRecord", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("TEXT")
+                        .HasColumnName("id");
+
+                    b.Property<int>("ChunkCount")
+                        .HasColumnType("INTEGER")
+                        .HasColumnName("chunk_count");
+
+                    b.Property<Guid>("CollectionId")
+                        .HasColumnType("TEXT")
+                        .HasColumnName("collection_id");
+
+                    b.Property<string>("ContentHash")
+                        .IsRequired()
+                        .HasColumnType("TEXT")
+                        .HasColumnName("content_hash");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("TEXT")
+                        .HasColumnName("created_at");
+
+                    b.Property<string>("LineageJson")
+                        .IsRequired()
+                        .HasColumnType("TEXT")
+                        .HasColumnName("lineage_json");
+
+                    b.Property<string>("SourceUri")
+                        .IsRequired()
+                        .HasColumnType("TEXT")
+                        .HasColumnName("source_uri");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasMaxLength(240)
+                        .HasColumnType("TEXT")
+                        .HasColumnName("title");
+
+                    b.HasKey("Id")
+                        .HasName("pk_knowledge_documents");
+
+                    b.HasIndex("CollectionId")
+                        .HasDatabaseName("ix_knowledge_documents_collection_id");
+
+                    b.ToTable("knowledge_documents", (string)null);
+                });
+
             modelBuilder.Entity("Sandcastle.Infrastructure.Knowledge.KnowledgeSuggestionRecord", b =>
                 {
                     b.Property<Guid>("Id")
