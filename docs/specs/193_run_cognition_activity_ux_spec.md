@@ -8,8 +8,8 @@
 | Type | `Feature` |
 | Stack | `.NET 10 · ASP.NET Core · Blazor WASM` |
 | Repository | `afonsoft/sandcastle` |
-| Status | `Approved` |
-| Ticket | #594 · Epic #591 |
+| Status | `Completed` |
+| Ticket | #594 · PR #600 · Epic #591 |
 | Source analysis | `docs/research/2026-11-openwebui-chat-main-comparison.md` |
 
 ## 1. Problem
