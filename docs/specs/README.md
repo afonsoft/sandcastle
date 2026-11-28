@@ -219,3 +219,4 @@ Arquivado em 2026-10-19 pela SPEC-65 (gap-analysis).
 | SPEC | Título | Entrega |
 |---|---|---|
 | 191 | agent-github-pr-tools — list/view/diff/comment de PRs no loop do agente | PR #596 · #592 |
+| 192 | rich-document-reader-tools — leitores bounded PDF/archive/SQLite no agente | PR #598 · #593 |
