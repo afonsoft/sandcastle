@@ -45,6 +45,13 @@ public sealed class Spec193ActivityUxTests : BunitContext
     }
 
     [Fact]
+    public void Structured_summary_combines_bounded_path_fields()
+    {
+        using var doc = JsonDocument.Parse("""{"archive":"bundle.tar","job_id":"job-1","key":"alpha"}""");
+        ToolOutputPreview.Summary(doc.RootElement).ShouldBe("bundle.tar · job-1 · alpha");
+    }
+
+    [Fact]
     public void Activity_map_humanizes_cognition_tools_with_targets()
     {
         ToolActivityMap.Map("goal", "{\"objective\":\"Ship parity\"}")
