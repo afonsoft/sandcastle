@@ -1559,6 +1559,72 @@ namespace Sandcastle.Infrastructure.Persistence.Migrations.Postgres
                     b.ToTable("events", (string)null);
                 });
 
+            modelBuilder.Entity("Sandcastle.Infrastructure.Extensions.PluginRecord", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<bool>("Enabled")
+                        .HasColumnType("boolean")
+                        .HasColumnName("enabled");
+
+                    b.Property<string>("ManifestJson")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("manifest_json");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(160)
+                        .HasColumnType("character varying(160)")
+                        .HasColumnName("name");
+
+                    b.Property<Guid?>("OrgId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("org_id");
+
+                    b.Property<string>("OwnerUserId")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("owner_user_id");
+
+                    b.Property<string>("PermissionsJson")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("permissions_json");
+
+                    b.Property<string>("RollbackVersion")
+                        .HasColumnType("text")
+                        .HasColumnName("rollback_version");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.Property<string>("Version")
+                        .IsRequired()
+                        .HasMaxLength(40)
+                        .HasColumnType("character varying(40)")
+                        .HasColumnName("version");
+
+                    b.HasKey("Id")
+                        .HasName("pk_plugins");
+
+                    b.HasIndex("OrgId")
+                        .HasDatabaseName("ix_plugins_org_id");
+
+                    b.HasIndex("OwnerUserId")
+                        .HasDatabaseName("ix_plugins_owner_user_id");
+
+                    b.ToTable("plugins", (string)null);
+                });
+
             modelBuilder.Entity("Sandcastle.Infrastructure.Knowledge.KnowledgeSuggestionRecord", b =>
                 {
                     b.Property<Guid>("Id")
