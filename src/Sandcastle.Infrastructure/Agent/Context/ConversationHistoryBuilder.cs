@@ -60,7 +60,8 @@ public sealed class ConversationHistoryBuilder(IServiceProvider services)
         {
             lastId = await AppendSystemPromptAsync(events, conversationId,
                 conv, tools, new(all, lastId, history, ids),
-                activeSkills, skillResolution.Loaded, agentProfile, ct);
+                activeSkills, skillResolution.Catalog, skillResolution.Loaded,
+                agentProfile, ct);
         }
 
         if (lastSummary is { Summary: { } summary })
@@ -156,6 +157,7 @@ public sealed class ConversationHistoryBuilder(IServiceProvider services)
 
     private sealed record SkillResolution(
         IReadOnlyList<Domain.Skills.Skill> Skills,
+        IReadOnlyList<Domain.Skills.Skill> Catalog,
         Discovery.RepoContextLoader.LoadedContext? Loaded);
 
     private async Task<SkillResolution> ResolveSkillsAsync(
@@ -169,12 +171,26 @@ public sealed class ConversationHistoryBuilder(IServiceProvider services)
             .Where(m => m.Source == EventSource.User)
             .Select(m => ToLlmMessage(m).Content)
             .LastOrDefault();
-        var skills = services.GetService<Application.Skills.ISkillService>()
-            is { } skillSvc
-            ? await skillSvc.ResolveForConversationAsync(
+        var referencedPaths = all.OfType<FilesChangedEvent>()
+            .SelectMany(e => e.Paths.Select(p => p.Path))
+            .Concat(Skills.SkillService.ExtractPaths(lastUserText))
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .Take(100)
+            .ToList();
+        IReadOnlyList<Domain.Skills.Skill> skills = [];
+        IReadOnlyList<Domain.Skills.Skill> catalog = [];
+        if (services.GetService<Application.Skills.ISkillService>()
+            is { } skillSvc)
+        {
+            skills = await skillSvc.ResolveForConversationAsync(
                 conversationId, lastUserText, null,
-                conv.CreatedByUserId, conv.OrgId?.ToString(), ct)
-            : [];
+                conv.CreatedByUserId, conv.OrgId?.ToString(), ct,
+                referencedPaths);
+            // SPEC-194 RF-004: the catalog intentionally includes skills
+            // whose triggers did not match; full bodies remain on demand.
+            catalog = await skillSvc.ListAsync(
+                conv.CreatedByUserId, conv.OrgId?.ToString(), ct);
+        }
 
         // SPEC-25 RF-001/002: repo skills federadas (o markdown de
         // contexto segue sendo carregado só quando o prompt é criado).
@@ -184,7 +200,12 @@ public sealed class ConversationHistoryBuilder(IServiceProvider services)
         {
             loaded = await repoLoader.LoadAsync(conv, all, ct);
             skills = MergeRepoSkills(
-                skills, loaded.RepoSkills, lastUserText);
+                skills, loaded.RepoSkills, lastUserText, referencedPaths);
+            catalog = catalog.Concat(loaded.RepoSkills)
+                .GroupBy(s => s.Name, StringComparer.OrdinalIgnoreCase)
+                .Select(g => g.OrderBy(s => s.Source).First())
+                .Take(100)
+                .ToList();
         }
 
         var profileSkills = ParseStringArray(agentProfile?.SkillsJson);
@@ -193,6 +214,7 @@ public sealed class ConversationHistoryBuilder(IServiceProvider services)
             var allowed = profileSkills.ToHashSet(
                 StringComparer.OrdinalIgnoreCase);
             skills = skills.Where(s => allowed.Contains(s.Name)).ToList();
+            catalog = catalog.Where(s => allowed.Contains(s.Name)).ToList();
         }
 
         if (skills.Count > 0
@@ -205,7 +227,7 @@ public sealed class ConversationHistoryBuilder(IServiceProvider services)
                 metadata: new { count = skills.Count, skills = skills.Select(s => s.Name).ToArray() },
                 cancellationToken: ct);
         }
-        return new SkillResolution(skills, loaded);
+        return new SkillResolution(skills, catalog, loaded);
     }
 
 
@@ -251,6 +273,7 @@ public sealed class ConversationHistoryBuilder(IServiceProvider services)
         IEventService events, Guid conversationId,
         ConversationRecord conv, IToolRegistry tools,
         HistorySlice h, IReadOnlyList<Domain.Skills.Skill> skills,
+        IReadOnlyList<Domain.Skills.Skill> skillCatalog,
         Discovery.RepoContextLoader.LoadedContext? loaded,
         Persistence.AgentProfileRecord? agentProfile,
         CancellationToken ct)
@@ -264,8 +287,8 @@ public sealed class ConversationHistoryBuilder(IServiceProvider services)
         // (ordem/falha toleradas pelo composer). Sem composer
         // registrado (testes com provider manual), cai no conjunto
         // default de contributors.
-        var prompt = await ResolveComposer()
-            .ComposeAsync(new Application.Agent.AgentPromptContext
+        var composition = await ResolveComposer()
+            .ComposeDetailedAsync(new Application.Agent.AgentPromptContext
             {
                 SelectedRepository = conv.SelectedRepository,
                 // SPEC-146: repos efetivamente montados (clone ok) —
@@ -273,6 +296,7 @@ public sealed class ConversationHistoryBuilder(IServiceProvider services)
                 SelectedRepositories = MountedRepositories(conv, h.All),
                 Tools = tools.All.Select(t => t.Schema).ToList(),
                 Skills = skills,
+                SkillCatalog = skillCatalog,
                 UserContextFiles = userContextFiles,
                 RepoContext = repoContext,
                 Ct = ct,
@@ -285,6 +309,7 @@ public sealed class ConversationHistoryBuilder(IServiceProvider services)
                     await LoadBlueprintKnowledgeAsync(
                         conv.SandboxId, ct),
             });
+        var prompt = composition.Text;
         if (!string.IsNullOrWhiteSpace(agentProfile?.PromptPack))
         {
             var packInstructions = await LoadPromptPackInstructionsAsync(
@@ -307,6 +332,21 @@ public sealed class ConversationHistoryBuilder(IServiceProvider services)
                     description = t.Schema.Description,
                     input_schema = t.Schema.InputSchema,
                 }), EventJson.Options),
+            DynamicContext = JsonSerializer.SerializeToElement(new
+            {
+                prompt_cache = new
+                {
+                    static_chars = composition.StaticChars,
+                    dynamic_chars = composition.DynamicChars,
+                    sections = composition.Sections.Select(s => new
+                    {
+                        contributor = s.Contributor,
+                        order = s.Order,
+                        tier = s.Tier.ToString().ToLowerInvariant(),
+                        chars = s.Chars,
+                    }).ToArray(),
+                },
+            }, EventJson.Options),
         };
         var newId = (await events.AppendAsync(conversationId, sp, ct)).Id;
         h.History.Insert(0, new LlmMessage("system", prompt));
@@ -394,7 +434,8 @@ public sealed class ConversationHistoryBuilder(IServiceProvider services)
     // na seção Repository context.
     private static IReadOnlyList<Domain.Skills.Skill> MergeRepoSkills(
         IReadOnlyList<Domain.Skills.Skill> db,
-        IReadOnlyList<Domain.Skills.Skill> repo, string? message)
+        IReadOnlyList<Domain.Skills.Skill> repo, string? message,
+        IReadOnlyList<string>? paths = null)
     {
         if (repo.Count == 0)
         {
@@ -411,8 +452,13 @@ public sealed class ConversationHistoryBuilder(IServiceProvider services)
                 continue;
             }
 
-            if (message?.Contains(s.Name,
-                    StringComparison.OrdinalIgnoreCase) == true)
+            var explicitMention = message?.Contains(s.Name,
+                StringComparison.OrdinalIgnoreCase) == true;
+            var pathTriggered = s.Triggers.Any(t =>
+                t.Type == Domain.Skills.SkillTriggerType.Path
+                && t.Value is not null
+                && Skills.SkillService.PathMatches(t.Value, message, paths));
+            if (explicitMention || pathTriggered)
             {
                 merged.Add(s);
                 names.Add(s.Name);
@@ -560,6 +606,7 @@ public sealed class ConversationHistoryBuilder(IServiceProvider services)
                     new SystemPrompt.AutonomyTiersContributor(),
                     new SystemPrompt.SddWorkflowContributor(cfg),
                     new SystemPrompt.RepoContextContributor(),
+                    new SystemPrompt.SkillCatalogContributor(),
                     new SystemPrompt.SkillsContributor(),
                     new SystemPrompt.MemoryDigestContributor(),
                     new SystemPrompt.DelegationPolicyContributor(),

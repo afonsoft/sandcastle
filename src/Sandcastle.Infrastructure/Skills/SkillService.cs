@@ -159,7 +159,8 @@ public sealed partial class SkillService(AppDbContext db) : ISkillService
     /// <inheritdoc />
     public async Task<IReadOnlyList<Skill>> ResolveForConversationAsync(
         Guid conversationId, string? message, string? taskTag,
-        string? ownerId, string? orgId, CancellationToken ct)
+        string? ownerId, string? orgId, CancellationToken ct,
+        IReadOnlyList<string>? paths = null)
     {
         var pinnedIds = await db.ConversationSkills.AsNoTracking()
             .Where(c => c.ConversationId == conversationId)
@@ -173,7 +174,7 @@ public sealed partial class SkillService(AppDbContext db) : ISkillService
         var resolved = all
             .Where(r => Visible(r, ownerId, orgId))
             .Where(r => pinnedIds.Contains(r.Id) ||
-                        Matches(r, message, taskTag))
+                        Matches(r, message, taskTag, paths))
             .OrderBy(r => SourceOrder(r.Source))
             .ThenBy(r => r.Name)
             .GroupBy(r => r.Name)
@@ -215,7 +216,9 @@ public sealed partial class SkillService(AppDbContext db) : ISkillService
         _ => 2,
     };
 
-    private static bool Matches(SkillRecord r, string? message, string? taskTag)
+    private static bool Matches(
+        SkillRecord r, string? message, string? taskTag,
+        IReadOnlyList<string>? paths)
     {
         var triggers = ParseTriggers(r.TriggersJson);
         foreach (var t in triggers)
@@ -233,10 +236,50 @@ public sealed partial class SkillService(AppDbContext db) : ISkillService
                          string.Equals(t.Value, taskTag,
                              StringComparison.OrdinalIgnoreCase):
                     return true;
+                case SkillTriggerType.Path
+                    when t.Value is not null && PathMatches(t.Value, message, paths):
+                    return true;
             }
         }
 
         return false;
+    }
+
+    internal static bool PathMatches(
+        string pattern, string? message, IReadOnlyList<string>? paths)
+    {
+        var normalized = pattern.Replace('\\', '/').TrimStart('/');
+        return (paths ?? []).Any(p => PathMatchesOne(normalized, p))
+            || ExtractPaths(message).Any(p => PathMatchesOne(normalized, p));
+    }
+
+    private static bool PathMatchesOne(string pattern, string path)
+    {
+        var normalized = path.Replace('\\', '/').TrimStart('/');
+        if (normalized.Equals(pattern, StringComparison.OrdinalIgnoreCase)
+            || normalized.EndsWith('/' + pattern, StringComparison.OrdinalIgnoreCase))
+        {
+            return true;
+        }
+        if (pattern.EndsWith("/**", StringComparison.Ordinal))
+        {
+            var prefix = pattern[..^3].TrimEnd('/');
+            return normalized.StartsWith(prefix + '/', StringComparison.OrdinalIgnoreCase)
+                || normalized.Equals(prefix, StringComparison.OrdinalIgnoreCase);
+        }
+        return pattern.Contains('*', StringComparison.Ordinal)
+            && System.Text.RegularExpressions.Regex.IsMatch(normalized,
+                "^" + System.Text.RegularExpressions.Regex.Escape(pattern)
+                    .Replace("\\*\\*", ".*").Replace("\\*", "[^/]*") + "$",
+                System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+    }
+
+    internal static IReadOnlyList<string> ExtractPaths(string? message)
+    {
+        if (string.IsNullOrWhiteSpace(message)) return [];
+        return System.Text.RegularExpressions.Regex.Matches(message,
+                @"(?<![\w@])(?:[\w.@+-]+/)+[\w.@+-]+")
+            .Select(m => m.Value.TrimStart('/')).Distinct().Take(100).ToList();
     }
 
     private static bool ContainsWord(string message, string keyword) =>

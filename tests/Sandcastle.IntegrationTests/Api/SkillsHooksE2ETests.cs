@@ -84,6 +84,16 @@ public sealed class SkillsHooksE2ETests : IDisposable
         });
         skillResp.StatusCode.ShouldBe(HttpStatusCode.Created);
 
+        // SPEC-194 RF-004: skill não acionada permanece fora do corpo
+        // injetado e aparece apenas no catálogo progressivo.
+        (await _http.PostAsJsonAsync("/api/v1/skills", new
+        {
+            name = "e2e-catalog-skill",
+            description = "catalog-only marker",
+            content_md = "# CATALOG FULL BODY MUST STAY UNLOADED",
+            triggers = new[] { new { type = "keyword", value = "not-mentioned" } },
+        })).StatusCode.ShouldBe(HttpStatusCode.Created);
+
         // Hooks: emit_event em cada ponto coberto pelo run curto.
         foreach (var (ev, payload) in new[]
         {
@@ -151,6 +161,9 @@ public sealed class SkillsHooksE2ETests : IDisposable
             $"run should finish — last status: {lastStatus}; tail:\n{tail}");
 
         var sawPromptSkill = false;
+        var sawProgressiveCatalog = false;
+        var sawCacheMetadata = false;
+        var sawUninjectedBody = false;
         var sawSkillContent = false;
         var sawMissingErr = false;
         var hookPoints = new HashSet<string>();
@@ -162,6 +175,12 @@ public sealed class SkillsHooksE2ETests : IDisposable
                 case "SystemPromptEvent":
                     if (e.ToString().Contains("E2E SKILL MARKER"))
                         sawPromptSkill = true;
+                    if (e.ToString().Contains("`e2e-catalog-skill`"))
+                        sawProgressiveCatalog = true;
+                    if (e.ToString().Contains("prompt_cache"))
+                        sawCacheMetadata = true;
+                    if (e.ToString().Contains("CATALOG FULL BODY MUST STAY UNLOADED"))
+                        sawUninjectedBody = true;
                     break;
                 case "ObservationEvent":
                     var obs = e.ToString();
@@ -176,6 +195,9 @@ public sealed class SkillsHooksE2ETests : IDisposable
         }
 
         sawPromptSkill.ShouldBeTrue("always skill should be in system prompt");
+        sawProgressiveCatalog.ShouldBeTrue("non-triggered skill should be cataloged");
+        sawCacheMetadata.ShouldBeTrue("system prompt event should expose cache metadata");
+        sawUninjectedBody.ShouldBeFalse("catalog-only skill body must not be fully injected");
         sawSkillContent.ShouldBeTrue("invoke_skill should return content_md");
         sawMissingErr.ShouldBeTrue("missing skill should be a non-fatal error");
         hookPoints.ShouldContain("on_conversation_start");

@@ -236,11 +236,69 @@ public sealed class BlueprintKnowledgeContributor : IAgentPromptContributor
 }
 
 /// <summary>
+/// SPEC-194 RF-004: progressive disclosure catalog — visible skills that
+/// were not fully injected are advertised only by name/description. The
+/// agent can load one on demand through <c>invoke_skill</c>.
+/// </summary>
+public sealed class SkillCatalogContributor : IAgentPromptContributor
+{
+    /// <inheritdoc />
+    public int Order => 49;
+
+    /// <inheritdoc />
+    public PromptCacheTier CacheTier => PromptCacheTier.Dynamic;
+
+    private const int MaxChars = 2000;
+
+    /// <inheritdoc />
+    public Task<IReadOnlyList<string>> ContributeAsync(AgentPromptContext ctx)
+    {
+        if (ctx.SkillCatalog is not { Count: > 0 })
+        {
+            return Task.FromResult<IReadOnlyList<string>>([]);
+        }
+        var injected = (ctx.Skills ?? [])
+            .Select(s => s.Name)
+            .ToHashSet(StringComparer.OrdinalIgnoreCase);
+        var entries = ctx.SkillCatalog
+            .Where(s => s.Enabled && !injected.Contains(s.Name))
+            .OrderBy(s => s.Source)
+            .ThenBy(s => s.Name, StringComparer.OrdinalIgnoreCase)
+            .Take(100)
+            .ToList();
+        if (entries.Count == 0)
+        {
+            return Task.FromResult<IReadOnlyList<string>>([]);
+        }
+
+        var sb = new StringBuilder("## Available skills catalog");
+        sb.Append("\nThese skills are available but not fully loaded. If one is relevant, call `invoke_skill` with its exact name before following it:");
+        foreach (var skill in entries)
+        {
+            var description = string.IsNullOrWhiteSpace(skill.Description)
+                ? "no description"
+                : skill.Description.Replace('\n', ' ').Trim();
+            var line = $"\n- `{skill.Name}` — {description}";
+            if (sb.Length + line.Length > MaxChars)
+            {
+                sb.Append("\n- …catalog truncated…");
+                break;
+            }
+            sb.Append(line);
+        }
+        return Task.FromResult<IReadOnlyList<string>>([sb.ToString()]);
+    }
+}
+
+/// <summary>
 /// Block 5 — resolved skills appended as additional context (SPEC-90
 /// RF-002; SPEC-11 ordering preserved).
 /// </summary>
 public sealed class SkillsContributor : IAgentPromptContributor
 {
+    /// <inheritdoc />
+    public PromptCacheTier CacheTier => PromptCacheTier.Dynamic;
+
     /// <inheritdoc />
     public int Order => 50;
 
@@ -267,6 +325,9 @@ public sealed class SkillsContributor : IAgentPromptContributor
 /// </summary>
 public sealed class UserContextFilesContributor : IAgentPromptContributor
 {
+    /// <inheritdoc />
+    public PromptCacheTier CacheTier => PromptCacheTier.Dynamic;
+
     /// <inheritdoc />
     public int Order => 55;
 
@@ -298,6 +359,9 @@ public sealed class UserContextFilesContributor : IAgentPromptContributor
 /// </summary>
 public sealed class MemoryDigestContributor : IAgentPromptContributor
 {
+    /// <inheritdoc />
+    public PromptCacheTier CacheTier => PromptCacheTier.Dynamic;
+
     /// <inheritdoc />
     public int Order => 60;
 

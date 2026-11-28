@@ -37,6 +37,9 @@ public enum SkillTriggerType
 
     /// <summary>Matches a task tag on the start-task.</summary>
     Task,
+
+    /// <summary>Matches a workspace-relative path referenced by the run.</summary>
+    Path,
 }
 
 /// <summary>One trigger clause on a skill.</summary>
