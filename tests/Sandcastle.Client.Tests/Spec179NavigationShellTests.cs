@@ -115,10 +115,8 @@ public class Spec179NavigationShellTests : BunitContext
         extensions.Find("a.foundation-card[href='/marketplace']")
             .ShouldNotBeNull();
 
-        var factories = Render<FactoriesPage>();
-        factories.Find("a.foundation-card[href='/automations']")
-            .ShouldNotBeNull();
-        factories.Find("a.foundation-card[href='/']").ShouldNotBeNull();
+        // SPEC-183 substituiu o placeholder /factories por CRUD real;
+        // a cobertura da página real está em Spec183FactoriesPagesTests.
     }
 
     [Fact]
