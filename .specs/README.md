@@ -248,7 +248,6 @@ aprovadas pelo usuário em 2026-11-28.
 
 | SPEC | Título | Status | Ticket |
 |---|---|---|---|
-| 194 | prompt-cache-progressive-skills | Approved | #611 · Epic #610 |
 | 195 | project-coordinator-workspaces | Approved | #612 · Epic #610 |
 | 196 | run-evidence-progress-ux | Approved | #613 · Epic #610 |
 | 197 | model-aware-agent-instructions | Approved | #614 · Epic #610 |
