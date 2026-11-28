@@ -214,7 +214,7 @@ aprovadas em 2026-11-27 — Epic #552.
 
 | SPEC | Título | Status | Ticket |
 |---|---|---|---|
-| 179 | devin-navigation-shell | Approved | #553 · Epic #552 |
+| 179 | devin-navigation-shell | Completed | #553 · PR #566 · Epic #552 |
 | 180 | settings-profiles-control-center | Approved | #554 · Epic #552 |
 | 181 | agent-definitions-prompt-runtime | Approved | #555 · Epic #552 |
 | 182 | agent-tool-parity-v2 | Approved | #556 · Epic #552 |
