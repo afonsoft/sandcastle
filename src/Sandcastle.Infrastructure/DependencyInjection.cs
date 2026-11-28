@@ -465,6 +465,10 @@ public static class DependencyInjection
             Sandcastle.Infrastructure.Workflows.WorkflowService>();
         services.AddHostedService<
             Sandcastle.Infrastructure.Workflows.WorkflowRunWorker>();
+        services.AddSingleton<Sandcastle.Application.Runtime.IRuntimePoolOverrides,
+            Sandcastle.Application.Runtime.RuntimePoolOverrides>();
+        services.AddScoped<Sandcastle.Application.Runtime.IRuntimeControlService,
+            Sandcastle.Infrastructure.Runtime.RuntimeControlService>();
         services.AddHostedService<
             Sandcastle.Infrastructure.Automations.AutomationScheduler>();
 
