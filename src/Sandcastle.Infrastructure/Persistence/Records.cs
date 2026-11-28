@@ -696,3 +696,55 @@ public sealed class ConversationPlanItemRecord
     public required string Status { get; set; }
     public required string CommentsJson { get; set; }
 }
+
+/// <summary>SPEC-195: first-class project workspace aggregate.</summary>
+public sealed class ProjectRecord
+{
+    public required Guid Id { get; set; }
+    public string? OwnerId { get; set; }
+    public Guid? OrgId { get; set; }
+    public required string Name { get; set; }
+    public string? Description { get; set; }
+    public required string RepositoriesJson { get; set; }
+    public Guid? CoordinatorConversationId { get; set; }
+    public string Status { get; set; } = "active";
+    public DateTimeOffset CreatedAt { get; set; }
+    public DateTimeOffset UpdatedAt { get; set; }
+    public DateTimeOffset? ArchivedAt { get; set; }
+}
+
+/// <summary>SPEC-195: worker conversation attached to a project.</summary>
+public sealed class ProjectWorkerRecord
+{
+    public required Guid Id { get; set; }
+    public required Guid ProjectId { get; set; }
+    public required Guid ConversationId { get; set; }
+    public string? AddedByUserId { get; set; }
+    public DateTimeOffset CreatedAt { get; set; }
+}
+
+/// <summary>SPEC-195: bounded shared project memory entry.</summary>
+public sealed class ProjectMemoryRecord
+{
+    public required Guid Id { get; set; }
+    public required Guid ProjectId { get; set; }
+    public required string Key { get; set; }
+    public required string Value { get; set; }
+    public string? UpdatedByUserId { get; set; }
+    public DateTimeOffset CreatedAt { get; set; }
+    public DateTimeOffset UpdatedAt { get; set; }
+}
+
+/// <summary>SPEC-195: bounded shared text file/note available to project agents.</summary>
+public sealed class ProjectFileRecord
+{
+    public required Guid Id { get; set; }
+    public required Guid ProjectId { get; set; }
+    public required string Path { get; set; }
+    public required string ContentType { get; set; }
+    public required string TextContent { get; set; }
+    public int SizeBytes { get; set; }
+    public string? UpdatedByUserId { get; set; }
+    public DateTimeOffset CreatedAt { get; set; }
+    public DateTimeOffset UpdatedAt { get; set; }
+}

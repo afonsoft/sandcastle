@@ -1842,6 +1842,80 @@ public sealed class SandcastleApiClient(HttpClient http)
         return await http.GetFromJsonAsync<JsonElement>(url, ct);
     }
 
+    // ---- projects (SPEC-195) -------------------------------------------
+
+    /// <summary>SPEC-195: list active project workspaces.</summary>
+    public async Task<IReadOnlyList<ProjectDto>> ListProjectsAsync(
+        CancellationToken ct = default) =>
+        await http.GetFromJsonAsync<List<ProjectDto>>(
+            "/api/v1/projects", Json, ct) ?? [];
+
+    /// <summary>SPEC-195: project detail with workers/memory/files.</summary>
+    public async Task<ProjectDto?> GetProjectAsync(
+        Guid id, CancellationToken ct = default) =>
+        await http.GetFromJsonAsync<ProjectDto>(
+            $"/api/v1/projects/{id}", Json, ct);
+
+    /// <summary>SPEC-195: create a project workspace.</summary>
+    public async Task<ProjectDto?> CreateProjectAsync(
+        string name, string? description, IReadOnlyList<string> repositories,
+        bool startCoordinator = false, CancellationToken ct = default)
+    {
+        var resp = await http.PostAsJsonAsync("/api/v1/projects", new
+        {
+            name,
+            description,
+            repositories,
+            start_coordinator = startCoordinator,
+        }, Json, ct);
+        return resp.IsSuccessStatusCode
+            ? await resp.Content.ReadFromJsonAsync<ProjectDto>(Json, ct)
+            : null;
+    }
+
+    /// <summary>SPEC-195: archive project.</summary>
+    public async Task<bool> ArchiveProjectAsync(
+        Guid id, CancellationToken ct = default) =>
+        (await http.PostAsync($"/api/v1/projects/{id}/archive", null, ct))
+            .IsSuccessStatusCode;
+
+    /// <summary>SPEC-195: attach worker conversation.</summary>
+    public async Task<bool> AttachProjectWorkerAsync(
+        Guid id, Guid conversationId, CancellationToken ct = default)
+    {
+        var resp = await http.PostAsJsonAsync(
+            $"/api/v1/projects/{id}/workers",
+            new { conversation_id = conversationId }, Json, ct);
+        return resp.IsSuccessStatusCode;
+    }
+
+    /// <summary>SPEC-195: detach worker conversation.</summary>
+    public async Task<bool> DetachProjectWorkerAsync(
+        Guid id, Guid conversationId, CancellationToken ct = default) =>
+        (await http.DeleteAsync(
+            $"/api/v1/projects/{id}/workers/{conversationId}", ct))
+            .IsSuccessStatusCode;
+
+    /// <summary>SPEC-195: upsert shared memory.</summary>
+    public async Task<bool> PutProjectMemoryAsync(
+        Guid id, string key, string value, CancellationToken ct = default)
+    {
+        var resp = await http.PutAsJsonAsync(
+            $"/api/v1/projects/{id}/memory/{Uri.EscapeDataString(key)}",
+            new { value }, Json, ct);
+        return resp.IsSuccessStatusCode;
+    }
+
+    /// <summary>SPEC-195: upsert shared text file.</summary>
+    public async Task<bool> PutProjectFileAsync(
+        Guid id, string path, string text, CancellationToken ct = default)
+    {
+        var resp = await http.PutAsJsonAsync(
+            $"/api/v1/projects/{id}/files/{path}",
+            new { content_type = "text/markdown", text_content = text }, Json, ct);
+        return resp.IsSuccessStatusCode;
+    }
+
     // ---- account (SPEC-158) --------------------------------------------
 
     /// <summary>SPEC-158 RF-002: PATCH /users/me — perfil.</summary>
@@ -2575,6 +2649,20 @@ public sealed record PromptPackDto(
     string? HarnessRules, string? PlanModePrompt, string? BuildModePrompt,
     string? AdvisorPrompt, string? PermissionJudgePrompt,
     int Version, bool Active, DateTimeOffset CreatedAt);
+
+/// <summary>SPEC-195: project workspace.</summary>
+public sealed record ProjectDto(
+    Guid Id, string Name, string? Description, string[] Repositories,
+    Guid? CoordinatorConversationId, string Status, DateTimeOffset CreatedAt,
+    DateTimeOffset UpdatedAt, DateTimeOffset? ArchivedAt, string Scope,
+    ProjectWorkerDto[]? Workers, ProjectMemoryDto[]? Memories,
+    ProjectFileDto[]? Files);
+/// <summary>SPEC-195: attached worker conversation.</summary>
+public sealed record ProjectWorkerDto(Guid ConversationId, DateTimeOffset CreatedAt);
+/// <summary>SPEC-195: shared memory entry.</summary>
+public sealed record ProjectMemoryDto(string Key, string Value, DateTimeOffset UpdatedAt);
+/// <summary>SPEC-195: shared file metadata.</summary>
+public sealed record ProjectFileDto(string Path, string ContentType, int SizeBytes, DateTimeOffset UpdatedAt);
 
 /// <summary>SPEC-157: workspace item (prompt/preset/context_file).</summary>
 public sealed record WorkspaceItemDto(

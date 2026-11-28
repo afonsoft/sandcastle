@@ -113,6 +113,11 @@
                 <span class="txt">@L["sidebar.customize"]</span>
             </a>
             @* SPEC-157 RF-003: workspace items (prompts/presets/context). *@
+            <a class="sb-item @(IsActive("/projects") ? "active" : "")"
+               href="/projects" title="@L["sidebar.projects"]">
+                <Icon Name="folder" Size="16" />
+                <span class="txt">@L["sidebar.projects"]</span>
+            </a>
             <a class="sb-item @(IsActive("/workspace") ? "active" : "")"
                href="/workspace" title="@L["sidebar.workspace_items"]">
                 <Icon Name="box" Size="16" />
