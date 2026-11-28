@@ -1,0 +1,38 @@
+@using Sandcastle.Client.Services
+@page "/automations/templates"
+@inject SandcastleApiClient Api
+@inject LocalizationService L
+
+<PageTitle>@L["templates.title"] · Sandcastle</PageTitle>
+
+<section>
+    <h1>@L["templates.title"]</h1>
+    <p>@L["templates.subtitle"]</p>
+    @if (_templates is null)
+    {
+        <p><em>@L["common.loading"]</em></p>
+    }
+    else
+    {
+        <div class="foundation-grid templates-grid">
+            @foreach (var template in _templates)
+            {
+                <article class="foundation-card template-card">
+                    <strong>@template.Name</strong>
+                    <span>@template.Description</span>
+                    <code>@template.ScheduleKind</code>
+                    <details>
+                        <summary>@L["templates.prompt"]</summary>
+                        <p>@template.Prompt</p>
+                    </details>
+                </article>
+            }
+        </div>
+    }
+</section>
+
+@code {
+    private IReadOnlyList<AutomationTemplateDto>? _templates;
+    protected override async Task OnInitializedAsync() =>
+        _templates = await Api.ListAutomationTemplatesAsync();
+}

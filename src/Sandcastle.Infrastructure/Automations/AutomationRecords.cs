@@ -29,6 +29,8 @@ public sealed class AutomationRecord : IOrgScoped
     public Guid? LlmProfileId { get; set; }
     /// <summary>SPEC-180: selected agent profile.</summary>
     public Guid? AgentProfileId { get; set; }
+    /// <summary>SPEC-183: optional factory grouping.</summary>
+    public Guid? FactoryId { get; set; }
     /// <summary>Repo alvo opcional (mesmo campo do start-task).</summary>
     public string? SelectedRepository { get; set; }
     /// <summary><c>task|scan</c> — SPEC-143 (default <c>task</c>).</summary>
@@ -164,6 +166,7 @@ public sealed class AutomationRecordConfiguration
             .HasDefaultValue("UTC");
         b.Property(e => e.CronExpression).HasMaxLength(128);
         b.Property(e => e.ApprovalPreset).HasMaxLength(20);
+        b.HasIndex(e => e.FactoryId);
     }
 }
 

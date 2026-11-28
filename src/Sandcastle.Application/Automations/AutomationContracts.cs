@@ -81,7 +81,9 @@ public sealed record AutomationInfo(
     string? TimeZoneId = null, string? CronExpression = null,
     string? ApprovalPreset = null,
     // SPEC-163 RF-002: saúde derivada (green|yellow|red).
-    string? Health = null);
+    string? Health = null,
+    // SPEC-183: optional factory grouping.
+    Guid? FactoryId = null);
 
 /// <summary>Run de uma automation (SPEC-47 RF-002/RF-003).</summary>
 public sealed record AutomationRunInfo(
@@ -163,7 +165,8 @@ public sealed record AutomationUpsert(
     // SPEC-162: cron + timezone IANA + approval preset.
     string? TimeZoneId = null, string? CronExpression = null,
     string? ApprovalPreset = null,
-    Guid? LlmProfileId = null, Guid? AgentProfileId = null);
+    Guid? LlmProfileId = null, Guid? AgentProfileId = null,
+    Guid? FactoryId = null);
 
 /// <summary>
 /// Cálculo do próximo disparo (UTC) — puro e testável

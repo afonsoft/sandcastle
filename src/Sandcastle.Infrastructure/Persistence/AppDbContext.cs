@@ -171,6 +171,18 @@ public class AppDbContext : DbContext, IDataProtectionKeyContext
     /// <summary>SPEC-181: immutable prompt-pack versions.</summary>
     public DbSet<PromptPackRecord> PromptPacks => Set<PromptPackRecord>();
 
+    /// <summary>SPEC-183: factories grouping automations/workflows.</summary>
+    public DbSet<Sandcastle.Infrastructure.Workflows.FactoryRecord> Factories =>
+        Set<Sandcastle.Infrastructure.Workflows.FactoryRecord>();
+
+    /// <summary>SPEC-183: named/versioned workflows.</summary>
+    public DbSet<Sandcastle.Infrastructure.Workflows.WorkflowRecord> Workflows =>
+        Set<Sandcastle.Infrastructure.Workflows.WorkflowRecord>();
+
+    /// <summary>SPEC-183: auditable workflow runs.</summary>
+    public DbSet<Sandcastle.Infrastructure.Workflows.WorkflowRunRecord> WorkflowRuns =>
+        Set<Sandcastle.Infrastructure.Workflows.WorkflowRunRecord>();
+
     /// <summary>SPEC-134: BYOK — provider keys por usuário.</summary>
     public DbSet<UserLlmKeyRecord> UserLlmKeys => Set<UserLlmKeyRecord>();
 
@@ -451,6 +463,12 @@ public class AppDbContext : DbContext, IDataProtectionKeyContext
             .HasQueryFilter(r =>
                 !_multiTenancy || CurrentOrgId == null || r.OrgId == CurrentOrgId);
         modelBuilder.Entity<Sandcastle.Infrastructure.Automations.AutomationRecord>()
+            .HasQueryFilter(r =>
+                !_multiTenancy || CurrentOrgId == null || r.OrgId == CurrentOrgId);
+        modelBuilder.Entity<Sandcastle.Infrastructure.Workflows.FactoryRecord>()
+            .HasQueryFilter(r =>
+                !_multiTenancy || CurrentOrgId == null || r.OrgId == CurrentOrgId);
+        modelBuilder.Entity<Sandcastle.Infrastructure.Workflows.WorkflowRecord>()
             .HasQueryFilter(r =>
                 !_multiTenancy || CurrentOrgId == null || r.OrgId == CurrentOrgId);
         modelBuilder.Entity<Sandcastle.Infrastructure.Scm.ScmConnectionRecord>()

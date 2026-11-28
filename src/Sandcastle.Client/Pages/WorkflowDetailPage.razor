@@ -1,0 +1,143 @@
+@using Sandcastle.Client.Services
+@using System.Text.Json
+@page "/workflows/{Id:guid}"
+@inject SandcastleApiClient Api
+@inject LocalizationService L
+@inject ToastService Toasts
+
+<PageTitle>@(_workflow?.Name ?? L["workflow.title"]) · Sandcastle</PageTitle>
+
+@if (_workflow is null)
+{
+    <p><em>@L["common.loading"]</em></p>
+}
+else
+{
+    <section class="workflow-detail">
+        <header class="page-head">
+            <div>
+                <h1>@_workflow.Name <small>v@_workflow.Version</small></h1>
+                <p>@L["workflow.subtitle"]</p>
+            </div>
+        </header>
+
+        <div class="workflow-grid">
+            <section class="panel">
+                <h2>@L["workflow.editor"]</h2>
+                <input aria-label="@L["automations.name"]" @bind="_name" />
+                <input aria-label="@L["factories.description"]" placeholder="@L["factories.description"]" @bind="_description" />
+                <label class="inline-check">
+                    <input type="checkbox" @bind="_autonomous" />
+                    @L["factories.autonomous"]
+                </label>
+                <textarea aria-label="@L["factories.definition_json"]" rows="12" @bind="_definitionJson"></textarea>
+                <button @onclick="SaveAsync">@L["admin.save"]</button>
+            </section>
+
+            <section class="panel">
+                <h2>@L["workflow.start_run"]</h2>
+                <input aria-label="@L["events.repository"]" placeholder="owner/repo" @bind="_repositoryInput" />
+                <input aria-label="@L["workflow.task_input"]" placeholder="@L["workflow.task_input"]" @bind="_taskInput" />
+                <button @onclick="StartRunAsync" disabled="@string.IsNullOrWhiteSpace(_repositoryInput)">@L["workflow.start"]</button>
+                <p class="muted">@L["workflow.hard_gates"]</p>
+            </section>
+        </div>
+
+        <section class="panel">
+            <h2>@L["workflow.runs"]</h2>
+            @if (_runs.Count == 0)
+            {
+                <p>@L["workflow.no_runs"]</p>
+            }
+            else
+            {
+                @foreach (var run in _runs)
+                {
+                    <article class="run-card" data-testid="workflow-run">
+                        <header>
+                            <strong>@run.Status</strong>
+                            <span>@(run.CurrentStepName ?? "—") · @run.CreatedAt.LocalDateTime.ToString("g")</span>
+                        </header>
+                        @if (run.Error is not null)
+                        {
+                            <p class="error">@run.Error</p>
+                        }
+                        @if (run.ConversationId is { } conversationId)
+                        {
+                            <a href="/conversations/@conversationId">@L["workflow.open_conversation"]</a>
+                        }
+                        @if (run.Status == "waiting_approval")
+                        {
+                            <div class="approval-actions">
+                                <input aria-label="@L["workflow.comment"]" placeholder="@L["workflow.comment"]" @bind="_comment" />
+                                <button @onclick="() => DecideAsync(run.Id, true)">@L["workflow.approve"]</button>
+                                <button class="danger" @onclick="() => DecideAsync(run.Id, false)">@L["workflow.reject"]</button>
+                            </div>
+                        }
+                        <details>
+                            <summary>@L["workflow.audit"]</summary>
+                            <pre>@run.Audit.GetRawText()</pre>
+                        </details>
+                    </article>
+                }
+            }
+        </section>
+    </section>
+}
+
+@code {
+    [Parameter] public Guid Id { get; set; }
+    private WorkflowDto? _workflow;
+    private List<WorkflowRunDto> _runs = [];
+    private string _name = "";
+    private string _description = "";
+    private bool _autonomous;
+    private string _definitionJson = "";
+    private string _repositoryInput = "";
+    private string _taskInput = "";
+    private string _comment = "";
+
+    protected override async Task OnInitializedAsync() => await LoadAsync();
+
+    private async Task LoadAsync()
+    {
+        _workflow = await Api.GetWorkflowAsync(Id);
+        if (_workflow is not null)
+        {
+            _name = _workflow.Name;
+            _description = _workflow.Description ?? "";
+            _autonomous = _workflow.AutonomousDelivery;
+            _definitionJson = _workflow.DefinitionJson;
+        }
+        _runs = (await Api.ListWorkflowRunsAsync(Id)).ToList();
+    }
+
+    private async Task SaveAsync()
+    {
+        var updated = await Api.PatchWorkflowAsync(Id, new
+        {
+            name = _name,
+            description = _description,
+            autonomous_delivery = _autonomous,
+            definition_json = _definitionJson,
+        });
+        if (updated is null) { Toasts.Error(L["workflow.save_failed"]); return; }
+        await LoadAsync();
+    }
+
+    private async Task StartRunAsync()
+    {
+        var inputs = new Dictionary<string, object?> { ["repository"] = _repositoryInput };
+        if (!string.IsNullOrWhiteSpace(_taskInput)) inputs["task"] = _taskInput;
+        var run = await Api.StartWorkflowRunAsync(Id, inputs);
+        if (run is null) { Toasts.Error(L["workflow.start_failed"]); return; }
+        await LoadAsync();
+    }
+
+    private async Task DecideAsync(Guid runId, bool approved)
+    {
+        await Api.DecideWorkflowRunAsync(runId, approved, _comment);
+        _comment = "";
+        await LoadAsync();
+    }
+}

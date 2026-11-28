@@ -459,6 +459,12 @@ public static class DependencyInjection
                     .AutomationOptions.SectionName));
         services.AddScoped<Sandcastle.Application.Automations.IAutomationService,
             Sandcastle.Infrastructure.Automations.AutomationService>();
+        services.AddScoped<Sandcastle.Application.Workflows.IFactoryService,
+            Sandcastle.Infrastructure.Workflows.FactoryService>();
+        services.AddScoped<Sandcastle.Application.Workflows.IWorkflowService,
+            Sandcastle.Infrastructure.Workflows.WorkflowService>();
+        services.AddHostedService<
+            Sandcastle.Infrastructure.Workflows.WorkflowRunWorker>();
         services.AddHostedService<
             Sandcastle.Infrastructure.Automations.AutomationScheduler>();
 

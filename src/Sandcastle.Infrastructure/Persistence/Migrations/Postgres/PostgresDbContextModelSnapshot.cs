@@ -390,6 +390,10 @@ namespace Sandcastle.Infrastructure.Persistence.Migrations.Postgres
                         .HasColumnType("boolean")
                         .HasColumnName("enabled");
 
+                    b.Property<Guid?>("FactoryId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("factory_id");
+
                     b.Property<int>("IntervalMinutes")
                         .HasColumnType("integer")
                         .HasColumnName("interval_minutes");
@@ -482,6 +486,9 @@ namespace Sandcastle.Infrastructure.Persistence.Migrations.Postgres
 
                     b.HasIndex("CreatedByUserId")
                         .HasDatabaseName("ix_automations_created_by_user_id");
+
+                    b.HasIndex("FactoryId")
+                        .HasDatabaseName("ix_automations_factory_id");
 
                     b.HasIndex("Enabled", "NextRunAtTicks")
                         .HasDatabaseName("ix_automations_enabled_next_run_at_ticks");
@@ -5419,6 +5426,197 @@ namespace Sandcastle.Infrastructure.Persistence.Migrations.Postgres
                         .HasDatabaseName("ix_ticket_project_configs_connection_id_project_key");
 
                     b.ToTable("ticket_project_configs", (string)null);
+                });
+
+            modelBuilder.Entity("Sandcastle.Infrastructure.Workflows.FactoryRecord", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)")
+                        .HasColumnName("description");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(160)
+                        .HasColumnType("character varying(160)")
+                        .HasColumnName("name");
+
+                    b.Property<Guid?>("OrgId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("org_id");
+
+                    b.Property<string>("OwnerUserId")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("owner_user_id");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.HasKey("Id")
+                        .HasName("pk_factories");
+
+                    b.HasIndex("OwnerUserId")
+                        .HasDatabaseName("ix_factories_owner_user_id");
+
+                    b.ToTable("factories", (string)null);
+                });
+
+            modelBuilder.Entity("Sandcastle.Infrastructure.Workflows.WorkflowRecord", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<bool>("AutonomousDelivery")
+                        .HasColumnType("boolean")
+                        .HasColumnName("autonomous_delivery");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<string>("DefinitionJson")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("definition_json");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)")
+                        .HasColumnName("description");
+
+                    b.Property<Guid?>("FactoryId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("factory_id");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(160)
+                        .HasColumnType("character varying(160)")
+                        .HasColumnName("name");
+
+                    b.Property<Guid?>("OrgId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("org_id");
+
+                    b.Property<string>("OwnerUserId")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("owner_user_id");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.Property<int>("Version")
+                        .HasColumnType("integer")
+                        .HasColumnName("version");
+
+                    b.HasKey("Id")
+                        .HasName("pk_workflows");
+
+                    b.HasIndex("FactoryId")
+                        .HasDatabaseName("ix_workflows_factory_id");
+
+                    b.HasIndex("OwnerUserId")
+                        .HasDatabaseName("ix_workflows_owner_user_id");
+
+                    b.ToTable("workflows", (string)null);
+                });
+
+            modelBuilder.Entity("Sandcastle.Infrastructure.Workflows.WorkflowRunRecord", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<string>("AttemptsJson")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("attempts_json");
+
+                    b.Property<string>("AuditJson")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("audit_json");
+
+                    b.Property<Guid?>("ConversationId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("conversation_id");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<long>("CreatedAtTicks")
+                        .HasColumnType("bigint")
+                        .HasColumnName("created_at_ticks");
+
+                    b.Property<int>("CurrentStepIndex")
+                        .HasColumnType("integer")
+                        .HasColumnName("current_step_index");
+
+                    b.Property<string>("CurrentStepName")
+                        .HasColumnType("text")
+                        .HasColumnName("current_step_name");
+
+                    b.Property<string>("Error")
+                        .HasColumnType("text")
+                        .HasColumnName("error");
+
+                    b.Property<DateTimeOffset?>("FinishedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("finished_at");
+
+                    b.Property<string>("InputsJson")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("inputs_json");
+
+                    b.Property<string>("OwnerUserId")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("owner_user_id");
+
+                    b.Property<DateTimeOffset?>("StartedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("started_at");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("status");
+
+                    b.Property<Guid>("WorkflowId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("workflow_id");
+
+                    b.HasKey("Id")
+                        .HasName("pk_workflow_runs");
+
+                    b.HasIndex("OwnerUserId")
+                        .HasDatabaseName("ix_workflow_runs_owner_user_id");
+
+                    b.HasIndex("Status")
+                        .HasDatabaseName("ix_workflow_runs_status");
+
+                    b.HasIndex("WorkflowId", "CreatedAtTicks")
+                        .HasDatabaseName("ix_workflow_runs_workflow_id_created_at_ticks");
+
+                    b.ToTable("workflow_runs", (string)null);
                 });
 
             modelBuilder.Entity("Sandcastle.Infrastructure.Persistence.ConversationPlanItemRecord", b =>

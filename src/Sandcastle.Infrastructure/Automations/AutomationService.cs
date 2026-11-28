@@ -62,11 +62,27 @@ public sealed class AutomationService(
             && r.ConsecutiveFailures >= _options.CircuitBreakerThreshold,
         r.MisfirePolicy,
         // SPEC-162: cron + timezone + approval preset.
-        r.TimeZoneId, r.CronExpression, r.ApprovalPreset);
+        r.TimeZoneId, r.CronExpression, r.ApprovalPreset, FactoryId: r.FactoryId);
 
     private static AutomationRunInfo ToRunInfo(AutomationRunRecord r) => new(
         r.Id, r.AutomationId, r.StartedAt, r.FinishedAt, r.Status,
         r.ConversationId, r.Error, r.Missed);
+
+    private async Task<string?> ValidateFactorySelectionAsync(
+        Guid? factoryId, Guid ownerUserId, Guid? orgId, CancellationToken ct)
+    {
+        if (!factoryId.HasValue)
+        {
+            return null;
+        }
+
+        var owner = ownerUserId.ToString();
+        return await db.Factories.AnyAsync(f => f.Id == factoryId.Value
+            && f.OwnerUserId == owner
+            && (orgId == null || f.OrgId == null || f.OrgId == orgId), ct)
+            ? null
+            : "factory_not_found";
+    }
 
     private async Task<string?> ValidateProfileSelectionAsync(
         Guid? llmProfileId, Guid? agentProfileId, Guid ownerUserId,
@@ -510,6 +526,12 @@ public sealed class AutomationService(
             return (null, profileError);
         }
 
+        if (await ValidateFactorySelectionAsync(
+            req.FactoryId, ownerUserId, orgId, ct) is { } factoryError)
+        {
+            return (null, factoryError);
+        }
+
         var now = DateTimeOffset.UtcNow;
         var rec = new AutomationRecord
         {
@@ -521,6 +543,7 @@ public sealed class AutomationService(
             LlmModel = req.LlmModel,
             LlmProfileId = req.LlmProfileId,
             AgentProfileId = req.AgentProfileId,
+            FactoryId = req.FactoryId,
             SelectedRepository = req.SelectedRepository,
             Kind = autoKind,
             ScanConfigJson = scanConfig,
@@ -594,11 +617,18 @@ public sealed class AutomationService(
             return (null, profileError);
         }
 
+        if (await ValidateFactorySelectionAsync(
+            req.FactoryId, ownerUserId, rec.OrgId, ct) is { } factoryError)
+        {
+            return (null, factoryError);
+        }
+
         if (req.Name is not null) { rec.Name = req.Name.Trim(); }
         if (req.Prompt is not null) { rec.Prompt = req.Prompt; }
         if (req.LlmModel is not null) { rec.LlmModel = req.LlmModel; }
         if (req.LlmProfileId.HasValue) { rec.LlmProfileId = req.LlmProfileId; }
         if (req.AgentProfileId.HasValue) { rec.AgentProfileId = req.AgentProfileId; }
+        if (req.FactoryId.HasValue) { rec.FactoryId = req.FactoryId; }
         if (req.SelectedRepository is not null)
         {
             rec.SelectedRepository = req.SelectedRepository;
