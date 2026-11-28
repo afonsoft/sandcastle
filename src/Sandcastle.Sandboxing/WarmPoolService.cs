@@ -3,6 +3,7 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
 using Sandcastle.Application.Coordination;
+using Sandcastle.Application.Runtime;
 using Sandcastle.Application.Sandbox;
 
 namespace Sandcastle.Sandboxing;
@@ -36,7 +37,8 @@ public sealed class WarmPoolService(
     IOptions<SandboxOptions> options,
     IDistributedLock distributedLock,
     ILogger<WarmPoolService> logger,
-    IOptions<KubernetesOptions>? k8sOptions = null) : BackgroundService
+    IOptions<KubernetesOptions>? k8sOptions = null,
+    IRuntimePoolOverrides? poolOverrides = null) : BackgroundService
 {
     private IDistributedLockHandle? _leader;
 
@@ -172,6 +174,16 @@ public sealed class WarmPoolService(
                 {
                     map[part[..colon].Trim()] = n;
                 }
+            }
+        }
+
+        // SPEC-184 RF-002: admin runtime resize is process-local and
+        // takes precedence over static configuration until restart.
+        if (poolOverrides is not null)
+        {
+            foreach (var (image, desired) in poolOverrides.Snapshot())
+            {
+                map[image] = desired;
             }
         }
 

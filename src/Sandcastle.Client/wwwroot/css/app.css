@@ -1423,3 +1423,7 @@ a.chip.mention { text-decoration: none; }
 .responsive-table { width:100%; overflow:auto; }
 .templates-grid .template-card { display:grid; gap:.5rem; }
 .events-filters { margin-block:1rem; }
+.runtime-alerts { margin-block: .75rem; }
+.runtime-page .responsive-table input[type="number"] { width: 4.5rem; }
+
+.runtime-capacity { margin-block: .75rem; }

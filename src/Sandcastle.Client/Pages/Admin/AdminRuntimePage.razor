@@ -1,0 +1,140 @@
+@page "/admin/runtime"
+@using System.Text.Json
+@using Sandcastle.Client.Services
+@inherits AdminPageBase
+
+<PageTitle>@L["admin.title"] · @L["admin.nav_runtime"]</PageTitle>
+
+@if (Checking || !Allowed)
+{
+    <div class="settings-wrap"><p class="empty-state">…</p></div>
+}
+else
+{
+    <div class="settings-wrap admin-wrap runtime-page">
+        <h1>@L["runtime.title"]</h1>
+        <AdminNav />
+        @if (Error is not null) { <p class="admin-error">@Error</p> }
+        <p>@L["runtime.subtitle"]</p>
+        <button @onclick="LoadRuntimeAsync">@L["admin.refresh"]</button>
+
+        @if (_fleet.ValueKind == JsonValueKind.Object)
+        {
+            var capacity = _fleet.GetProperty("capacity");
+            <section class="usage-grid runtime-capacity" aria-label="@L["runtime.capacity"]">
+                <div class="usage-card"><div class="num">@capacity.GetProperty("total_sandboxes").GetInt32()</div><div class="lbl">@L["runtime.total"]</div></div>
+                <div class="usage-card"><div class="num">@capacity.GetProperty("running").GetInt32()</div><div class="lbl">@L["runtime.running"]</div></div>
+                <div class="usage-card"><div class="num">@capacity.GetProperty("warm_available").GetInt32()</div><div class="lbl">@L["runtime.warm"]</div></div>
+                <div class="usage-card"><div class="num">@capacity.GetProperty("queue_depth").GetInt32()</div><div class="lbl">@L["runtime.queue"]</div></div>
+                <div class="usage-card"><div class="num">@capacity.GetProperty("reserved_memory_mb").GetInt64()</div><div class="lbl">@L["runtime.memory"]</div></div>
+                <div class="usage-card"><div class="num">@capacity.GetProperty("failure_rate").GetDouble().ToString("P0")</div><div class="lbl">@L["runtime.failure_rate"]</div></div>
+            </section>
+
+            @if (_fleet.TryGetProperty("alerts", out var alerts) && alerts.GetArrayLength() > 0)
+            {
+                <section class="runtime-alerts" aria-label="@L["runtime.alerts"]">
+                    @foreach (var alert in alerts.EnumerateArray())
+                    {
+                        <p class="admin-error">@alert.GetString()</p>
+                    }
+                </section>
+            }
+        }
+
+        <h2>@L["runtime.pools"]</h2>
+        <table class="table responsive-table">
+            <thead><tr><th>@L["runtime.image"]</th><th>@L["runtime.desired"]</th><th>@L["runtime.available"]</th><th>@L["runtime.claimed"]</th><th>@L["runtime.health"]</th><th></th></tr></thead>
+            <tbody>
+                @foreach (var pool in _pools)
+                {
+                    <tr>
+                        <td>@Str(pool, "image")</td>
+                        <td>@Num(pool, "desired")</td>
+                        <td>@Num(pool, "available")</td>
+                        <td>@Num(pool, "claimed")</td>
+                        <td>@Str(pool, "health")</td>
+                        <td>
+                            <input type="number" min="0" max="20" aria-label="@L["runtime.resize"]" @bind="_resizeDesired" />
+                            <button @onclick="() => ResizePoolAsync(pool)">@L["runtime.resize"]</button>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+
+        <h2>@L["runtime.fleet"]</h2>
+        @if (_fleet.ValueKind == JsonValueKind.Object && _fleet.TryGetProperty("items", out var items))
+        {
+            <table class="table responsive-table">
+                <thead><tr><th>@L["runtime.status"]</th><th>@L["runtime.image"]</th><th>@L["runtime.node"]</th><th>@L["runtime.pool"]</th><th>@L["runtime.health"]</th><th>@L["runtime.age"]</th><th></th></tr></thead>
+                <tbody>
+                    @foreach (var item in items.EnumerateArray())
+                    {
+                        <tr>
+                            <td>@Str(item, "status")</td>
+                            <td>@Str(item, "image")</td>
+                            <td>@Str(item, "node")</td>
+                            <td>@Str(item, "pool")</td>
+                            <td>@Str(item, "health")</td>
+                            <td>@Age(item)</td>
+                            <td>
+                                <button class="danger" @onclick="() => TerminateAsync(item)">@L["runtime.terminate"]</button>
+                                <button @onclick="() => RecycleAsync(item)">@L["runtime.recycle"]</button>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        }
+    </div>
+}
+
+@code {
+    private JsonElement _fleet;
+    private IReadOnlyList<JsonElement> _pools = [];
+    private int _resizeDesired = 1;
+
+    protected override async Task LoadAsync() => await LoadRuntimeAsync();
+
+    private async Task LoadRuntimeAsync()
+    {
+        _fleet = await Api.GetRuntimeFleetAsync();
+        _pools = await Api.GetRuntimePoolsAsync();
+    }
+
+    private async Task ResizePoolAsync(JsonElement pool)
+    {
+        if (Str(pool, "image") is { } image)
+        {
+            await Api.ResizeRuntimePoolAsync(image, _resizeDesired);
+            await LoadRuntimeAsync();
+        }
+    }
+
+    private Task TerminateAsync(JsonElement item) => OperateAsync("terminate", item);
+    private Task RecycleAsync(JsonElement item) => OperateAsync("recycle", item);
+
+    private async Task OperateAsync(string operation, JsonElement item)
+    {
+        if (item.TryGetProperty("sandbox_id", out var id)
+            && Guid.TryParse(id.GetString(), out var guid))
+        {
+            await Api.RuntimeOperationAsync(operation, guid);
+            await LoadRuntimeAsync();
+        }
+    }
+
+    private static string? Str(JsonElement el, string name) =>
+        el.TryGetProperty(name, out var v) && v.ValueKind != JsonValueKind.Null
+            ? v.ToString() : null;
+
+    private static string Num(JsonElement el, string name) =>
+        el.TryGetProperty(name, out var v) ? v.ToString() : "0";
+
+    private static string Age(JsonElement el)
+    {
+        if (!el.TryGetProperty("age", out var age)) return "—";
+        var text = age.ToString();
+        return text.Split('.')[0];
+    }
+}

@@ -2458,6 +2458,40 @@
         },
         "type": "object"
       },
+      "RuntimeIdRequest": {
+        "description": "Runtime operation target.",
+        "properties": {
+          "id": {
+            "format": "uuid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id"
+        ],
+        "type": "object"
+      },
+      "RuntimePoolResizeRequest": {
+        "description": "Resize a warm-pool image at runtime.",
+        "properties": {
+          "desired": {
+            "format": "int32",
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ]
+          },
+          "image": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "image",
+          "desired"
+        ],
+        "type": "object"
+      },
       "SandboxSpecDto": {
         "description": "SandboxSpec DTO (wire).",
         "properties": {
@@ -4103,6 +4137,179 @@
         "summary": "PATCH /api/v1/admin/plans/{id:guid}",
         "tags": [
           "Sandcastle.Api"
+        ]
+      }
+    },
+    "/api/v1/admin/runtime/drain": {
+      "post": {
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RuntimeIdRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          }
+        },
+        "summary": "POST /api/v1/admin/runtime/drain",
+        "tags": [
+          "Admin"
+        ]
+      }
+    },
+    "/api/v1/admin/runtime/fleet": {
+      "get": {
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          }
+        },
+        "summary": "GET /api/v1/admin/runtime/fleet",
+        "tags": [
+          "Admin"
+        ]
+      }
+    },
+    "/api/v1/admin/runtime/images": {
+      "get": {
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          }
+        },
+        "summary": "GET /api/v1/admin/runtime/images",
+        "tags": [
+          "Admin"
+        ]
+      }
+    },
+    "/api/v1/admin/runtime/pools": {
+      "get": {
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          }
+        },
+        "summary": "GET /api/v1/admin/runtime/pools",
+        "tags": [
+          "Admin"
+        ]
+      }
+    },
+    "/api/v1/admin/runtime/recycle": {
+      "post": {
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RuntimeIdRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          }
+        },
+        "summary": "POST /api/v1/admin/runtime/recycle",
+        "tags": [
+          "Admin"
+        ]
+      }
+    },
+    "/api/v1/admin/runtime/resize": {
+      "post": {
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RuntimePoolResizeRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          }
+        },
+        "summary": "POST /api/v1/admin/runtime/resize",
+        "tags": [
+          "Admin"
+        ]
+      }
+    },
+    "/api/v1/admin/runtime/terminate": {
+      "post": {
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RuntimeIdRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          }
+        },
+        "summary": "POST /api/v1/admin/runtime/terminate",
+        "tags": [
+          "Admin"
         ]
       }
     },

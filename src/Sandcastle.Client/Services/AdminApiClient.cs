@@ -652,6 +652,32 @@ public sealed class AdminApiClient(HttpClient http)
         return await resp.Content.ReadFromJsonAsync<JsonElement>(Json, ct);
     }
 
+
+    // ---- SPEC-184: runtime control plane --------------------------------
+
+    public async Task<JsonElement> GetRuntimeFleetAsync(CancellationToken ct = default) =>
+        await GetAsync<JsonElement>("/api/v1/admin/runtime/fleet", ct);
+
+    public async Task<IReadOnlyList<JsonElement>> GetRuntimePoolsAsync(CancellationToken ct = default) =>
+        await GetAsync<List<JsonElement>>("/api/v1/admin/runtime/pools", ct) ?? [];
+
+    public async Task<IReadOnlyList<JsonElement>> GetRuntimeImagesAsync(CancellationToken ct = default) =>
+        await GetAsync<List<JsonElement>>("/api/v1/admin/runtime/images", ct) ?? [];
+
+    public async Task<bool> RuntimeOperationAsync(string operation, Guid id, CancellationToken ct = default)
+    {
+        var resp = Guard(await http.PostAsJsonAsync(
+            $"/api/v1/admin/runtime/{operation}", new { id }, Json, ct));
+        return resp.IsSuccessStatusCode;
+    }
+
+    public async Task<bool> ResizeRuntimePoolAsync(string image, int desired, CancellationToken ct = default)
+    {
+        var resp = Guard(await http.PostAsJsonAsync(
+            "/api/v1/admin/runtime/resize", new { image, desired }, Json, ct));
+        return resp.IsSuccessStatusCode;
+    }
+
     // ---- plumbing --------------------------------------------------------
 
     private async Task<T?> GetAsync<T>(string url, CancellationToken ct) =>
