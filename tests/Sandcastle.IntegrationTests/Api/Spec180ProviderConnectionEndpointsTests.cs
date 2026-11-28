@@ -53,12 +53,12 @@ public sealed class Spec180ProviderConnectionEndpointsTests : IDisposable
         {
             name = "Work OpenAI",
             provider = "openai",
-            secret_value = "test-secret-1234567890abcdef",
+            secret_value = "redacted",
         });
 
         create.StatusCode.ShouldBe(HttpStatusCode.Created);
         var body = await create.Content.ReadAsStringAsync();
-        body.ShouldNotContain("test-secret-1234567890abcdef");
+        body.ShouldNotContain("redacted");
         var doc = JsonDocument.Parse(body).RootElement;
         var id = doc.GetProperty("id").GetGuid();
         doc.GetProperty("secret_ref").GetString().ShouldStartWith("provider_connection_");
