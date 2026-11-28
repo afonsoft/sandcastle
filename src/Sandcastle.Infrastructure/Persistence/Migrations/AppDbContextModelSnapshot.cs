@@ -350,6 +350,10 @@ namespace Sandcastle.Infrastructure.Persistence.Migrations
                         .HasColumnType("TEXT")
                         .HasColumnName("id");
 
+                    b.Property<Guid?>("AgentProfileId")
+                        .HasColumnType("TEXT")
+                        .HasColumnName("agent_profile_id");
+
                     b.Property<string>("ApprovalPreset")
                         .HasMaxLength(20)
                         .HasColumnType("TEXT")
@@ -396,6 +400,10 @@ namespace Sandcastle.Infrastructure.Persistence.Migrations
                     b.Property<string>("LlmModel")
                         .HasColumnType("TEXT")
                         .HasColumnName("llm_model");
+
+                    b.Property<Guid?>("LlmProfileId")
+                        .HasColumnType("TEXT")
+                        .HasColumnName("llm_profile_id");
 
                     b.Property<string>("MisfirePolicy")
                         .IsRequired()
@@ -763,6 +771,10 @@ namespace Sandcastle.Infrastructure.Persistence.Migrations
                         .HasColumnType("TEXT")
                         .HasColumnName("id");
 
+                    b.Property<Guid?>("AgentProfileId")
+                        .HasColumnType("TEXT")
+                        .HasColumnName("agent_profile_id");
+
                     b.Property<string>("AgentType")
                         .HasColumnType("TEXT")
                         .HasColumnName("agent_type");
@@ -812,6 +824,10 @@ namespace Sandcastle.Infrastructure.Persistence.Migrations
                     b.Property<string>("LlmModel")
                         .HasColumnType("TEXT")
                         .HasColumnName("llm_model");
+
+                    b.Property<Guid?>("LlmProfileId")
+                        .HasColumnType("TEXT")
+                        .HasColumnName("llm_profile_id");
 
                     b.Property<string>("McpConfigJson")
                         .HasColumnType("TEXT")
@@ -1429,6 +1445,89 @@ namespace Sandcastle.Infrastructure.Persistence.Migrations
                         .HasDatabaseName("ix_outposts_org_id_status");
 
                     b.ToTable("outposts", (string)null);
+                });
+
+            modelBuilder.Entity("Sandcastle.Infrastructure.Persistence.AgentProfileRecord", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("TEXT")
+                        .HasColumnName("id");
+
+                    b.Property<string>("AgentType")
+                        .HasMaxLength(40)
+                        .HasColumnType("TEXT")
+                        .HasColumnName("agent_type");
+
+                    b.Property<string>("AllowedToolsJson")
+                        .HasColumnType("TEXT")
+                        .HasColumnName("allowed_tools_json");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("TEXT")
+                        .HasColumnName("created_at");
+
+                    b.Property<string>("Description")
+                        .HasColumnType("TEXT")
+                        .HasColumnName("description");
+
+                    b.Property<Guid?>("LlmProfileId")
+                        .HasColumnType("TEXT")
+                        .HasColumnName("llm_profile_id");
+
+                    b.Property<string>("Mode")
+                        .HasMaxLength(20)
+                        .HasColumnType("TEXT")
+                        .HasColumnName("mode");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("TEXT")
+                        .HasColumnName("name");
+
+                    b.Property<Guid?>("OrgId")
+                        .HasColumnType("TEXT")
+                        .HasColumnName("org_id");
+
+                    b.Property<string>("OwnerId")
+                        .HasMaxLength(64)
+                        .HasColumnType("TEXT")
+                        .HasColumnName("owner_id");
+
+                    b.Property<string>("PromptPack")
+                        .HasColumnType("TEXT")
+                        .HasColumnName("prompt_pack");
+
+                    b.Property<string>("RuntimeProfile")
+                        .HasMaxLength(40)
+                        .HasColumnType("TEXT")
+                        .HasColumnName("runtime_profile");
+
+                    b.Property<string>("Scope")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("TEXT")
+                        .HasColumnName("scope");
+
+                    b.Property<string>("SkillsJson")
+                        .HasColumnType("TEXT")
+                        .HasColumnName("skills_json");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("TEXT")
+                        .HasColumnName("updated_at");
+
+                    b.HasKey("Id")
+                        .HasName("pk_agent_profiles");
+
+                    b.HasIndex("OrgId", "Name")
+                        .HasDatabaseName("ix_agent_profiles_org_id_name");
+
+                    b.HasIndex("OwnerId", "Name")
+                        .HasDatabaseName("ix_agent_profiles_owner_id_name");
+
+                    b.ToTable("agent_profiles", (string)null);
                 });
 
             modelBuilder.Entity("Sandcastle.Infrastructure.Persistence.ApiKeyRecord", b =>
@@ -2192,6 +2291,81 @@ namespace Sandcastle.Infrastructure.Persistence.Migrations
                     b.ToTable("ip_access_rules", (string)null);
                 });
 
+            modelBuilder.Entity("Sandcastle.Infrastructure.Persistence.LlmProfileRecord", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("TEXT")
+                        .HasColumnName("id");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("TEXT")
+                        .HasColumnName("created_at");
+
+                    b.Property<string>("FallbackJson")
+                        .HasColumnType("TEXT")
+                        .HasColumnName("fallback_json");
+
+                    b.Property<string>("Model")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("TEXT")
+                        .HasColumnName("model");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("TEXT")
+                        .HasColumnName("name");
+
+                    b.Property<Guid?>("OrgId")
+                        .HasColumnType("TEXT")
+                        .HasColumnName("org_id");
+
+                    b.Property<string>("OwnerId")
+                        .HasMaxLength(64)
+                        .HasColumnType("TEXT")
+                        .HasColumnName("owner_id");
+
+                    b.Property<string>("Provider")
+                        .HasMaxLength(40)
+                        .HasColumnType("TEXT")
+                        .HasColumnName("provider");
+
+                    b.Property<Guid?>("ProviderConnectionId")
+                        .HasColumnType("TEXT")
+                        .HasColumnName("provider_connection_id");
+
+                    b.Property<string>("RoleModelsJson")
+                        .HasColumnType("TEXT")
+                        .HasColumnName("role_models_json");
+
+                    b.Property<string>("Scope")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("TEXT")
+                        .HasColumnName("scope");
+
+                    b.Property<double?>("Temperature")
+                        .HasColumnType("REAL")
+                        .HasColumnName("temperature");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("TEXT")
+                        .HasColumnName("updated_at");
+
+                    b.HasKey("Id")
+                        .HasName("pk_llm_profiles");
+
+                    b.HasIndex("OrgId", "Name")
+                        .HasDatabaseName("ix_llm_profiles_org_id_name");
+
+                    b.HasIndex("OwnerId", "Name")
+                        .HasDatabaseName("ix_llm_profiles_owner_id_name");
+
+                    b.ToTable("llm_profiles", (string)null);
+                });
+
             modelBuilder.Entity("Sandcastle.Infrastructure.Persistence.McpServerRecord", b =>
                 {
                     b.Property<string>("OwnerId")
@@ -2560,6 +2734,73 @@ namespace Sandcastle.Infrastructure.Persistence.Migrations
                         .HasName("pk_plans");
 
                     b.ToTable("plans", (string)null);
+                });
+
+            modelBuilder.Entity("Sandcastle.Infrastructure.Persistence.ProviderConnectionRecord", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("TEXT")
+                        .HasColumnName("id");
+
+                    b.Property<string>("BaseUrl")
+                        .HasColumnType("TEXT")
+                        .HasColumnName("base_url");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("TEXT")
+                        .HasColumnName("created_at");
+
+                    b.Property<bool>("Enabled")
+                        .HasColumnType("INTEGER")
+                        .HasColumnName("enabled");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("TEXT")
+                        .HasColumnName("name");
+
+                    b.Property<Guid?>("OrgId")
+                        .HasColumnType("TEXT")
+                        .HasColumnName("org_id");
+
+                    b.Property<string>("OwnerId")
+                        .HasMaxLength(64)
+                        .HasColumnType("TEXT")
+                        .HasColumnName("owner_id");
+
+                    b.Property<string>("Provider")
+                        .IsRequired()
+                        .HasMaxLength(40)
+                        .HasColumnType("TEXT")
+                        .HasColumnName("provider");
+
+                    b.Property<string>("Scope")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("TEXT")
+                        .HasColumnName("scope");
+
+                    b.Property<string>("SecretRef")
+                        .HasMaxLength(200)
+                        .HasColumnType("TEXT")
+                        .HasColumnName("secret_ref");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("TEXT")
+                        .HasColumnName("updated_at");
+
+                    b.HasKey("Id")
+                        .HasName("pk_provider_connections");
+
+                    b.HasIndex("OrgId", "Provider")
+                        .HasDatabaseName("ix_provider_connections_org_id_provider");
+
+                    b.HasIndex("OwnerId", "Provider")
+                        .HasDatabaseName("ix_provider_connections_owner_id_provider");
+
+                    b.ToTable("provider_connections", (string)null);
                 });
 
             modelBuilder.Entity("Sandcastle.Infrastructure.Persistence.RepoIndexRecord", b =>

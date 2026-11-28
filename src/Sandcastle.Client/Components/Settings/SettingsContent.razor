@@ -5,11 +5,13 @@
 @inject ChatNotificationsService ChatNotify
 @inject ToastService Toasts
 @inject LocalizationService L
+@inject AdminState Admin
 
 @* SPEC-130 RF-002: conteúdo de settings compartilhado entre a página
    /settings (deep-link) e o SettingsModal (DialogService). *@
 <div class="settings-layout">
         <nav class="settings-rail" role="tablist" aria-label="@L["settings.title"]">
+            <div class="settings-group">@L["settings.group.workspace"]</div>
             <button type="button" role="tab"
                     aria-selected="@(_tab == "general")"
                     class="settings-tab @(_tab == "general" ? "active" : "")"
@@ -23,12 +25,19 @@
                 @L["settings.agent_llm"]
             </button>
             <button type="button" role="tab"
+                    aria-selected="@(_tab == "profiles")"
+                    class="settings-tab @(_tab == "profiles" ? "active" : "")"
+                    @onclick='() => _tab = "profiles"'>
+                @L["settings.profiles"]
+            </button>
+            <button type="button" role="tab"
                     aria-selected="@(_tab == "secrets")"
                     class="settings-tab @(_tab == "secrets" ? "active" : "")"
                     @onclick='() => _tab = "secrets"'>
                 @L["settings.secrets"]
             </button>
             @* SPEC-147 RF-004/RF-005: abas Usage (budget) e Indexing. *@
+            <div class="settings-group">@L["settings.group.operations"]</div>
             <button type="button" role="tab"
                     aria-selected="@(_tab == "usage")"
                     class="settings-tab @(_tab == "usage" ? "active" : "")"
@@ -47,6 +56,7 @@
                     @onclick='() => _tab = "outposts"'>
                 @L["settings.outposts"]
             </button>
+            <div class="settings-group">@L["settings.group.account"]</div>
             @* SPEC-158: conta, tokens, notificações, manutenção. *@
             <button type="button" role="tab"
                     aria-selected="@(_tab == "account")"
@@ -71,6 +81,12 @@
                     class="settings-tab @(_tab == "maintenance" ? "active" : "")"
                     @onclick='() => _tab = "maintenance"'>
                 @L["settings.maintenance"]
+            </button>
+            <button type="button" role="tab"
+                    aria-selected="@(_tab == "sections")"
+                    class="settings-tab @(_tab == "sections" ? "active" : "")"
+                    @onclick='() => _tab = "sections"'>
+                @L["settings.sections"]
             </button>
             <a class="settings-tab settings-tab-link" href="/settings/skills">
                 @L["skills.title"] →
@@ -159,6 +175,11 @@
                     }
                 </div>
             }
+            else if (_tab == "profiles")
+            {
+                <h3>@L["settings.profiles"]</h3>
+                <SettingsProfilesPanel />
+            }
             else if (_tab == "agent")
             {
                 <h3>@L["settings.agent_llm"]</h3>
@@ -237,6 +258,10 @@
                             @L["common.delete"]
                         </button>
                     </div>
+                }
+                @if (_settingsSaved && !_dirty)
+                {
+                    <span class="save-state" aria-live="polite">@L["settings.saved"]</span>
                 }
                 @* RF-004: SettingsSaveBar — sticky, só com dirty-state. *@
                 @if (_dirty)
@@ -481,6 +506,25 @@
                     </div>
                 }
             }
+            else if (_tab == "sections")
+            {
+                <h3>@L["settings.sections"]</h3>
+                <p class="sub">@L["settings.sections.hint"]</p>
+                <div class="settings-sections-grid">
+                    <a class="foundation-card" href="/settings/mcp"><strong>@L["mcp.title"]</strong><span>@L["settings.sections.open"]</span></a>
+                    <a class="foundation-card" href="/extensions"><strong>@L["settings.sections.integrations"]</strong><span>@L["settings.sections.open"]</span></a>
+                    <a class="foundation-card" href="/settings/skills"><strong>@L["skills.title"]</strong><span>@L["settings.sections.open"]</span></a>
+                    <a class="foundation-card" href="/automations"><strong>@L["automations.title"]</strong><span>@L["settings.sections.open"]</span></a>
+                    <button type="button" class="foundation-card" @onclick='() => _tab = "secrets"'><strong>@L["settings.secrets"]</strong><span>@L["settings.sections.open"]</span></button>
+                    <button type="button" class="foundation-card" @onclick='() => _tab = "outposts"'><strong>@L["settings.sections.runtime"]</strong><span>@L["settings.sections.open"]</span></button>
+                    <a class="foundation-card" href="/scans"><strong>@L["settings.sections.verification"]</strong><span>@L["settings.sections.open"]</span></a>
+                    @if (_isSuperAdmin)
+                    {
+                        <a class="foundation-card" href="/admin/flags"><strong>@L["settings.sections.experimental"]</strong><span>@L["settings.sections.admin_only"]</span></a>
+                        <a class="foundation-card" href="/admin/scm"><strong>@L["settings.sections.scm"]</strong><span>@L["settings.sections.admin_only"]</span></a>
+                    }
+                </div>
+            }
             else if (_tab == "account")
             {
                 <AccountPanel />
@@ -519,7 +563,7 @@
     private string _model = "";
     private string _apiKeySecret = "";
     private string _agentType = "default";
-    private bool _saving, _dirty;
+    private bool _saving, _dirty, _settingsSaved, _isSuperAdmin;
     private string _savedModel = "";
     private string _savedSecret = "";
     private string _savedAgentType = "default";
@@ -582,12 +626,13 @@
 
     protected override async Task OnInitializedAsync()
     {
-        if (InitialTab is "general" or "agent" or "secrets"
-            or "usage" or "indexing" or "outposts")
+        if (InitialTab is "general" or "agent" or "secrets" or "profiles"
+            or "usage" or "indexing" or "outposts" or "sections")
         {
             _tab = InitialTab;
         }
 
+        try { _isSuperAdmin = await Admin.EnsureLoadedAsync(); } catch { }
         await Theme.LoadPalettesAsync();
         _notifyBrowser = await ChatNotify.GetPrefAsync();
         try
@@ -717,7 +762,7 @@
     private static string? GetStr(JsonElement el, string name) =>
         el.TryGetProperty(name, out var v) ? v.GetString() : null;
 
-    private void MarkDirty() => _dirty = true;
+    private void MarkDirty() { _dirty = true; _settingsSaved = false; }
 
     private void OnAgentTypeChange(ChangeEventArgs e)
     {
@@ -750,6 +795,7 @@
             _savedSecret = _apiKeySecret;
             _savedAgentType = _agentType;
             _dirty = false;
+            _settingsSaved = true;
             Toasts.Success(L["settings.saved"]);
         }
         finally { _saving = false; }

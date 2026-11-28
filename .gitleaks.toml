@@ -33,8 +33,9 @@
   # - sk-abc123def é fixture fake em CredentialStoreTests.cs.
   # - signature256 é um NOME DE PARÂMETRO em GitHubWebhookService.cs:146
   #   (`signature256 is null`) — identificador, não segredo.
-  # - sk-live-* são fixtures fake do teste Spec134UserLlmKeyEndpointsTests.cs
-  #   que entraram no histórico via PR #377 (o scan roda `gitleaks git`).
+  # - sk-live-* são fixtures fake dos testes Spec134UserLlmKeyEndpointsTests.cs
+  #   e Spec180ProviderConnectionEndpointsTests.cs que entraram no histórico
+  #   via PRs anteriores (o scan roda `gitleaks git`).
   # - 0123456789ab é fixture fake do teste Spec158AccountTests.cs
   #   (new_password de teste) que entrou no histórico via PR #483.
   id = "generic-api-key"
@@ -46,5 +47,7 @@
       '''signature256''',
       '''sk-live-abcdef1234''',
       '''sk-live-wxyz''',
+      '''sk-live-1234567890abcdef''',
+      '''test-secret-1234567890abcdef''',
       '''0123456789ab''',
     ]

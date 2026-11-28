@@ -18,6 +18,10 @@ public sealed record CreateAppConversationRequest
     public IReadOnlyList<string>? SelectedRepositories { get; init; }
     public string? AgentType { get; init; }
     public string? LlmModel { get; init; }
+    /// <summary>SPEC-180: optional named LLM profile selection.</summary>
+    public Guid? LlmProfileId { get; init; }
+    /// <summary>SPEC-180: optional named agent profile selection.</summary>
+    public Guid? AgentProfileId { get; init; }
     public Guid? SandboxSpecId { get; init; }
     public Guid? SandboxId { get; init; }
     public string? SandboxProfile { get; init; }

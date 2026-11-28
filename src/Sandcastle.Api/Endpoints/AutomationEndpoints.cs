@@ -268,7 +268,8 @@ public static class AutomationEndpoints
             // SPEC-161: misfire policy.
             r.MisfirePolicy,
             // SPEC-162: cron + timezone + approval preset.
-            r.TimeZoneId, r.CronExpression, r.ApprovalPreset);
+            r.TimeZoneId, r.CronExpression, r.ApprovalPreset,
+            r.LlmProfileId, r.AgentProfileId);
 
     private static object ToDto(AutomationInfo a) => new
     {
@@ -532,4 +533,5 @@ public sealed record AutomationUpsertRequest(
     string? MisfirePolicy = null,
     // SPEC-162: cron + timezone IANA + approval preset.
     string? TimeZoneId = null, string? CronExpression = null,
-    string? ApprovalPreset = null);
+    string? ApprovalPreset = null, Guid? LlmProfileId = null,
+    Guid? AgentProfileId = null);

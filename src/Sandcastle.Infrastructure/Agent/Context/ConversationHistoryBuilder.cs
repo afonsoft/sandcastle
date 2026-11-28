@@ -49,14 +49,15 @@ public sealed class ConversationHistoryBuilder(IServiceProvider services)
         var (hasSystem, lastId) = ReplayEvents(
             all, forgotten, pruned, history, ids);
 
+        var agentProfile = await LoadAgentProfileAsync(conv, ct);
         var skillResolution = await ResolveSkillsAsync(
-            conversationId, conv, all, ct);
+            conversationId, conv, all, agentProfile, ct);
         var activeSkills = skillResolution.Skills;
         if (!hasSystem)
         {
             lastId = await AppendSystemPromptAsync(events, conversationId,
                 conv, tools, new(all, lastId, history, ids),
-                activeSkills, skillResolution.Loaded, ct);
+                activeSkills, skillResolution.Loaded, agentProfile, ct);
         }
 
         if (lastSummary is { Summary: { } summary })
@@ -156,7 +157,8 @@ public sealed class ConversationHistoryBuilder(IServiceProvider services)
 
     private async Task<SkillResolution> ResolveSkillsAsync(
         Guid conversationId, ConversationRecord conv,
-        IReadOnlyList<EventBase> all, CancellationToken ct)
+        IReadOnlyList<EventBase> all,
+        Persistence.AgentProfileRecord? agentProfile, CancellationToken ct)
     {
         // SPEC-11 RF-002: resolve skills por trigger (always/keyword/task)
         // usando a última mensagem do usuário e as tags da conversa.
@@ -182,6 +184,14 @@ public sealed class ConversationHistoryBuilder(IServiceProvider services)
                 skills, loaded.RepoSkills, lastUserText);
         }
 
+        var profileSkills = ParseStringArray(agentProfile?.SkillsJson);
+        if (profileSkills is not null)
+        {
+            var allowed = profileSkills.ToHashSet(
+                StringComparer.OrdinalIgnoreCase);
+            skills = skills.Where(s => allowed.Contains(s.Name)).ToList();
+        }
+
         return new SkillResolution(skills, loaded);
     }
 
@@ -190,6 +200,7 @@ public sealed class ConversationHistoryBuilder(IServiceProvider services)
         ConversationRecord conv, IToolRegistry tools,
         HistorySlice h, IReadOnlyList<Domain.Skills.Skill> skills,
         Discovery.RepoContextLoader.LoadedContext? loaded,
+        Persistence.AgentProfileRecord? agentProfile,
         CancellationToken ct)
     {
         var repoContext = loaded?.RenderedMarkdown;
@@ -222,6 +233,11 @@ public sealed class ConversationHistoryBuilder(IServiceProvider services)
                     await LoadBlueprintKnowledgeAsync(
                         conv.SandboxId, ct),
             });
+        if (!string.IsNullOrWhiteSpace(agentProfile?.PromptPack))
+        {
+            prompt += "\n\n## Agent profile instructions\n"
+                + agentProfile.PromptPack.Trim();
+        }
         var sp = new SystemPromptEvent
         {
             ParentId = h.LastId,
@@ -240,6 +256,27 @@ public sealed class ConversationHistoryBuilder(IServiceProvider services)
         h.History.Insert(0, new LlmMessage("system", prompt));
         h.Ids.Insert(0, sp.Id);
         return newId;
+    }
+
+
+    private async Task<Persistence.AgentProfileRecord?> LoadAgentProfileAsync(
+        ConversationRecord conv, CancellationToken ct)
+    {
+        if (conv.AgentProfileId is not { } id
+            || services.GetService<Persistence.AppDbContext>() is not { } db)
+            return null;
+        return await db.AgentProfiles.AsNoTracking()
+            .FirstOrDefaultAsync(p => p.Id == id, ct);
+    }
+
+    private static IReadOnlyList<string>? ParseStringArray(string? json)
+    {
+        if (string.IsNullOrWhiteSpace(json)) return null;
+        try
+        {
+            return JsonSerializer.Deserialize<List<string>>(json);
+        }
+        catch (JsonException) { return null; }
     }
 
     /// <summary>

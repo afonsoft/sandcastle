@@ -13,6 +13,78 @@
         ],
         "type": "object"
       },
+      "AgentProfileRequest": {
+        "properties": {
+          "agent_type": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "allowed_tools": {
+            "items": {
+              "type": "string"
+            },
+            "type": [
+              "null",
+              "array"
+            ]
+          },
+          "description": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "llm_profile_id": {
+            "format": "uuid",
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "mode": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "name": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "prompt_pack": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "runtime_profile": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "scope": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "skills": {
+            "items": {
+              "type": "string"
+            },
+            "type": [
+              "null",
+              "array"
+            ]
+          }
+        },
+        "type": "object"
+      },
       "AlertEventPatchRequest": {
         "description": "PATCH alert event \u2014 \u0060{status, repository}\u0060.",
         "properties": {
@@ -212,6 +284,13 @@
       "AutomationUpsertRequest": {
         "description": "Body JSON do CRUD de automations (snake_case).",
         "properties": {
+          "agent_profile_id": {
+            "format": "uuid",
+            "type": [
+              "null",
+              "string"
+            ]
+          },
           "approval_preset": {
             "type": [
               "null",
@@ -246,6 +325,13 @@
             ]
           },
           "llm_model": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "llm_profile_id": {
+            "format": "uuid",
             "type": [
               "null",
               "string"
@@ -467,6 +553,14 @@
       "CreateAppConversationRequest": {
         "description": "POST /app-conversations body (paridade \u0060AppConversationStartRequest\u0060).",
         "properties": {
+          "agent_profile_id": {
+            "description": "SPEC-180: optional named agent profile selection.",
+            "format": "uuid",
+            "type": [
+              "null",
+              "string"
+            ]
+          },
           "agent_type": {
             "type": [
               "null",
@@ -505,6 +599,14 @@
             ]
           },
           "llm_model": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "llm_profile_id": {
+            "description": "SPEC-180: optional named LLM profile selection.",
+            "format": "uuid",
             "type": [
               "null",
               "string"
@@ -1245,6 +1347,69 @@
       },
       "JsonElement": {},
       "JsonNode": {},
+      "LlmProfileRequest": {
+        "properties": {
+          "fallback_models": {
+            "items": {
+              "type": "string"
+            },
+            "type": [
+              "null",
+              "array"
+            ]
+          },
+          "model": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "name": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "provider": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "provider_connection_id": {
+            "format": "uuid",
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "role_models": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "type": [
+              "null",
+              "object"
+            ]
+          },
+          "scope": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "temperature": {
+            "format": "double",
+            "pattern": "^-?(?:0|[1-9]\\d*)(?:\\.\\d\u002B)?(?:[eE][\u002B-]?\\d\u002B)?$",
+            "type": [
+              "null",
+              "number",
+              "string"
+            ]
+          }
+        },
+        "type": "object"
+      },
       "McpServerConfig": {
         "description": "Flat-map config de um servidor MCP (paridade SDK upstream \u2014 sem wrapper\n\u0060.mcp.json\u0060). Serializado como JSON em \u0060mcp_servers.config_json\u0060.",
         "properties": {
@@ -1769,6 +1934,53 @@
             ]
           },
           "type": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        },
+        "type": "object"
+      },
+      "ProviderConnectionRequest": {
+        "properties": {
+          "base_url": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "enabled": {
+            "type": [
+              "null",
+              "boolean"
+            ]
+          },
+          "name": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "provider": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "scope": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "secret_ref": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "secret_value": {
             "type": [
               "null",
               "string"
@@ -3838,6 +4050,178 @@
         "summary": "DELETE /api/v1/admin/users/{uid:guid}",
         "tags": [
           "Sandcastle.Api"
+        ]
+      }
+    },
+    "/api/v1/agent-profiles": {
+      "get": {
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          }
+        },
+        "summary": "GET /api/v1/agent-profiles/",
+        "tags": [
+          "Settings"
+        ]
+      },
+      "post": {
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AgentProfileRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          }
+        },
+        "summary": "POST /api/v1/agent-profiles/",
+        "tags": [
+          "Settings"
+        ]
+      }
+    },
+    "/api/v1/agent-profiles/{id}": {
+      "delete": {
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          }
+        },
+        "summary": "DELETE /api/v1/agent-profiles/{id:guid}",
+        "tags": [
+          "Settings"
+        ]
+      },
+      "get": {
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          }
+        },
+        "summary": "GET /api/v1/agent-profiles/{id:guid}",
+        "tags": [
+          "Settings"
+        ]
+      },
+      "put": {
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AgentProfileRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          }
+        },
+        "summary": "PUT /api/v1/agent-profiles/{id:guid}",
+        "tags": [
+          "Settings"
+        ]
+      }
+    },
+    "/api/v1/agent-profiles/{id}/duplicate": {
+      "post": {
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          }
+        },
+        "summary": "POST /api/v1/agent-profiles/{id:guid}/duplicate",
+        "tags": [
+          "Settings"
         ]
       }
     },
@@ -8869,6 +9253,148 @@
         ]
       }
     },
+    "/api/v1/llm-profiles": {
+      "get": {
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          }
+        },
+        "summary": "GET /api/v1/llm-profiles/",
+        "tags": [
+          "Settings"
+        ]
+      },
+      "post": {
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LlmProfileRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          }
+        },
+        "summary": "POST /api/v1/llm-profiles/",
+        "tags": [
+          "Settings"
+        ]
+      }
+    },
+    "/api/v1/llm-profiles/{id}": {
+      "delete": {
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          }
+        },
+        "summary": "DELETE /api/v1/llm-profiles/{id:guid}",
+        "tags": [
+          "Settings"
+        ]
+      },
+      "get": {
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          }
+        },
+        "summary": "GET /api/v1/llm-profiles/{id:guid}",
+        "tags": [
+          "Settings"
+        ]
+      },
+      "put": {
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LlmProfileRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          }
+        },
+        "summary": "PUT /api/v1/llm-profiles/{id:guid}",
+        "tags": [
+          "Settings"
+        ]
+      }
+    },
     "/api/v1/llm/routes": {
       "get": {
         "responses": {
@@ -11890,6 +12416,227 @@
         "summary": "POST /api/v1/outposts/{id:guid}/drain",
         "tags": [
           "Outposts"
+        ]
+      }
+    },
+    "/api/v1/provider-connections": {
+      "get": {
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          }
+        },
+        "summary": "GET /api/v1/provider-connections/",
+        "tags": [
+          "Settings"
+        ]
+      },
+      "post": {
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ProviderConnectionRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          }
+        },
+        "summary": "POST /api/v1/provider-connections/",
+        "tags": [
+          "Settings"
+        ]
+      }
+    },
+    "/api/v1/provider-connections/providers": {
+      "get": {
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          }
+        },
+        "summary": "GET /api/v1/provider-connections/providers",
+        "tags": [
+          "Settings"
+        ]
+      }
+    },
+    "/api/v1/provider-connections/{id}": {
+      "delete": {
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          }
+        },
+        "summary": "DELETE /api/v1/provider-connections/{id:guid}",
+        "tags": [
+          "Settings"
+        ]
+      },
+      "get": {
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          }
+        },
+        "summary": "GET /api/v1/provider-connections/{id:guid}",
+        "tags": [
+          "Settings"
+        ]
+      },
+      "put": {
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ProviderConnectionRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          }
+        },
+        "summary": "PUT /api/v1/provider-connections/{id:guid}",
+        "tags": [
+          "Settings"
+        ]
+      }
+    },
+    "/api/v1/provider-connections/{id}/models": {
+      "get": {
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          }
+        },
+        "summary": "GET /api/v1/provider-connections/{id:guid}/models",
+        "tags": [
+          "Settings"
+        ]
+      }
+    },
+    "/api/v1/provider-connections/{id}/test": {
+      "post": {
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          }
+        },
+        "summary": "POST /api/v1/provider-connections/{id:guid}/test",
+        "tags": [
+          "Settings"
         ]
       }
     },

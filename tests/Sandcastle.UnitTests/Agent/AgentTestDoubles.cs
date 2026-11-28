@@ -203,7 +203,8 @@ internal sealed class AgentRunnerFixture : IAsyncDisposable
         Application.Eval.EvalOptions? evalOptions = null,
         Application.Scm.IScmStatusReporter? scmReporter = null,
         Application.ChatOps.IChatOpsReporter? chatOpsReporter = null,
-        Application.Tickets.ITicketReporter? ticketReporter = null)
+        Application.Tickets.ITicketReporter? ticketReporter = null,
+        Sandcastle.Application.Contracts.ISecretStore? secretStore = null)
     {
         ConversationId = Guid.NewGuid();
         Events = new FakeEventService();
@@ -242,6 +243,10 @@ internal sealed class AgentRunnerFixture : IAsyncDisposable
         if (userKeys is not null)
         {
             sc.AddSingleton(userKeys);
+        }
+        if (secretStore is not null)
+        {
+            sc.AddSingleton(secretStore);
         }
         // SPEC-152: eval_mode gates — EvalOptions capa MaxTurns;
         // reporters fake provam a hermeticidade (não são chamados).

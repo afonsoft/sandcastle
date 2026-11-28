@@ -49,6 +49,28 @@ public sealed class Spec41StreamChatUxTests
     }
 
     [Fact]
+    public async Task Secretless_User_Key_Does_Not_Send_Authorization_Header()
+    {
+        var handler = new SseHandler(
+            "data: {\"choices\":[{\"delta\":{\"content\":\"ok\"}}]}\n"
+            + "data: [DONE]\n");
+        var provider = new OpenAiCompatLlmProvider(
+            new FakeHttpFactory(new HttpClient(handler)),
+            Options.Create(new AgentLlmOptions()),
+            NullLogger<OpenAiCompatLlmProvider>.Instance);
+
+        await foreach (var _ in provider.ChatStreamAsync(
+            [LlmMessage.User("hi")], [],
+            new LlmOptions(UserKey: new UserLlmKeyCallContext(
+                "ollama", "http://localhost:11434", "")),
+            CancellationToken.None))
+        {
+        }
+
+        handler.LastAuthorization.ShouldBeNull();
+    }
+
+    [Fact]
     public async Task Parse_Reasoning_Content_Field_Emits_ReasoningDelta()
     {
         var p = Provider(
@@ -232,13 +254,18 @@ public sealed class Spec41StreamChatUxTests
 
     private sealed class SseHandler(string body) : HttpMessageHandler
     {
+        public string? LastAuthorization { get; private set; }
+
         protected override Task<HttpResponseMessage> SendAsync(
-            HttpRequestMessage request, CancellationToken ct) =>
-            Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK)
+            HttpRequestMessage request, CancellationToken ct)
+        {
+            LastAuthorization = request.Headers.Authorization?.ToString();
+            return Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK)
             {
                 Content = new StringContent(body, Encoding.UTF8,
                     "text/event-stream"),
             });
+        }
     }
 
     private sealed class FakeHttpFactory(HttpClient client) : IHttpClientFactory

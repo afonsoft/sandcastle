@@ -3,6 +3,8 @@ using System.Text;
 using System.Text.Json;
 using System.Threading.Channels;
 
+using Microsoft.EntityFrameworkCore;
+
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -325,6 +327,22 @@ public sealed class AgentRunner(
         // hub repassa; nada disso toca o IEventService.
         var bus = services.GetService<IAgentActivityBus>();
         var model = conv.LlmModel ?? opt.Model;
+        // SPEC-180 RF-003: LLM profile overlay — role map, fallback chain,
+        // temperature and typed provider connection travel with the run.
+        var llmProfile = conv.LlmProfileId is { } llmProfileId
+            ? await db.LlmProfiles.AsNoTracking()
+                .FirstOrDefaultAsync(p => p.Id == llmProfileId, ct)
+            : null;
+        var profileRoleModels = ParseStringDictionary(
+            llmProfile?.RoleModelsJson);
+        var profileFallbackModels = ParseStringArray(
+            llmProfile?.FallbackJson);
+        ProviderConnectionRecord? providerConnection = null;
+        if (llmProfile?.ProviderConnectionId is { } connectionId)
+        {
+            providerConnection = await db.ProviderConnections.AsNoTracking()
+                .FirstOrDefaultAsync(p => p.Id == connectionId && p.Enabled, ct);
+        }
         // SPEC-23 RF-002: seleção por role + fallback chain. `selection`
         // acompanha o modelo efetivo (catalogo → janela/provider).
         var router = services.GetService<IModelRouter>();
@@ -334,7 +352,8 @@ public sealed class AgentRunner(
         var selection = router is not null
             ? await router.ResolveAsync(LlmRole.Code,
                 new LlmRouteContext(conversationId, conv.OrgId,
-                    conv.CreatedByUserId, conv.LlmModel), ct)
+                    conv.CreatedByUserId, conv.LlmModel,
+                    profileRoleModels, profileFallbackModels), ct)
                 ?? throw new LlmNoRouteException(
                     "code", "no eligible candidate")
             : null;
@@ -347,7 +366,31 @@ public sealed class AgentRunner(
         // do provider do modelo selecionado) precede BYOR e config
         // global; key_source vai no ledger llm_route.
         UserLlmKeyCallContext? userKeyCtx = null;
-        if (conv.CreatedByUserId is { } keyUser
+        var usedProviderConnection = false;
+        if (providerConnection is not null)
+        {
+            var secretOwner = providerConnection.Scope == "user"
+                ? providerConnection.OwnerId
+                : providerConnection.OrgId?.ToString();
+            var secretStore = services.GetService<Sandcastle.Application.Contracts.ISecretStore>();
+            var secret = providerConnection.SecretRef is null || secretOwner is null
+                || secretStore is null ? null
+                : await secretStore.ResolveAsync(providerConnection.Scope,
+                    secretOwner, providerConnection.SecretRef, ct);
+            var descriptor = ProviderConnectionTypes.Find(
+                providerConnection.Provider);
+            var baseUrl = !string.IsNullOrWhiteSpace(providerConnection.BaseUrl)
+                ? providerConnection.BaseUrl
+                : descriptor?.DefaultBaseUrl;
+            if (!string.IsNullOrWhiteSpace(baseUrl)
+                && (secret is not null || descriptor?.RequiresSecret is not true))
+            {
+                userKeyCtx = new UserLlmKeyCallContext(
+                    providerConnection.Provider, baseUrl, secret ?? "");
+                usedProviderConnection = true;
+            }
+        }
+        if (userKeyCtx is null && conv.CreatedByUserId is { } keyUser
             && services.GetService<IUserLlmKeyService>() is { } userKeys)
         {
             userKeyCtx = await userKeys.ResolveAsync(
@@ -388,7 +431,8 @@ public sealed class AgentRunner(
         var keySource = "global";
         if (userKeyCtx is not null)
         {
-            keySource = "user";
+            keySource = usedProviderConnection
+                ? "provider_connection" : "user";
         }
         else if (byorCtx is not null)
         {
@@ -436,6 +480,9 @@ public sealed class AgentRunner(
             ByorCtx = byorCtx,
             UserKeyCtx = userKeyCtx,
             KeySource = keySource,
+            LlmTemperature = llmProfile?.Temperature,
+            ProfileRoleModels = profileRoleModels,
+            ProfileFallbackModels = profileFallbackModels,
             LoopGuard = new AgentLoopGuard(
                 opt.MaxSameToolConsecutive, opt.MaxRepeatArgs),
             ActiveSkills = rebuilt.Skills,
@@ -640,7 +687,9 @@ public sealed class AgentRunner(
                     st.Events, conversationId, cs, pendingInstructions, ct),
                 ct,
                 new LlmRouteContext(conversationId, st.Conv.OrgId,
-                    st.Conv.CreatedByUserId));
+                    st.Conv.CreatedByUserId,
+                    ProfileRoleModels: st.ProfileRoleModels,
+                    ProfileFallbackModels: st.ProfileFallbackModels));
             if (condensed.Compacted)
             {
                 var condensation = await Context.CompactionService
@@ -714,7 +763,8 @@ public sealed class AgentRunner(
             llmSpan?.SetTag("model", st.Model);
             await foreach (var chunk in st.Llm.ChatStreamAsync(
                 request, toolSchemas,
-                new LlmOptions(Model: st.Model, Byor: st.ByorCtx,
+                new LlmOptions(Model: st.Model,
+                    Temperature: st.LlmTemperature, Byor: st.ByorCtx,
                     UserKey: st.UserKeyCtx), ct))
             {
                 switch (chunk)
@@ -1842,6 +1892,28 @@ public sealed class AgentRunner(
         { get; } = new();
     }
 
+
+    private static IReadOnlyDictionary<string, string>? ParseStringDictionary(
+        string? json)
+    {
+        if (string.IsNullOrWhiteSpace(json)) return null;
+        try
+        {
+            return JsonSerializer.Deserialize<Dictionary<string, string>>(json);
+        }
+        catch (JsonException) { return null; }
+    }
+
+    private static IReadOnlyList<string>? ParseStringArray(string? json)
+    {
+        if (string.IsNullOrWhiteSpace(json)) return null;
+        try
+        {
+            return JsonSerializer.Deserialize<List<string>>(json);
+        }
+        catch (JsonException) { return null; }
+    }
+
     /// <summary>
     /// Loop-carried mutable state of <see cref="LoopAsync"/> — a fase do
     /// loop lê/escreve via <c>st</c> em vez de dezenas de locals capturados
@@ -1875,6 +1947,9 @@ public sealed class AgentRunner(
         public ByorCallContext? ByorCtx { get; init; }
         public UserLlmKeyCallContext? UserKeyCtx { get; init; }
         public string KeySource { get; init; } = "global";
+        public double? LlmTemperature { get; init; }
+        public IReadOnlyDictionary<string, string>? ProfileRoleModels { get; init; }
+        public IReadOnlyList<string>? ProfileFallbackModels { get; init; }
         public required System.Diagnostics.Stopwatch RouteWait { get; init; }
 
         /// <summary>

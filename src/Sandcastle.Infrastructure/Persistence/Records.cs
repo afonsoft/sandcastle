@@ -554,6 +554,61 @@ public sealed class ConversationMemoryRecord
     public required string Value { get; set; }
     public DateTimeOffset UpdatedAt { get; set; }
 }
+
+/// <summary>SPEC-180 RF-002: typed provider connection; secret value is in ISecretStore by reference.</summary>
+public sealed class ProviderConnectionRecord
+{
+    public required Guid Id { get; set; }
+    public required string Scope { get; set; }
+    public string? OwnerId { get; set; }
+    public Guid? OrgId { get; set; }
+    public required string Name { get; set; }
+    public required string Provider { get; set; }
+    public string? BaseUrl { get; set; }
+    public string? SecretRef { get; set; }
+    public bool Enabled { get; set; } = true;
+    public DateTimeOffset CreatedAt { get; set; }
+    public DateTimeOffset UpdatedAt { get; set; }
+}
+
+/// <summary>SPEC-180 RF-003: named/scoped LLM profile.</summary>
+public sealed class LlmProfileRecord
+{
+    public required Guid Id { get; set; }
+    public required string Scope { get; set; }
+    public string? OwnerId { get; set; }
+    public Guid? OrgId { get; set; }
+    public required string Name { get; set; }
+    public Guid? ProviderConnectionId { get; set; }
+    public string? Provider { get; set; }
+    public required string Model { get; set; }
+    public double? Temperature { get; set; }
+    public string? RoleModelsJson { get; set; }
+    public string? FallbackJson { get; set; }
+    public DateTimeOffset CreatedAt { get; set; }
+    public DateTimeOffset UpdatedAt { get; set; }
+}
+
+/// <summary>SPEC-180 RF-004: named/scoped agent profile.</summary>
+public sealed class AgentProfileRecord
+{
+    public required Guid Id { get; set; }
+    public required string Scope { get; set; }
+    public string? OwnerId { get; set; }
+    public Guid? OrgId { get; set; }
+    public required string Name { get; set; }
+    public string? Description { get; set; }
+    public string? PromptPack { get; set; }
+    public string? AgentType { get; set; }
+    public string? Mode { get; set; }
+    public string? RuntimeProfile { get; set; }
+    public Guid? LlmProfileId { get; set; }
+    public string? AllowedToolsJson { get; set; }
+    public string? SkillsJson { get; set; }
+    public DateTimeOffset CreatedAt { get; set; }
+    public DateTimeOffset UpdatedAt { get; set; }
+}
+
 /// <summary>
 /// SPEC-134 RF-001: BYOK por usuário — provider key colada no Settings.
 /// Plaintext persiste só como ciphertext DataProtection

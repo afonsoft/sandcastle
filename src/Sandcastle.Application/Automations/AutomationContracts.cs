@@ -162,7 +162,8 @@ public sealed record AutomationUpsert(
     string? MisfirePolicy = null,
     // SPEC-162: cron + timezone IANA + approval preset.
     string? TimeZoneId = null, string? CronExpression = null,
-    string? ApprovalPreset = null);
+    string? ApprovalPreset = null,
+    Guid? LlmProfileId = null, Guid? AgentProfileId = null);
 
 /// <summary>
 /// Cálculo do próximo disparo (UTC) — puro e testável

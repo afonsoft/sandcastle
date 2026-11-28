@@ -1329,3 +1329,16 @@ a.chip.mention { text-decoration: none; }
     .foundation-page { padding: 18px; }
 }
 .conv-cost { flex: none; color: var(--sc-fg-dim); font-size: 10.5px; font-variant-numeric: tabular-nums; }
+
+/* SPEC-180: settings profiles control center. */
+.profiles-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:1rem}
+.profile-card{border:1px solid var(--border);border-radius:12px;padding:1rem;background:var(--bg-elevated)}
+.profile-row{display:flex;align-items:center;justify-content:space-between;gap:.5rem;padding:.55rem 0;border-top:1px solid var(--border)}
+.profile-row span{display:flex;flex-direction:column;min-width:0}
+.profile-row small{color:var(--text-muted);overflow:hidden;text-overflow:ellipsis}
+@media (max-width:860px){.settings-rail{display:flex;overflow-x:auto;gap:6px;padding-bottom:4px}.settings-tab{white-space:nowrap;border:1px solid var(--sc-border);border-radius:999px;padding:6px 12px;background:var(--sc-bg-2)}.settings-tab.active{border-color:var(--sc-accent);color:var(--sc-accent)}.profiles-grid{grid-template-columns:1fr}}
+.settings-group{font-size:.72rem;text-transform:uppercase;letter-spacing:.08em;color:var(--text-muted);padding:.65rem .75rem .25rem}
+.settings-sections-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:.75rem;margin-top:1rem}
+.settings-sections-grid .foundation-card{display:flex;flex-direction:column;gap:.25rem;text-align:left;text-decoration:none;color:inherit}
+.save-state{display:inline-block;margin:.75rem 0;color:var(--success,#2e9f6e);font-size:.85rem}
+@media (max-width:860px){.settings-group{display:none}.settings-tab{border:1px solid var(--border);border-radius:999px}}

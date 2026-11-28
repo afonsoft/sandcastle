@@ -285,7 +285,12 @@ public sealed record LlmRouteContext(
     Guid? ConversationId = null,
     Guid? OrgId = null,
     string? UserId = null,
-    string? PreferredModel = null);
+    string? PreferredModel = null,
+    // SPEC-180: optional user/org LLM-profile overlays. They win over the
+    // instance pass-through role map and provide a conversation-scoped
+    // fallback chain without mutating org routing rules.
+    IReadOnlyDictionary<string, string>? ProfileRoleModels = null,
+    IReadOnlyList<string>? ProfileFallbackModels = null);
 
 /// <summary>
 /// Resolution snapshot carried inside <see cref="ModelSelection.Route"/> —

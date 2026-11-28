@@ -186,8 +186,11 @@ public sealed class OpenAiCompatLlmProvider(
         };
         if (userKey is not null)
         {
-            request.Headers.Authorization =
-                new AuthenticationHeaderValue("Bearer", userKey.Key);
+            if (!string.IsNullOrEmpty(userKey.Key))
+            {
+                request.Headers.Authorization =
+                    new AuthenticationHeaderValue("Bearer", userKey.Key);
+            }
         }
         else if (byor is not null)
         {

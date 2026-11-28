@@ -345,6 +345,63 @@ public sealed class ConversationMemoryConfiguration
         b.HasIndex(e => e.UpdatedAt);
     }
 }
+
+/// <inheritdoc />
+public sealed class ProviderConnectionConfiguration
+    : IEntityTypeConfiguration<ProviderConnectionRecord>
+{
+    /// <inheritdoc />
+    public void Configure(EntityTypeBuilder<ProviderConnectionRecord> b)
+    {
+        b.ToTable("provider_connections");
+        b.HasKey(e => e.Id);
+        b.Property(e => e.Scope).HasMaxLength(20);
+        b.Property(e => e.OwnerId).HasMaxLength(64);
+        b.Property(e => e.Name).HasMaxLength(200);
+        b.Property(e => e.Provider).HasMaxLength(40);
+        b.Property(e => e.SecretRef).HasMaxLength(200);
+        b.HasIndex(e => new { e.OwnerId, e.Provider });
+        b.HasIndex(e => new { e.OrgId, e.Provider });
+    }
+}
+
+/// <inheritdoc />
+public sealed class LlmProfileConfiguration : IEntityTypeConfiguration<LlmProfileRecord>
+{
+    /// <inheritdoc />
+    public void Configure(EntityTypeBuilder<LlmProfileRecord> b)
+    {
+        b.ToTable("llm_profiles");
+        b.HasKey(e => e.Id);
+        b.Property(e => e.Scope).HasMaxLength(20);
+        b.Property(e => e.OwnerId).HasMaxLength(64);
+        b.Property(e => e.Name).HasMaxLength(200);
+        b.Property(e => e.Provider).HasMaxLength(40);
+        b.Property(e => e.Model).HasMaxLength(200);
+        b.HasIndex(e => new { e.OwnerId, e.Name });
+        b.HasIndex(e => new { e.OrgId, e.Name });
+    }
+}
+
+/// <inheritdoc />
+public sealed class AgentProfileConfiguration : IEntityTypeConfiguration<AgentProfileRecord>
+{
+    /// <inheritdoc />
+    public void Configure(EntityTypeBuilder<AgentProfileRecord> b)
+    {
+        b.ToTable("agent_profiles");
+        b.HasKey(e => e.Id);
+        b.Property(e => e.Scope).HasMaxLength(20);
+        b.Property(e => e.OwnerId).HasMaxLength(64);
+        b.Property(e => e.Name).HasMaxLength(200);
+        b.Property(e => e.AgentType).HasMaxLength(40);
+        b.Property(e => e.Mode).HasMaxLength(20);
+        b.Property(e => e.RuntimeProfile).HasMaxLength(40);
+        b.HasIndex(e => new { e.OwnerId, e.Name });
+        b.HasIndex(e => new { e.OrgId, e.Name });
+    }
+}
+
 /// <inheritdoc />
 public sealed class UserLlmKeyConfiguration : IEntityTypeConfiguration<UserLlmKeyRecord>
 {
