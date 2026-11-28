@@ -2118,7 +2118,125 @@ public sealed class SandcastleApiClient(HttpClient http)
     }
 
 
+    // ---- SPEC-183: factories/workflows/event center --------------------
+
+    /// <summary>Lista factories do usuário corrente.</summary>
+    public async Task<IReadOnlyList<FactoryDto>> ListFactoriesAsync(CancellationToken ct = default) =>
+        await http.GetFromJsonAsync<List<FactoryDto>>("/api/v1/factories", Json, ct) ?? [];
+
+    /// <summary>Cria factory.</summary>
+    public async Task<FactoryDto?> CreateFactoryAsync(object body, CancellationToken ct = default)
+    {
+        var resp = await http.PostAsJsonAsync("/api/v1/factories", body, Json, ct);
+        return resp.IsSuccessStatusCode ? await resp.Content.ReadFromJsonAsync<FactoryDto>(Json, ct) : null;
+    }
+
+    /// <summary>Remove factory.</summary>
+    public async Task<bool> DeleteFactoryAsync(Guid id, CancellationToken ct = default) =>
+        (await http.DeleteAsync($"/api/v1/factories/{id}", ct)).IsSuccessStatusCode;
+
+    /// <summary>Lista workflows, opcionalmente por factory.</summary>
+    public async Task<IReadOnlyList<WorkflowDto>> ListWorkflowsAsync(Guid? factoryId = null, CancellationToken ct = default) =>
+        await http.GetFromJsonAsync<List<WorkflowDto>>(
+            $"/api/v1/workflows{(factoryId is { } id ? $"?factory_id={id}" : "")}", Json, ct) ?? [];
+
+    /// <summary>Detalhe de workflow.</summary>
+    public Task<WorkflowDto?> GetWorkflowAsync(Guid id, CancellationToken ct = default) =>
+        GetOrNull<WorkflowDto>($"/api/v1/workflows/{id}", ct);
+
+    /// <summary>Cria workflow.</summary>
+    public async Task<WorkflowDto?> CreateWorkflowAsync(object body, CancellationToken ct = default)
+    {
+        var resp = await http.PostAsJsonAsync("/api/v1/workflows", body, Json, ct);
+        return resp.IsSuccessStatusCode ? await resp.Content.ReadFromJsonAsync<WorkflowDto>(Json, ct) : null;
+    }
+
+    /// <summary>Atualiza workflow.</summary>
+    public async Task<WorkflowDto?> PatchWorkflowAsync(Guid id, object body, CancellationToken ct = default)
+    {
+        var resp = await http.PatchAsJsonAsync($"/api/v1/workflows/{id}", body, Json, ct);
+        return resp.IsSuccessStatusCode ? await resp.Content.ReadFromJsonAsync<WorkflowDto>(Json, ct) : null;
+    }
+
+    /// <summary>Remove workflow.</summary>
+    public async Task<bool> DeleteWorkflowAsync(Guid id, CancellationToken ct = default) =>
+        (await http.DeleteAsync($"/api/v1/workflows/{id}", ct)).IsSuccessStatusCode;
+
+    /// <summary>Inicia workflow run.</summary>
+    public async Task<WorkflowRunDto?> StartWorkflowRunAsync(Guid id, Dictionary<string, object?> inputs, CancellationToken ct = default)
+    {
+        var resp = await http.PostAsJsonAsync($"/api/v1/workflows/{id}/runs", new { inputs }, Json, ct);
+        return resp.IsSuccessStatusCode ? await resp.Content.ReadFromJsonAsync<WorkflowRunDto>(Json, ct) : null;
+    }
+
+    /// <summary>Lista runs de workflow.</summary>
+    public async Task<IReadOnlyList<WorkflowRunDto>> ListWorkflowRunsAsync(Guid id, CancellationToken ct = default) =>
+        await http.GetFromJsonAsync<List<WorkflowRunDto>>($"/api/v1/workflows/{id}/runs", Json, ct) ?? [];
+
+    /// <summary>Atualiza estado de um workflow run.</summary>
+    public Task<WorkflowRunDto?> GetWorkflowRunAsync(Guid runId, CancellationToken ct = default) =>
+        GetOrNull<WorkflowRunDto>($"/api/v1/workflows/runs/{runId}", ct);
+
+    /// <summary>Aprova/rejeita hard gate humano.</summary>
+    public async Task<WorkflowRunDto?> DecideWorkflowRunAsync(Guid runId, bool approved, string? comment, CancellationToken ct = default)
+    {
+        var resp = await http.PostAsJsonAsync($"/api/v1/workflows/runs/{runId}/approval",
+            new { approved, comment }, Json, ct);
+        return resp.IsSuccessStatusCode ? await resp.Content.ReadFromJsonAsync<WorkflowRunDto>(Json, ct) : null;
+    }
+
+    /// <summary>Templates recomendados de automação.</summary>
+    public async Task<IReadOnlyList<AutomationTemplateDto>> ListAutomationTemplatesAsync(CancellationToken ct = default) =>
+        await http.GetFromJsonAsync<List<AutomationTemplateDto>>("/api/v1/automation-templates", Json, ct) ?? [];
+
+    /// <summary>Event center unificado.</summary>
+    public async Task<IReadOnlyList<AutomationEventDto>> ListAutomationEventsAsync(
+        Guid? factoryId = null, string? status = null, string? repository = null,
+        CancellationToken ct = default)
+    {
+        var url = "/api/v1/automation-events?take=80";
+        if (factoryId is { } fid) url += $"&factory_id={fid}";
+        if (!string.IsNullOrWhiteSpace(status)) url += $"&status={Uri.EscapeDataString(status)}";
+        if (!string.IsNullOrWhiteSpace(repository)) url += $"&repository={Uri.EscapeDataString(repository)}";
+        return await http.GetFromJsonAsync<List<AutomationEventDto>>(url, Json, ct) ?? [];
+    }
+
+
 }
+
+
+/// <summary>SPEC-183: factory DTO.</summary>
+public sealed record FactoryDto(
+    Guid Id, string OwnerUserId, string Name, string? Description,
+    int AutomationCount, int WorkflowCount, DateTimeOffset CreatedAt,
+    DateTimeOffset UpdatedAt, Guid? OrgId = null);
+
+/// <summary>SPEC-183: workflow DTO.</summary>
+public sealed record WorkflowDto(
+    Guid Id, string OwnerUserId, Guid? FactoryId, string Name,
+    string? Description, int Version, string DefinitionJson,
+    bool AutonomousDelivery, DateTimeOffset CreatedAt,
+    DateTimeOffset UpdatedAt, Guid? OrgId = null);
+
+/// <summary>SPEC-183: workflow run DTO.</summary>
+public sealed record WorkflowRunDto(
+    Guid Id, Guid WorkflowId, string Status, int CurrentStepIndex,
+    string? CurrentStepName, Guid? ConversationId, string? Error,
+    JsonElement Inputs, JsonElement Audit, DateTimeOffset CreatedAt,
+    DateTimeOffset? StartedAt, DateTimeOffset? FinishedAt);
+
+/// <summary>SPEC-183: automation template DTO.</summary>
+public sealed record AutomationTemplateDto(
+    string Id, string Name, string Description, string Kind,
+    string Prompt, string ScheduleKind, int? IntervalMinutes,
+    string? CronExpression, string? ApprovalPreset);
+
+/// <summary>SPEC-183: event-center row DTO.</summary>
+public sealed record AutomationEventDto(
+    string Id, string Source, Guid SourceId, Guid RunId,
+    Guid? FactoryId, string? FactoryName, string Name, string Status,
+    string? Repository, Guid? ConversationId, DateTimeOffset OccurredAt,
+    string DeepLink, string? Error);
 
 /// <summary>SPEC-179: resposta de <c>/navigation/summary</c>.</summary>
 public sealed record NavigationSummaryDto(

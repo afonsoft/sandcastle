@@ -1,26 +1,157 @@
 @using Sandcastle.Client.Services
 @page "/factories"
+@inject SandcastleApiClient Api
 @inject LocalizationService L
+@inject NavigationManager Nav
+@inject ToastService Toasts
 
-@* SPEC-179 RF-003: rota foundation de factories.
-   SPEC-183 implementa CRUD/templates/event center. *@
 <PageTitle>@L["sidebar.factories"] · Sandcastle</PageTitle>
 
-<section class="foundation-page">
-    <header class="foundation-head">
-        <h1>@L["factories.title"]</h1>
-        <p>@L["factories.foundation"]</p>
+<section class="factories-page">
+    <header class="page-head">
+        <div>
+            <h1>@L["factories.title"]</h1>
+            <p>@L["factories.subtitle"]</p>
+        </div>
+        <nav class="page-actions" aria-label="@L["factories.title"]">
+            <a class="button secondary" href="/automations/templates">@L["factories.templates"]</a>
+            <a class="button secondary" href="/automations/events">@L["factories.events"]</a>
+        </nav>
     </header>
-    <div class="foundation-grid">
-        <a class="foundation-card" href="/automations">
-            <Icon Name="clock" Size="18" />
-            <strong>@L["sidebar.automations"]</strong>
-            <span>@L["factories.automations_hint"]</span>
-        </a>
-        <a class="foundation-card" href="/">
-            <Icon Name="chat" Size="18" />
-            <strong>@L["sidebar.conversations"]</strong>
-            <span>@L["factories.delivery_hint"]</span>
-        </a>
-    </div>
+
+    <section class="panel" aria-labelledby="new-factory">
+        <h2 id="new-factory">@L["factories.new"]</h2>
+        <div class="form-grid">
+            <input aria-label="@L["factories.name"]" placeholder="@L["factories.name"]" @bind="_factoryName" />
+            <input aria-label="@L["factories.description"]" placeholder="@L["factories.description"]" @bind="_factoryDescription" />
+            <button @onclick="CreateFactoryAsync" disabled="@string.IsNullOrWhiteSpace(_factoryName)">@L["common.create"]</button>
+        </div>
+    </section>
+
+    @if (_factories is null)
+    {
+        <p><em>@L["common.loading"]</em></p>
+    }
+    else if (_factories.Count == 0)
+    {
+        <p>@L["factories.empty"]</p>
+    }
+    else
+    {
+        <div class="factory-layout">
+            <section class="panel" aria-label="@L["factories.list"]">
+                <h2>@L["factories.list"]</h2>
+                @foreach (var factory in _factories)
+                {
+                    <article class="factory-card @(_selectedFactoryId == factory.Id ? "selected" : "")">
+                        <button class="factory-select" @onclick="() => SelectFactoryAsync(factory.Id)">
+                            <strong>@factory.Name</strong>
+                            <span>@L.T("factories.counts", ("automations", factory.AutomationCount.ToString()), ("workflows", factory.WorkflowCount.ToString()))</span>
+                        </button>
+                        <button class="danger" aria-label="@L["factories.delete"]" @onclick="() => DeleteFactoryAsync(factory.Id)">@L["common.delete"]</button>
+                    </article>
+                }
+            </section>
+
+            <section class="panel" aria-label="@L["factories.workflows"]">
+                <h2>@L["factories.workflows"]</h2>
+                <div class="form-grid workflow-editor-mini">
+                    <input aria-label="@L["factories.workflow_name"]" placeholder="@L["factories.workflow_name"]" @bind="_workflowName" />
+                    <label class="inline-check">
+                        <input type="checkbox" @bind="_autonomous" />
+                        @L["factories.autonomous"]
+                    </label>
+                    <textarea aria-label="@L["factories.definition_json"]" placeholder="@L["factories.definition_json"]" rows="6" @bind="_definitionJson"></textarea>
+                    <button @onclick="CreateWorkflowAsync" disabled="@string.IsNullOrWhiteSpace(_workflowName)">@L["factories.create_workflow"]</button>
+                </div>
+
+                @if (_workflows.Count == 0)
+                {
+                    <p>@L["factories.no_workflows"]</p>
+                }
+                else
+                {
+                    <table class="table responsive-table">
+                        <thead><tr><th>@L["automations.name"]</th><th>@L["factories.version"]</th><th>@L["factories.autonomous"]</th><th></th></tr></thead>
+                        <tbody>
+                            @foreach (var workflow in _workflows)
+                            {
+                                <tr>
+                                    <td><a href="/workflows/@workflow.Id">@workflow.Name</a></td>
+                                    <td>v@workflow.Version</td>
+                                    <td>@(workflow.AutonomousDelivery ? L["common.yes"] : L["common.no"])</td>
+                                    <td><button @onclick="() => DeleteWorkflowAsync(workflow.Id)">@L["common.delete"]</button></td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                }
+            </section>
+        </div>
+    }
 </section>
+
+@code {
+    private List<FactoryDto>? _factories;
+    private List<WorkflowDto> _workflows = [];
+    private Guid? _selectedFactoryId;
+    private string _factoryName = "";
+    private string _factoryDescription = "";
+    private string _workflowName = "";
+    private bool _autonomous = true;
+    private string _definitionJson = "";
+
+    protected override async Task OnInitializedAsync() => await ReloadAsync();
+
+    private async Task ReloadAsync()
+    {
+        _factories = (await Api.ListFactoriesAsync()).ToList();
+        _selectedFactoryId ??= _factories.FirstOrDefault()?.Id;
+        await LoadWorkflowsAsync();
+    }
+
+    private async Task SelectFactoryAsync(Guid id)
+    {
+        _selectedFactoryId = id;
+        await LoadWorkflowsAsync();
+    }
+
+    private async Task LoadWorkflowsAsync()
+    {
+        _workflows = (await Api.ListWorkflowsAsync(_selectedFactoryId)).ToList();
+    }
+
+    private async Task CreateFactoryAsync()
+    {
+        var created = await Api.CreateFactoryAsync(new { name = _factoryName, description = _factoryDescription });
+        if (created is null) { Toasts.Error(L["factories.create_failed"]); return; }
+        _factoryName = ""; _factoryDescription = ""; _selectedFactoryId = created.Id;
+        await ReloadAsync();
+    }
+
+    private async Task DeleteFactoryAsync(Guid id)
+    {
+        await Api.DeleteFactoryAsync(id);
+        if (_selectedFactoryId == id) _selectedFactoryId = null;
+        await ReloadAsync();
+    }
+
+    private async Task CreateWorkflowAsync()
+    {
+        var created = await Api.CreateWorkflowAsync(new
+        {
+            name = _workflowName,
+            factory_id = _selectedFactoryId,
+            autonomous_delivery = _autonomous,
+            definition_json = string.IsNullOrWhiteSpace(_definitionJson) ? null : _definitionJson,
+        });
+        if (created is null) { Toasts.Error(L["factories.workflow_create_failed"]); return; }
+        Nav.NavigateTo($"/workflows/{created.Id}");
+    }
+
+    private async Task DeleteWorkflowAsync(Guid id)
+    {
+        await Api.DeleteWorkflowAsync(id);
+        await LoadWorkflowsAsync();
+    }
+}

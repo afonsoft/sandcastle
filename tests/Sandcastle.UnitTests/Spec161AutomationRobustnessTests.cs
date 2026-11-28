@@ -40,6 +40,10 @@ public sealed class Spec161AutomationRobustnessTests
         public Queue<Exception> ThrowQueue { get; } = new();
         public Exception? ThrowAlways { get; set; }
         public TimeSpan Delay { get; set; } = TimeSpan.Zero;
+        public int? ParallelBarrier { get; set; }
+        private int _barrierArrived;
+        private readonly TaskCompletionSource _barrierRelease =
+            new(TaskCreationOptions.RunContinuationsAsynchronously);
         public Guid ConversationId { get; } = Guid.NewGuid();
 
         public async Task<AppConversationStartTask> CreateForUserAsync(
@@ -57,7 +61,16 @@ public sealed class Spec161AutomationRobustnessTests
 
             try
             {
-                if (Delay > TimeSpan.Zero)
+                if (ParallelBarrier is { } barrier)
+                {
+                    if (Interlocked.Increment(ref _barrierArrived) >= barrier)
+                    {
+                        _barrierRelease.TrySetResult();
+                    }
+                    await _barrierRelease.Task.WaitAsync(
+                        TimeSpan.FromSeconds(5), ct);
+                }
+                else if (Delay > TimeSpan.Zero)
                 {
                     await Task.Delay(Delay, ct);
                 }
@@ -465,7 +478,7 @@ public sealed class Spec161AutomationRobustnessTests
         {
             o.MaxConcurrent = 2;
         });
-        fx.Convs.Delay = TimeSpan.FromMilliseconds(150);
+        fx.Convs.ParallelBarrier = 2;
 
         // ServiceProvider real: o dispatch paralelo resolve cada
         // automation no próprio scope (DbContext isolado).

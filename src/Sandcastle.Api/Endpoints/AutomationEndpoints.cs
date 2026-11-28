@@ -269,7 +269,7 @@ public static class AutomationEndpoints
             r.MisfirePolicy,
             // SPEC-162: cron + timezone + approval preset.
             r.TimeZoneId, r.CronExpression, r.ApprovalPreset,
-            r.LlmProfileId, r.AgentProfileId);
+            r.LlmProfileId, r.AgentProfileId, r.FactoryId);
 
     private static object ToDto(AutomationInfo a) => new
     {
@@ -309,6 +309,7 @@ public static class AutomationEndpoints
         approval_preset = a.ApprovalPreset,
         // SPEC-163: saúde derivada (green|yellow|red).
         health = a.Health,
+        factory_id = a.FactoryId,
     };
 
     private static object ToRunDto(AutomationRunInfo r) => new
@@ -534,4 +535,4 @@ public sealed record AutomationUpsertRequest(
     // SPEC-162: cron + timezone IANA + approval preset.
     string? TimeZoneId = null, string? CronExpression = null,
     string? ApprovalPreset = null, Guid? LlmProfileId = null,
-    Guid? AgentProfileId = null);
+    Guid? AgentProfileId = null, Guid? FactoryId = null);

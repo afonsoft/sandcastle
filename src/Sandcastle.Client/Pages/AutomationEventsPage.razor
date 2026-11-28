@@ -1,0 +1,81 @@
+@using Sandcastle.Client.Services
+@page "/automations/events"
+@inject SandcastleApiClient Api
+@inject LocalizationService L
+
+<PageTitle>@L["events.title"] · Sandcastle</PageTitle>
+
+<section>
+    <h1>@L["events.title"]</h1>
+    <p>@L["events.subtitle"]</p>
+    <div class="form-grid events-filters">
+        <select aria-label="@L["events.factory"]" @bind="_factory">
+            <option value="">@L["events.all_factories"]</option>
+            @foreach (var factory in _factories)
+            {
+                <option value="@factory.Id">@factory.Name</option>
+            }
+        </select>
+        <select aria-label="@L["events.status"]" @bind="_status">
+            <option value="">@L["events.all_statuses"]</option>
+            <option value="running">running</option>
+            <option value="waiting_agent">waiting_agent</option>
+            <option value="waiting_approval">waiting_approval</option>
+            <option value="succeeded">succeeded</option>
+            <option value="failed">failed</option>
+            <option value="rejected">rejected</option>
+        </select>
+        <input aria-label="@L["events.repository"]" placeholder="@L["events.repository"]" @bind="_repository" />
+        <button @onclick="LoadAsync">@L["admin.refresh"]</button>
+    </div>
+
+    @if (_events is null)
+    {
+        <p><em>@L["common.loading"]</em></p>
+    }
+    else if (_events.Count == 0)
+    {
+        <p>@L["events.empty"]</p>
+    }
+    else
+    {
+        <table class="table responsive-table">
+            <thead><tr><th>@L["automations.name"]</th><th>@L["events.source"]</th><th>@L["events.factory"]</th><th>@L["events.status"]</th><th>@L["events.repository"]</th><th>@L["events.when"]</th></tr></thead>
+            <tbody>
+                @foreach (var item in _events)
+                {
+                    <tr>
+                        <td><a href="@item.DeepLink">@item.Name</a></td>
+                        <td>@item.Source</td>
+                        <td>@(item.FactoryName ?? "—")</td>
+                        <td>@item.Status</td>
+                        <td>@(item.Repository ?? "—")</td>
+                        <td>@item.OccurredAt.LocalDateTime.ToString("g")</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    }
+</section>
+
+@code {
+    private IReadOnlyList<AutomationEventDto>? _events;
+    private IReadOnlyList<FactoryDto> _factories = [];
+    private string _factory = "";
+    private string _status = "";
+    private string _repository = "";
+
+    protected override async Task OnInitializedAsync()
+    {
+        _factories = await Api.ListFactoriesAsync();
+        await LoadAsync();
+    }
+
+    private async Task LoadAsync()
+    {
+        Guid? factoryId = Guid.TryParse(_factory, out var id) ? id : null;
+        _events = await Api.ListAutomationEventsAsync(factoryId,
+            string.IsNullOrWhiteSpace(_status) ? null : _status,
+            string.IsNullOrWhiteSpace(_repository) ? null : _repository);
+    }
+}

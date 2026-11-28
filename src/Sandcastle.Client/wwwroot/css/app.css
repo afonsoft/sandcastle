@@ -1342,3 +1342,84 @@ a.chip.mention { text-decoration: none; }
 .settings-sections-grid .foundation-card{display:flex;flex-direction:column;gap:.25rem;text-align:left;text-decoration:none;color:inherit}
 .save-state{display:inline-block;margin:.75rem 0;color:var(--success,#2e9f6e);font-size:.85rem}
 @media (max-width:860px){.settings-group{display:none}.settings-tab{border:1px solid var(--border);border-radius:999px}}
+
+/* SPEC-183: factories/workflows responsive panels. */
+.factories-page .page-head,
+.workflow-detail .page-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 1rem;
+}
+.factories-page .panel,
+.workflow-detail .panel {
+  border: 1px solid var(--border-color, #333);
+  border-radius: 0.75rem;
+  padding: 1rem;
+  margin-block: 1rem;
+}
+.form-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr));
+  gap: 0.75rem;
+  align-items: start;
+}
+.factory-layout,
+.workflow-grid {
+  display: grid;
+  grid-template-columns: minmax(14rem, 1fr) minmax(0, 2fr);
+  gap: 1rem;
+}
+.workflow-grid {
+  grid-template-columns: repeat(auto-fit, minmax(18rem, 1fr));
+}
+.factory-card,
+.run-card {
+  border: 1px solid var(--border-color, #333);
+  border-radius: 0.65rem;
+  margin-block: 0.5rem;
+  padding: 0.65rem;
+}
+.factory-card {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+.factory-card.selected {
+  border-color: var(--accent, #4f8cff);
+}
+.factory-select {
+  background: transparent;
+  border: 0;
+  color: inherit;
+  display: grid;
+  text-align: left;
+  gap: 0.25rem;
+}
+.inline-check {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+}
+.approval-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-block: 0.5rem;
+}
+.workflow-editor-mini textarea,
+.workflow-detail textarea {
+  grid-column: 1 / -1;
+  width: 100%;
+  font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
+}
+@media (max-width: 760px) {
+  .factory-layout { grid-template-columns: 1fr; }
+  .factories-page .page-head,
+  .workflow-detail .page-head { display: block; }
+}
+.button.secondary { display:inline-block; padding:.45rem .7rem; border:1px solid var(--border-color,#333); border-radius:.45rem; }
+.page-actions { display:flex; gap:.5rem; flex-wrap:wrap; }
+.responsive-table { width:100%; overflow:auto; }
+.templates-grid .template-card { display:grid; gap:.5rem; }
+.events-filters { margin-block:1rem; }
