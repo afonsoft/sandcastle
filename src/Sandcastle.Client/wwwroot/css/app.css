@@ -1329,3 +1329,11 @@ a.chip.mention { text-decoration: none; }
     .foundation-page { padding: 18px; }
 }
 .conv-cost { flex: none; color: var(--sc-fg-dim); font-size: 10.5px; font-variant-numeric: tabular-nums; }
+
+/* SPEC-180: settings profiles control center. */
+.profiles-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:1rem}
+.profile-card{border:1px solid var(--border);border-radius:12px;padding:1rem;background:var(--bg-elevated)}
+.profile-row{display:flex;align-items:center;justify-content:space-between;gap:.5rem;padding:.55rem 0;border-top:1px solid var(--border)}
+.profile-row span{display:flex;flex-direction:column;min-width:0}
+.profile-row small{color:var(--text-muted);overflow:hidden;text-overflow:ellipsis}
+@media (max-width:860px){.settings-rail{display:flex;overflow-x:auto}.settings-tab{white-space:nowrap}.profiles-grid{grid-template-columns:1fr}}

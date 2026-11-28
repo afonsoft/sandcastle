@@ -78,6 +78,52 @@ public sealed class AppConversationService( // NOSONAR S107 — SPEC-104 (decis�
             multiRepo?.Value.EffectiveMaxRepos
                 ?? MultiRepoOptions.HardMaxRepos);
 
+        // SPEC-180 RF-003/RF-004: profile selections are visibility-checked
+        // and materialized into the existing execution knobs. The profile ids
+        // remain on the conversation for audit/UX traceability.
+        LlmProfileRecord? llmProfile = null;
+        AgentProfileRecord? agentProfile = null;
+        var ownerId = ownerUserId?.ToString();
+        if (request.LlmProfileId.HasValue)
+        {
+            llmProfile = await db.LlmProfiles.AsNoTracking()
+                .FirstOrDefaultAsync(p => p.Id == request.LlmProfileId.Value
+                    && ((p.Scope == "user" && p.OwnerId == ownerId)
+                        || (p.Scope == "org" && p.OrgId == orgId)), ct);
+            if (llmProfile is null)
+                throw new ProfileSelectionException("llm_profile_not_found");
+        }
+        if (request.AgentProfileId.HasValue)
+        {
+            agentProfile = await db.AgentProfiles.AsNoTracking()
+                .FirstOrDefaultAsync(p => p.Id == request.AgentProfileId.Value
+                    && ((p.Scope == "user" && p.OwnerId == ownerId)
+                        || (p.Scope == "org" && p.OrgId == orgId)), ct);
+            if (agentProfile is null)
+                throw new ProfileSelectionException("agent_profile_not_found");
+        }
+
+        IReadOnlyList<Application.Agent.AgentPermissionRule>? effectivePermissions =
+            request.Permissions;
+        if (effectivePermissions is null
+            && !string.IsNullOrWhiteSpace(agentProfile?.AllowedToolsJson))
+        {
+            try
+            {
+                var allowed = System.Text.Json.JsonSerializer.Deserialize<List<string>>(
+                    agentProfile!.AllowedToolsJson!) ?? [];
+                if (allowed.Count > 0)
+                {
+                    effectivePermissions =
+                        [new("*", Application.Agent.PermissionDecision.Deny),
+                        .. allowed.Select(t => new Application.Agent.AgentPermissionRule(
+                            t, Application.Agent.PermissionDecision.Allow))];
+                }
+            }
+            catch (System.Text.Json.JsonException) { }
+        }
+
+        var effectiveMode = request.Mode ?? agentProfile?.Mode;
         var now = DateTimeOffset.UtcNow;
         var conv = new ConversationRecord
         {
@@ -89,19 +135,21 @@ public sealed class AppConversationService( // NOSONAR S107 — SPEC-104 (decis�
             SelectedRepository = repos.FirstOrDefault(),
             RepositoriesJson = repos.Count > 0
                 ? ConversationRecord.RepositoriesToJson(repos) : null,
-            AgentType = request.AgentType,
-            LlmModel = request.LlmModel,
+            AgentType = request.AgentType ?? agentProfile?.AgentType,
+            LlmModel = request.LlmModel ?? llmProfile?.Model,
+            LlmProfileId = llmProfile?.Id,
+            AgentProfileId = agentProfile?.Id,
             SandboxProfile = Domain.Sandbox.SandboxProfiles
-                .IsValid(request.SandboxProfile)
-                    ? request.SandboxProfile : null,
+                .IsValid(request.SandboxProfile ?? agentProfile?.RuntimeProfile)
+                    ? (request.SandboxProfile ?? agentProfile?.RuntimeProfile) : null,
             // SPEC-152: imagem custom (eval tasks) — honra o campo
             // sandbox_spec_id do request, até aqui ignorado.
             SandboxSpecId = request.SandboxSpecId,
             ConfirmationMode = request.ConfirmationMode,
             // SPEC-29: regras de permissão por conversa + modo (plan|build).
-            PermissionsJson = request.Permissions is { Count: > 0 } rules
+            PermissionsJson = effectivePermissions is { Count: > 0 } rules
                 ? Application.Agent.PermissionRules.ToJson(rules) : null,
-            Mode = string.Equals(request.Mode, "plan",
+            Mode = string.Equals(effectiveMode, "plan",
                 StringComparison.OrdinalIgnoreCase) ? "plan" : "build",
             // SPEC-33 RF-003: só NOMES são persistidos — valores resolvem
             // na borda via ISecretStore.

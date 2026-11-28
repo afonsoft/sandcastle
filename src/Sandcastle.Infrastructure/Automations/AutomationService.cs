@@ -488,6 +488,8 @@ public sealed class AutomationService(
             Name = req.Name!.Trim(),
             Prompt = req.Prompt!,
             LlmModel = req.LlmModel,
+            LlmProfileId = req.LlmProfileId,
+            AgentProfileId = req.AgentProfileId,
             SelectedRepository = req.SelectedRepository,
             Kind = autoKind,
             ScanConfigJson = scanConfig,
@@ -557,6 +559,8 @@ public sealed class AutomationService(
         if (req.Name is not null) { rec.Name = req.Name.Trim(); }
         if (req.Prompt is not null) { rec.Prompt = req.Prompt; }
         if (req.LlmModel is not null) { rec.LlmModel = req.LlmModel; }
+        if (req.LlmProfileId.HasValue) { rec.LlmProfileId = req.LlmProfileId; }
+        if (req.AgentProfileId.HasValue) { rec.AgentProfileId = req.AgentProfileId; }
         if (req.SelectedRepository is not null)
         {
             rec.SelectedRepository = req.SelectedRepository;
@@ -842,7 +846,9 @@ public sealed class AutomationService(
             new CreateConversationRequest(
                 new InitialMessage("user", [rec.Prompt], Run: true),
                 rec.SelectedRepository, null, rec.LlmModel, null,
-                Mode: mode, Permissions: permissions),
+                Mode: mode, Permissions: permissions,
+                LlmProfileId: rec.LlmProfileId,
+                AgentProfileId: rec.AgentProfileId),
             ct);
         run.ConversationId = task.AppConversationId;
         run.FinishedAt = DateTimeOffset.UtcNow;

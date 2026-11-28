@@ -155,6 +155,16 @@ public class AppDbContext : DbContext, IDataProtectionKeyContext
     public DbSet<WorkspaceItemRecord> WorkspaceItems =>
         Set<WorkspaceItemRecord>();
 
+    /// <summary>SPEC-180: typed provider connections.</summary>
+    public DbSet<ProviderConnectionRecord> ProviderConnections =>
+        Set<ProviderConnectionRecord>();
+
+    /// <summary>SPEC-180: named LLM profiles.</summary>
+    public DbSet<LlmProfileRecord> LlmProfiles => Set<LlmProfileRecord>();
+
+    /// <summary>SPEC-180: named agent profiles.</summary>
+    public DbSet<AgentProfileRecord> AgentProfiles => Set<AgentProfileRecord>();
+
     /// <summary>SPEC-134: BYOK — provider keys por usuário.</summary>
     public DbSet<UserLlmKeyRecord> UserLlmKeys => Set<UserLlmKeyRecord>();
 

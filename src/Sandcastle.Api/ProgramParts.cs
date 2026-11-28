@@ -397,6 +397,7 @@ internal static class ProgramParts
         app.MapPlanArtifactEndpoints();
         app.MapMentionEndpoints();
         app.MapNavigationEndpoints(); // SPEC-179: shell badges + UX telemetry
+        app.MapSettingsProfileEndpoints(); // SPEC-180: settings control center
         app.MapHandoffEndpoints(); // SPEC-150: local↔cloud handoff/pickup
         app.MapEventEndpoints();
         app.MapSandboxEndpoints();

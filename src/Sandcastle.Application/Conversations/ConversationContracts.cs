@@ -19,7 +19,9 @@ public sealed record CreateConversationRequest(
     IReadOnlyList<string>? SelectedRepositories = null,
     // SPEC-150: JSON de HandoffMeta — conversa criada via
     // POST /conversations/handoff (patch aplicado no provisioning).
-    string? HandoffMetaJson = null);
+    string? HandoffMetaJson = null,
+    Guid? LlmProfileId = null,
+    Guid? AgentProfileId = null);
 
 /// <summary>
 /// SPEC-146 RF-001: <c>MultiRepo</c> options — <c>MaxRepos</c> is a hard cap
@@ -36,6 +38,11 @@ public sealed class MultiRepoOptions
     /// <summary>Effective cap used by validation.</summary>
     public int EffectiveMaxRepos => Math.Clamp(MaxRepos, 1, HardMaxRepos);
 }
+
+
+/// <summary>SPEC-180: invalid or invisible profile selection (mapped to HTTP 400).</summary>
+public sealed class ProfileSelectionException(string detail)
+    : ArgumentException(detail);
 
 /// <summary>
 /// SPEC-146: invalid <c>selected_repository</c>/<c>selected_repositories</c>

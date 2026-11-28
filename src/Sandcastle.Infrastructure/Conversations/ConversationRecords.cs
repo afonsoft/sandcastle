@@ -16,6 +16,12 @@ public sealed class ConversationRecord : IOrgScoped
     public string? SelectedRepository { get; set; }
     public string? AgentType { get; set; }
     public string? LlmModel { get; set; }
+
+    /// <summary>SPEC-180: selected LLM profile (null = legacy/direct model).</summary>
+    public Guid? LlmProfileId { get; set; }
+
+    /// <summary>SPEC-180: selected agent profile.</summary>
+    public Guid? AgentProfileId { get; set; }
     public required string ExecutionStatus { get; set; }
     public string? TagsJson { get; set; }
     public bool Pinned { get; set; }

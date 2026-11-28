@@ -1,0 +1,135 @@
+@using Sandcastle.Client.Services
+@inject SandcastleApiClient Api
+@inject LocalizationService L
+@inject ToastService Toasts
+
+<div class="profiles-grid">
+    <section class="profile-card" aria-labelledby="provider-connections-title">
+        <h4 id="provider-connections-title">@L["settings.profiles.connections"]</h4>
+        <div class="field"><label>@L["common.name"]</label><input aria-label="@L["common.name"]" @bind="_pcName" /></div>
+        <div class="field"><label>@L["settings.llmkeys.provider"]</label><select aria-label="@L["settings.llmkeys.provider"]" @bind="_pcProvider">
+            <option value="openai">OpenAI</option><option value="anthropic">Anthropic</option><option value="google">Google</option><option value="openai_compatible">OpenAI-compatible</option><option value="ollama">Ollama</option>
+        </select></div>
+        <div class="field"><label>@L["settings.profiles.base_url"]</label><input aria-label="@L["settings.profiles.base_url"]" @bind="_pcBaseUrl" /></div>
+        <div class="field"><label>@L["settings.llmkeys.key"]</label><input type="password" autocomplete="off" aria-label="@L["settings.llmkeys.key"]" @bind="_pcSecret" /></div>
+        <button class="primary" @onclick="CreateConnectionAsync" disabled="@_busy">@L["common.save"]</button>
+        @foreach (var c in _connections)
+        {
+            <div class="profile-row">
+                <span><strong>@c.Name</strong><small>@c.Provider · @c.BaseUrl</small></span>
+                <button @onclick="() => TestConnectionAsync(c.Id)">@L["settings.profiles.test"]</button>
+                <button class="danger" @onclick="() => DeleteConnectionAsync(c.Id)">@L["common.delete"]</button>
+            </div>
+        }
+        @if (_testResult is not null) { <p class="muted">@_testResult</p> }
+    </section>
+
+    <section class="profile-card" aria-labelledby="llm-profiles-title">
+        <h4 id="llm-profiles-title">@L["settings.profiles.llm"]</h4>
+        <div class="field"><label>@L["common.name"]</label><input aria-label="@L["common.name"]" @bind="_lpName" /></div>
+        <div class="field"><label>@L["settings.profiles.connection"]</label><select aria-label="@L["settings.profiles.connection"]" @bind="_lpConnection">
+            <option value="">@L["settings.profiles.no_connection"]</option>
+            @foreach (var c in _connections) { <option value="@c.Id">@c.Name</option> }
+        </select></div>
+        <div class="field"><label>@L["settings.llm_model"]</label><input aria-label="@L["settings.llm_model"]" @bind="_lpModel" /></div>
+        <div class="field"><label>@L["settings.profiles.temperature"]</label><input type="number" step="0.1" min="0" max="2" aria-label="@L["settings.profiles.temperature"]" @bind="_lpTemperature" /></div>
+        <button class="primary" @onclick="CreateLlmProfileAsync" disabled="@_busy">@L["common.save"]</button>
+        @foreach (var p in _llmProfiles)
+        {
+            <div class="profile-row"><span><strong>@p.Name</strong><small>@p.Model</small></span><button class="danger" @onclick="() => DeleteLlmAsync(p.Id)">@L["common.delete"]</button></div>
+        }
+    </section>
+
+    <section class="profile-card" aria-labelledby="agent-profiles-title">
+        <h4 id="agent-profiles-title">@L["settings.profiles.agent"]</h4>
+        <div class="field"><label>@L["common.name"]</label><input aria-label="@L["common.name"]" @bind="_apName" /></div>
+        <div class="field"><label>@L["settings.profiles.llm_profile"]</label><select aria-label="@L["settings.profiles.llm_profile"]" @bind="_apLlmProfile">
+            <option value="">@L["settings.profiles.no_profile"]</option>
+            @foreach (var p in _llmProfiles) { <option value="@p.Id">@p.Name</option> }
+        </select></div>
+        <div class="field"><label>@L["settings.agent_type"]</label><select aria-label="@L["settings.agent_type"]" @bind="_apType"><option value="default">default</option><option value="plan">plan</option><option value="readonly">readonly</option></select></div>
+        <div class="field"><label>@L["settings.profiles.mode"]</label><select aria-label="@L["settings.profiles.mode"]" @bind="_apMode"><option value="build">build</option><option value="plan">plan</option></select></div>
+        <div class="field"><label>@L["settings.profiles.tools"]</label><input aria-label="@L["settings.profiles.tools"]" placeholder="file_read, bash" @bind="_apTools" /></div>
+        <div class="field"><label>@L["settings.profiles.skills"]</label><input aria-label="@L["settings.profiles.skills"]" @bind="_apSkills" /></div>
+        <button class="primary" @onclick="CreateAgentProfileAsync" disabled="@_busy">@L["common.save"]</button>
+        @foreach (var p in _agentProfiles)
+        {
+            <div class="profile-row"><span><strong>@p.Name</strong><small>@p.AgentType · @p.Mode</small></span><button @onclick="() => DuplicateAgentAsync(p.Id)">@L["settings.profiles.duplicate"]</button><button class="danger" @onclick="() => DeleteAgentAsync(p.Id)">@L["common.delete"]</button></div>
+        }
+    </section>
+</div>
+
+@code {
+    private List<ProviderConnectionDto> _connections = [];
+    private List<LlmProfileDto> _llmProfiles = [];
+    private List<AgentProfileDto> _agentProfiles = [];
+    private bool _busy;
+    private string? _testResult;
+    private string _pcName = "", _pcProvider = "openai", _pcBaseUrl = "", _pcSecret = "";
+    private string _lpName = "", _lpModel = "", _lpConnection = "";
+    private double _lpTemperature = 0.2;
+    private string _apName = "", _apType = "default", _apMode = "build", _apTools = "", _apSkills = "", _apLlmProfile = "";
+
+    protected override async Task OnInitializedAsync() => await ReloadAsync();
+
+    private async Task ReloadAsync()
+    {
+        _connections = (await Api.ListProviderConnectionsAsync()).ToList();
+        _llmProfiles = (await Api.ListLlmProfilesAsync()).ToList();
+        _agentProfiles = (await Api.ListAgentProfilesAsync()).ToList();
+    }
+
+    private async Task CreateConnectionAsync()
+    {
+        if (string.IsNullOrWhiteSpace(_pcName)) return;
+        _busy = true;
+        var created = await Api.CreateProviderConnectionAsync(new { name = _pcName, provider = _pcProvider, base_url = EmptyNull(_pcBaseUrl), secret_value = EmptyNull(_pcSecret) });
+        _busy = false;
+        if (created is null) { Toasts.Error(L["settings.profiles.save_failed"]); return; }
+        _pcName = _pcSecret = _pcBaseUrl = "";
+        await ReloadAsync();
+    }
+
+    private async Task TestConnectionAsync(Guid id)
+    {
+        var result = await Api.TestProviderConnectionAsync(id);
+        _testResult = result?.Ok == true
+            ? L.T("settings.profiles.test_ok", ("count", result.ModelCount.ToString()))
+            : L["settings.profiles.test_failed"];
+    }
+
+    private async Task DeleteConnectionAsync(Guid id) { await Api.DeleteProviderConnectionAsync(id); await ReloadAsync(); }
+
+    private async Task CreateLlmProfileAsync()
+    {
+        if (string.IsNullOrWhiteSpace(_lpName) || string.IsNullOrWhiteSpace(_lpModel)) return;
+        var created = await Api.CreateLlmProfileAsync(new { name = _lpName, model = _lpModel, provider_connection_id = Guid.TryParse(_lpConnection, out var id) ? id : (Guid?)null, temperature = _lpTemperature });
+        if (created is null) { Toasts.Error(L["settings.profiles.save_failed"]); return; }
+        _lpName = _lpModel = "";
+        await ReloadAsync();
+    }
+
+    private async Task DeleteLlmAsync(Guid id) { await Api.DeleteLlmProfileAsync(id); await ReloadAsync(); }
+
+    private async Task CreateAgentProfileAsync()
+    {
+        if (string.IsNullOrWhiteSpace(_apName)) return;
+        var created = await Api.CreateAgentProfileAsync(new
+        {
+            name = _apName,
+            agent_type = _apType,
+            mode = _apMode,
+            llm_profile_id = Guid.TryParse(_apLlmProfile, out var id) ? id : (Guid?)null,
+            allowed_tools = SplitCsv(_apTools),
+            skills = SplitCsv(_apSkills),
+        });
+        if (created is null) { Toasts.Error(L["settings.profiles.save_failed"]); return; }
+        _apName = _apTools = _apSkills = "";
+        await ReloadAsync();
+    }
+
+    private async Task DuplicateAgentAsync(Guid id) { await Api.DuplicateAgentProfileAsync(id); await ReloadAsync(); }
+    private async Task DeleteAgentAsync(Guid id) { await Api.DeleteAgentProfileAsync(id); await ReloadAsync(); }
+    private static string? EmptyNull(string value) => string.IsNullOrWhiteSpace(value) ? null : value.Trim();
+    private static List<string> SplitCsv(string value) => value.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).ToList();
+}

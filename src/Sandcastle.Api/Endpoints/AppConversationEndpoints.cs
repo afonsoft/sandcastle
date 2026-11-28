@@ -819,6 +819,10 @@ public static class AppConversationEndpoints
         {
             return SandcastleProblemFactory.Create(p.Http, 400, ex.Message);
         }
+        catch (ProfileSelectionException ex)
+        {
+            return SandcastleProblemFactory.Create(p.Http, 400, ex.Message);
+        }
 
         return Results.Created(
             $"/api/v1/app-conversations/start-tasks/{createdTask.Id}",
@@ -1072,7 +1076,9 @@ public static class AppConversationEndpoints
             b.Permissions?.Select(p => new Application.Agent.AgentPermissionRule(
                 p.Pattern, ParseDecision(p.Decision))).ToList(),
             b.Mode, b.Secrets,
-            SelectedRepositories: b.SelectedRepositories);
+            SelectedRepositories: b.SelectedRepositories,
+            LlmProfileId: b.LlmProfileId,
+            AgentProfileId: b.AgentProfileId);
 
     private static StartTaskStatus? ParseStatus(string? s) =>
         Enum.TryParse<StartTaskStatus>(s, ignoreCase: true, out var v) ? v : null;

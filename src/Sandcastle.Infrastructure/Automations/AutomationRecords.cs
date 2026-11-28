@@ -25,6 +25,10 @@ public sealed class AutomationRecord : IOrgScoped
     public required string Prompt { get; set; }
     /// <summary>Override de modelo (null = default do usuário).</summary>
     public string? LlmModel { get; set; }
+    /// <summary>SPEC-180: selected LLM profile.</summary>
+    public Guid? LlmProfileId { get; set; }
+    /// <summary>SPEC-180: selected agent profile.</summary>
+    public Guid? AgentProfileId { get; set; }
     /// <summary>Repo alvo opcional (mesmo campo do start-task).</summary>
     public string? SelectedRepository { get; set; }
     /// <summary><c>task|scan</c> — SPEC-143 (default <c>task</c>).</summary>

@@ -23,6 +23,12 @@
                 @L["settings.agent_llm"]
             </button>
             <button type="button" role="tab"
+                    aria-selected="@(_tab == "profiles")"
+                    class="settings-tab @(_tab == "profiles" ? "active" : "")"
+                    @onclick='() => _tab = "profiles"'>
+                @L["settings.profiles"]
+            </button>
+            <button type="button" role="tab"
                     aria-selected="@(_tab == "secrets")"
                     class="settings-tab @(_tab == "secrets" ? "active" : "")"
                     @onclick='() => _tab = "secrets"'>
@@ -158,6 +164,11 @@
                         <span class="sub">@L["settings.saved"]</span>
                     }
                 </div>
+            }
+            else if (_tab == "profiles")
+            {
+                <h3>@L["settings.profiles"]</h3>
+                <SettingsProfilesPanel />
             }
             else if (_tab == "agent")
             {
