@@ -1448,3 +1448,7 @@ a.chip.mention { text-decoration: none; }
 .note-editor { min-height: 24rem; width: 100%; }
 @media (max-width: 760px) { .collab-grid { grid-template-columns: 1fr; } }
 .extensions-page .panel { margin-top: 1rem; }
+.branch-pr-panel { display: grid; gap: 1rem; grid-template-columns: 1fr 1fr; }
+.branch-row { display: grid; gap: .2rem; margin-bottom: .5rem; }
+@media (max-width: 760px) { .branch-pr-panel { grid-template-columns: 1fr; } }
+.panel-head { align-items: center; display: flex; justify-content: space-between; }

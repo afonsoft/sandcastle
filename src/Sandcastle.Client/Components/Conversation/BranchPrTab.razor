@@ -1,0 +1,45 @@
+@using Sandcastle.Client.Services
+@inject SandcastleApiClient Api
+@inject LocalizationService L
+@inject ToastService Toasts
+
+<div class="branch-pr-panel">
+    <section class="panel">
+        <div class="panel-head"><h2>@L["conv.branches"]</h2><button @onclick="CreateBranchAsync">@L["conv.new_branch"]</button></div>
+        @foreach (var b in _branches)
+        {
+            <a class="message-card branch-row" href="/conversations/@b.Id">
+                <strong>@(b.Title ?? b.Id.ToString()[..8])</strong>
+                <span>@b.Status · @b.UpdatedAt.ToLocalTime().ToString("g")</span>
+                @if (b.Current) { <em>@L["conv.current_branch"]</em> }
+            </a>
+        }
+    </section>
+    <section class="panel">
+        <h2>@L["conv.pr_ci"]</h2>
+        @if (_pr is null) { <p>@L["common.loading"]</p> }
+        else if (_pr.PullRequestUrl is null) { <p class="empty-state">@L["conv.no_pr"]</p> }
+        else
+        {
+            <p><a href="@_pr.PullRequestUrl" target="_blank">PR #@_pr.PullRequestNumber</a> · @_pr.PullRequestState</p>
+            <p>@_pr.Repository</p>
+        }
+    </section>
+</div>
+@code {
+    [Parameter] public string ConversationId { get; set; } = "";
+    private IReadOnlyList<ConversationBranchDto> _branches = [];
+    private ConversationPrStatusDto? _pr;
+    protected override async Task OnParametersSetAsync()
+    {
+        _branches = await Api.ListConversationBranchesAsync(ConversationId);
+        _pr = await Api.GetConversationPrStatusAsync(ConversationId);
+    }
+    private async Task CreateBranchAsync()
+    {
+        var branch = await Api.CreateConversationBranchAsync(ConversationId);
+        if (branch is null) { Toasts.Error(L["conv.branch_failed"]); return; }
+        Toasts.Success(L["conv.branch_started"]);
+        _branches = await Api.ListConversationBranchesAsync(ConversationId);
+    }
+}

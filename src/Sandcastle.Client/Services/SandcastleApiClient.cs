@@ -2265,6 +2265,18 @@ public sealed class SandcastleApiClient(HttpClient http)
         var resp = await http.PostAsJsonAsync($"/api/v1/integrations/{Uri.EscapeDataString(provider)}/test", new { }, Json, ct);
         return resp.IsSuccessStatusCode ? await resp.Content.ReadFromJsonAsync<IntegrationTestResultDto>(Json, ct) : null;
     }
+
+    public async Task<IReadOnlyList<ConversationBranchDto>> ListConversationBranchesAsync(string id, CancellationToken ct = default) =>
+        await http.GetFromJsonAsync<List<ConversationBranchDto>>($"/api/v1/conversations/{id}/branches", Json, ct) ?? [];
+
+    public async Task<ConversationBranchDto?> CreateConversationBranchAsync(string id, CancellationToken ct = default)
+    {
+        var resp = await http.PostAsJsonAsync($"/api/v1/conversations/{id}/branch", new { at_event_id = (string?)null, initial_message = (string?)null }, Json, ct);
+        return resp.IsSuccessStatusCode ? await resp.Content.ReadFromJsonAsync<ConversationBranchDto>(Json, ct) : null;
+    }
+
+    public Task<ConversationPrStatusDto?> GetConversationPrStatusAsync(string id, CancellationToken ct = default) =>
+        GetOrNull<ConversationPrStatusDto>($"/api/v1/conversations/{id}/pr-status", ct);
 }
 
 
@@ -2615,3 +2627,7 @@ public sealed record ExtensionSummaryDto(int McpServers, int MarketplaceInstalle
 public sealed record PluginDto(Guid Id, Guid? OrgId, string OwnerUserId, string Name, string Version, string ManifestJson, string[] Permissions, bool Enabled, string? RollbackVersion, DateTimeOffset CreatedAt, DateTimeOffset UpdatedAt);
 /// <summary>SPEC-187: integration test result.</summary>
 public sealed record IntegrationTestResultDto(string Provider, bool Ok, string Detail);
+/// <summary>SPEC-188: conversation branch row.</summary>
+public sealed record ConversationBranchDto(Guid Id, string? Title, Guid? ParentConversationId, string? Status, DateTimeOffset CreatedAt, DateTimeOffset UpdatedAt, string? PullRequestUrl, bool Current);
+/// <summary>SPEC-188: contextual PR status.</summary>
+public sealed record ConversationPrStatusDto(string? Repository, string? PullRequestUrl, int? PullRequestNumber, string PullRequestState, JsonElement Checks, JsonElement ReviewComments, string[] PreviewLinks, DateTimeOffset UpdatedAt);
