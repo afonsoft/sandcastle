@@ -1257,7 +1257,7 @@
   "workspace.tools_desc": "説明",
   "workspace.tools_server": "サーバー",
   "workspace.tools_tool": "ツール",
-  "knowledge.include_web": "Web",
+  "knowledge.include_web": "Web検索を含める",
   "admin.nav_lifecycle": "Lifecycle",
   "lifecycle.title": "Enterprise lifecycle",
   "lifecycle.subtitle": "Provisioning queue, durable integration outbox, dead letters and audited operational jobs.",
@@ -1278,5 +1278,6 @@
   "lifecycle.job": "Job",
   "lifecycle.details": "Details",
   "lifecycle.created": "Created",
-  "lifecycle.invite": "Invite"
+  "lifecycle.invite": "Invite",
+  "chat.activity.github_pr": "GitHub プルリクエストを確認中"
 }

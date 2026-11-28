@@ -1278,5 +1278,6 @@
   "lifecycle.job": "Job",
   "lifecycle.details": "Details",
   "lifecycle.created": "Created",
-  "lifecycle.invite": "Invite"
+  "lifecycle.invite": "Invite",
+  "chat.activity.github_pr": "Ispezione pull request GitHub"
 }

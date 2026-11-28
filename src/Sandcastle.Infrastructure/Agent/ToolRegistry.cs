@@ -101,6 +101,11 @@ public sealed class ToolRegistry : IToolRegistry
             BuiltinTools.GitCommit(bashTimeout),
             // SPEC-52 RF-003: PR a partir do workspace (push + provider).
             BuiltinTools.CreatePullRequest(),
+            // SPEC-191: agent-facing GitHub PR read/review/comment loop.
+            BuiltinGitHubPrTools.ListPullRequests(),
+            BuiltinGitHubPrTools.ViewPullRequest(),
+            BuiltinGitHubPrTools.ReadPullRequestDiff(),
+            BuiltinGitHubPrTools.CommentPullRequest(),
             // SPEC-43 RF-002: snapshot sob demanda (pre-refactor etc.).
             BuiltinTools.Checkpoint(),
             // SPEC-44 RF-001: pergunta ao usuário (interceptada no runner).
