@@ -1084,5 +1084,17 @@
   "settings.profiles.role_models": "Role models",
   "settings.profiles.fallback_models": "Fallback models",
   "settings.profiles.prompt_pack": "Prompt pack",
-  "settings.profiles.runtime_profile": "Runtime profile"
+  "settings.profiles.runtime_profile": "Runtime profile",
+  "settings.agentdefs.title": "Agent definitions",
+  "settings.agentdefs.instructions": "Instructions",
+  "settings.agentdefs.permission_preset": "Permission preset",
+  "settings.agentdefs.validate": "Validate",
+  "settings.agentdefs.validate_ok": "Definition is valid",
+  "settings.agentdefs.validate_failed": "Validation failed",
+  "settings.promptpacks.title": "Prompt packs",
+  "settings.promptpacks.base_prompt": "Base prompt",
+  "settings.promptpacks.harness_rules": "Harness rules",
+  "settings.promptpacks.plan_mode": "Plan mode prompt",
+  "settings.promptpacks.build_mode": "Build mode prompt",
+  "settings.promptpacks.rollback": "Rollback"
 }

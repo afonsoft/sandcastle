@@ -1084,5 +1084,17 @@
   "settings.profiles.role_models": "角色模型",
   "settings.profiles.fallback_models": "回退模型",
   "settings.profiles.prompt_pack": "提示词包",
-  "settings.profiles.runtime_profile": "运行时配置文件"
+  "settings.profiles.runtime_profile": "运行时配置文件",
+  "settings.agentdefs.title": "代理定义",
+  "settings.agentdefs.instructions": "指令",
+  "settings.agentdefs.permission_preset": "权限预设",
+  "settings.agentdefs.validate": "验证",
+  "settings.agentdefs.validate_ok": "定义有效",
+  "settings.agentdefs.validate_failed": "验证失败",
+  "settings.promptpacks.title": "提示词包",
+  "settings.promptpacks.base_prompt": "基础提示词",
+  "settings.promptpacks.harness_rules": "Harness 规则",
+  "settings.promptpacks.plan_mode": "计划模式提示词",
+  "settings.promptpacks.build_mode": "构建模式提示词",
+  "settings.promptpacks.rollback": "回滚"
 }

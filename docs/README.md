@@ -24,6 +24,7 @@
   conversas aguardando você + `ask_user` (SPEC-44).
 - [features/navigation-shell.md](features/navigation-shell.md) — shell estilo Devin, breadcrumbs, command center, focus mode e telemetria UX (SPEC-179).
 - [features/settings-control-center.md](features/settings-control-center.md) — seções de settings, provider connections tipadas, LLM/agent profiles e seleção de perfil em runtime (SPEC-180).
+- [features/agent-definitions-prompt-runtime.md](features/agent-definitions-prompt-runtime.md) — catálogo persistente de agent definitions, prompt packs versionados e runtime seguro de personas/skills (SPEC-181).
 - [features/composer.md](features/composer.md) — @menções ricas (arquivos + entidades), /slash, drafts, uploads (SPECs 45/170).
 - [features/i18n.md](features/i18n.md) — `LocalizationService`, fallback,
   parity, seletor (SPEC-46).

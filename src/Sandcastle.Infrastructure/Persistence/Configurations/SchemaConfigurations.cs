@@ -473,3 +473,36 @@ public sealed class ConversationPlanItemConfiguration
         b.HasIndex(e => e.PlanId);
     }
 }
+/// <inheritdoc />
+public sealed class AgentDefinitionConfiguration
+    : IEntityTypeConfiguration<AgentDefinitionRecord>
+{
+    /// <inheritdoc />
+    public void Configure(EntityTypeBuilder<AgentDefinitionRecord> b)
+    {
+        b.ToTable("agent_definitions");
+        b.HasKey(e => e.Id);
+        b.HasIndex(e => new { e.Scope, e.OwnerId, e.OrgId, e.Name });
+        b.Property(e => e.Scope).HasMaxLength(10);
+        b.Property(e => e.Name).HasMaxLength(80);
+        b.Property(e => e.ModelProfile).HasMaxLength(120);
+        b.Property(e => e.Mode).HasMaxLength(20);
+        b.Property(e => e.PermissionPreset).HasMaxLength(80);
+    }
+}
+
+/// <inheritdoc />
+public sealed class PromptPackConfiguration
+    : IEntityTypeConfiguration<PromptPackRecord>
+{
+    /// <inheritdoc />
+    public void Configure(EntityTypeBuilder<PromptPackRecord> b)
+    {
+        b.ToTable("prompt_packs");
+        b.HasKey(e => e.Id);
+        b.HasIndex(e => new { e.PackId, e.Version }).IsUnique();
+        b.HasIndex(e => new { e.Scope, e.OwnerId, e.OrgId, e.Name, e.Active });
+        b.Property(e => e.Scope).HasMaxLength(10);
+        b.Property(e => e.Name).HasMaxLength(80);
+    }
+}

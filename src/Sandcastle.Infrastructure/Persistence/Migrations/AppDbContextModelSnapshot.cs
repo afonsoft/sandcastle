@@ -1447,6 +1447,91 @@ namespace Sandcastle.Infrastructure.Persistence.Migrations
                     b.ToTable("outposts", (string)null);
                 });
 
+            modelBuilder.Entity("Sandcastle.Infrastructure.Persistence.AgentDefinitionRecord", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("TEXT")
+                        .HasColumnName("id");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("TEXT")
+                        .HasColumnName("created_at");
+
+                    b.Property<string>("Description")
+                        .IsRequired()
+                        .HasColumnType("TEXT")
+                        .HasColumnName("description");
+
+                    b.Property<bool>("Enabled")
+                        .HasColumnType("INTEGER")
+                        .HasColumnName("enabled");
+
+                    b.Property<string>("Instructions")
+                        .IsRequired()
+                        .HasColumnType("TEXT")
+                        .HasColumnName("instructions");
+
+                    b.Property<string>("Mode")
+                        .HasMaxLength(20)
+                        .HasColumnType("TEXT")
+                        .HasColumnName("mode");
+
+                    b.Property<string>("Model")
+                        .HasColumnType("TEXT")
+                        .HasColumnName("model");
+
+                    b.Property<string>("ModelProfile")
+                        .HasMaxLength(120)
+                        .HasColumnType("TEXT")
+                        .HasColumnName("model_profile");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(80)
+                        .HasColumnType("TEXT")
+                        .HasColumnName("name");
+
+                    b.Property<Guid?>("OrgId")
+                        .HasColumnType("TEXT")
+                        .HasColumnName("org_id");
+
+                    b.Property<string>("OwnerId")
+                        .HasColumnType("TEXT")
+                        .HasColumnName("owner_id");
+
+                    b.Property<string>("PermissionPreset")
+                        .HasMaxLength(80)
+                        .HasColumnType("TEXT")
+                        .HasColumnName("permission_preset");
+
+                    b.Property<string>("Scope")
+                        .IsRequired()
+                        .HasMaxLength(10)
+                        .HasColumnType("TEXT")
+                        .HasColumnName("scope");
+
+                    b.Property<string>("SkillsJson")
+                        .HasColumnType("TEXT")
+                        .HasColumnName("skills_json");
+
+                    b.Property<string>("ToolsJson")
+                        .HasColumnType("TEXT")
+                        .HasColumnName("tools_json");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("TEXT")
+                        .HasColumnName("updated_at");
+
+                    b.HasKey("Id")
+                        .HasName("pk_agent_definitions");
+
+                    b.HasIndex("Scope", "OwnerId", "OrgId", "Name")
+                        .HasDatabaseName("ix_agent_definitions_scope_owner_id_org_id_name");
+
+                    b.ToTable("agent_definitions", (string)null);
+                });
+
             modelBuilder.Entity("Sandcastle.Infrastructure.Persistence.AgentProfileRecord", b =>
                 {
                     b.Property<Guid>("Id")
@@ -2734,6 +2819,87 @@ namespace Sandcastle.Infrastructure.Persistence.Migrations
                         .HasName("pk_plans");
 
                     b.ToTable("plans", (string)null);
+                });
+
+            modelBuilder.Entity("Sandcastle.Infrastructure.Persistence.PromptPackRecord", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("TEXT")
+                        .HasColumnName("id");
+
+                    b.Property<bool>("Active")
+                        .HasColumnType("INTEGER")
+                        .HasColumnName("active");
+
+                    b.Property<string>("AdvisorPrompt")
+                        .HasColumnType("TEXT")
+                        .HasColumnName("advisor_prompt");
+
+                    b.Property<string>("BasePrompt")
+                        .IsRequired()
+                        .HasColumnType("TEXT")
+                        .HasColumnName("base_prompt");
+
+                    b.Property<string>("BuildModePrompt")
+                        .HasColumnType("TEXT")
+                        .HasColumnName("build_mode_prompt");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("TEXT")
+                        .HasColumnName("created_at");
+
+                    b.Property<string>("HarnessRules")
+                        .HasColumnType("TEXT")
+                        .HasColumnName("harness_rules");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(80)
+                        .HasColumnType("TEXT")
+                        .HasColumnName("name");
+
+                    b.Property<Guid?>("OrgId")
+                        .HasColumnType("TEXT")
+                        .HasColumnName("org_id");
+
+                    b.Property<string>("OwnerId")
+                        .HasColumnType("TEXT")
+                        .HasColumnName("owner_id");
+
+                    b.Property<Guid>("PackId")
+                        .HasColumnType("TEXT")
+                        .HasColumnName("pack_id");
+
+                    b.Property<string>("PermissionJudgePrompt")
+                        .HasColumnType("TEXT")
+                        .HasColumnName("permission_judge_prompt");
+
+                    b.Property<string>("PlanModePrompt")
+                        .HasColumnType("TEXT")
+                        .HasColumnName("plan_mode_prompt");
+
+                    b.Property<string>("Scope")
+                        .IsRequired()
+                        .HasMaxLength(10)
+                        .HasColumnType("TEXT")
+                        .HasColumnName("scope");
+
+                    b.Property<int>("Version")
+                        .HasColumnType("INTEGER")
+                        .HasColumnName("version");
+
+                    b.HasKey("Id")
+                        .HasName("pk_prompt_packs");
+
+                    b.HasIndex("PackId", "Version")
+                        .IsUnique()
+                        .HasDatabaseName("ix_prompt_packs_pack_id_version");
+
+                    b.HasIndex("Scope", "OwnerId", "OrgId", "Name", "Active")
+                        .HasDatabaseName("ix_prompt_packs_scope_owner_id_org_id_name_active");
+
+                    b.ToTable("prompt_packs", (string)null);
                 });
 
             modelBuilder.Entity("Sandcastle.Infrastructure.Persistence.ProviderConnectionRecord", b =>

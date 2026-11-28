@@ -1084,5 +1084,17 @@
   "settings.profiles.role_models": "ロール別モデル",
   "settings.profiles.fallback_models": "フォールバックモデル",
   "settings.profiles.prompt_pack": "プロンプトパック",
-  "settings.profiles.runtime_profile": "ランタイムプロファイル"
+  "settings.profiles.runtime_profile": "ランタイムプロファイル",
+  "settings.agentdefs.title": "エージェント定義",
+  "settings.agentdefs.instructions": "指示",
+  "settings.agentdefs.permission_preset": "権限プリセット",
+  "settings.agentdefs.validate": "検証",
+  "settings.agentdefs.validate_ok": "定義は有効です",
+  "settings.agentdefs.validate_failed": "検証に失敗しました",
+  "settings.promptpacks.title": "プロンプトパック",
+  "settings.promptpacks.base_prompt": "基本プロンプト",
+  "settings.promptpacks.harness_rules": "ハーネスルール",
+  "settings.promptpacks.plan_mode": "プランモードプロンプト",
+  "settings.promptpacks.build_mode": "ビルドモードプロンプト",
+  "settings.promptpacks.rollback": "ロールバック"
 }

@@ -1035,6 +1035,14 @@ public static class BuiltinTools
                         rs.RepoPath!)!.Replace('\\', '/');
                     var listing = await ctx.Executor.ListFilesAsync(
                         ctx.Sandbox, dir, ct);
+                    if (ctx.Services.GetService<IAuditService>() is { } repoAudit)
+                    {
+                        await repoAudit.RecordAsync("agent.skill_used",
+                            ctx.RouteCtx?.UserId, ctx.RouteCtx?.OrgId,
+                            "skill", rs.Name,
+                            metadata: new { source = "repo", trigger = "invoke_skill" },
+                            cancellationToken: ct);
+                    }
                     return ToolResult.Ok(new
                     {
                         name = rs.Name,
@@ -1045,13 +1053,23 @@ public static class BuiltinTools
                 }
             }
 
-            return skill is null
-                ? ToolResult.Error($"skill '{name}' not found")
-                : ToolResult.Ok(new
-                {
-                    name = skill.Name,
-                    content = skill.ContentMd,
-                });
+            if (skill is null)
+            {
+                return ToolResult.Error($"skill '{name}' not found");
+            }
+            if (ctx.Services.GetService<IAuditService>() is { } audit)
+            {
+                await audit.RecordAsync("agent.skill_used",
+                    ctx.RouteCtx?.UserId, ctx.RouteCtx?.OrgId,
+                    "skill", skill.Name,
+                    metadata: new { source = "database", trigger = "invoke_skill" },
+                    cancellationToken: ct);
+            }
+            return ToolResult.Ok(new
+            {
+                name = skill.Name,
+                content = skill.ContentMd,
+            });
         });
 
     /// <summary>
@@ -1226,8 +1244,9 @@ public static class BuiltinTools
                   "prompt":{"type":"string",
                     "description":"complete instructions for the subagent"},
                   "subagent_type":{"type":"string",
-                    "enum":["explore","scout","plan","general"],
                     "default":"explore"},
+                  "agent_scope":{"type":"string",
+                    "description":"optional explicit definition scope: builtin, system, user, org, workspace"},
                   "background":{"type":"boolean","default":false,
                     "description":"true = run async, poll task_status"}},
                  "required":["prompt"]}
@@ -1257,8 +1276,10 @@ public static class BuiltinTools
 
         var type = args.TryGetProperty("subagent_type", out var st)
             ? st.GetString() ?? "explore" : "explore";
+        var agentScope = args.TryGetProperty("agent_scope", out var asc)
+            ? asc.GetString() : null;
         var (agentDef, typeError) = await ResolveAgentDefAsync(
-            ctx, type, ct);
+            ctx, type, agentScope, ct);
         if (typeError is not null)
         {
             return typeError;
@@ -1328,13 +1349,8 @@ public static class BuiltinTools
     /// </summary>
     private static async Task<(AgentDefinition? Def, ToolResult? Error)>
         ResolveAgentDefAsync(ToolCallContext ctx, string type,
-            CancellationToken ct)
+            string? explicitScope, CancellationToken ct)
     {
-        if (SubagentPresets.IsKnown(type))
-        {
-            return (null, null);
-        }
-
         var catalog = ctx.Services.GetService<IAgentCatalog>();
         var agentDef = catalog is null
             ? null
@@ -1342,16 +1358,39 @@ public static class BuiltinTools
                 type, ctx.Sandbox, ctx.Executor, ct);
         if (agentDef is not null)
         {
-            return (agentDef, null);
+            if (explicitScope is not null
+                && !agentDef.Source.Equals(explicitScope, StringComparison.OrdinalIgnoreCase)
+                && !(explicitScope.Equals("system", StringComparison.OrdinalIgnoreCase)
+                    && agentDef.Source.Equals("builtin", StringComparison.OrdinalIgnoreCase)))
+            {
+                return (null, ToolResult.Error(
+                    $"subagent_type '{type}' is not defined in scope '{explicitScope}'"));
+            }
+            if (!agentDef.Source.Equals("builtin", StringComparison.OrdinalIgnoreCase)
+                || explicitScope is "user" or "org" or "workspace")
+            {
+                return (agentDef, null);
+            }
         }
 
+        var scopeIsBuiltin = explicitScope is null
+            || explicitScope is "builtin" or "system";
+        if (scopeIsBuiltin && SubagentPresets.IsKnown(type))
+        {
+            return (null, null);
+        }
+        if (agentDef is not null)
+        {
+            return (agentDef, null);
+        }
         var valid = catalog is null
             ? string.Join(", ", SubagentPresets.Names)
             : string.Join(", ", await catalog.ListNamesAsync(
                 ctx.Sandbox, ctx.Executor, ct));
         return (null, ToolResult.Error(
             $"unknown subagent_type '{type}' "
-            + $"— válidos: {valid}"));
+            + (explicitScope is null ? "" : $" in scope '{explicitScope}'")
+            + $" — válidos: {valid}"));
     }
 
     /// <summary>Pacote de delegação do subagente (SPEC-104).</summary>

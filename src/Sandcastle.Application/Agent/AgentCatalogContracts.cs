@@ -17,8 +17,12 @@ namespace Sandcastle.Application.Agent;
 /// </param>
 /// <param name="Model">Optional model override; <c>null</c> inherits.</param>
 /// <param name="Body">Markdown instructions — child persona.</param>
-/// <param name="Source">Provenance: <c>builtin|user|workspace</c>.</param>
+/// <param name="Source">Provenance: <c>builtin|system|org|user|workspace</c>.</param>
 /// <param name="FilePath">Origin path (empty for built-ins).</param>
+/// <param name="ModelProfile">Optional named LLM profile reference.</param>
+/// <param name="Skills">Optional declarative skills allowlist.</param>
+/// <param name="Mode">Optional default mode (<c>build</c>/<c>plan</c>).</param>
+/// <param name="PermissionPreset">Optional permission preset reference.</param>
 public sealed record AgentDefinition(
     string Name,
     string Description,
@@ -26,7 +30,11 @@ public sealed record AgentDefinition(
     string? Model,
     string Body,
     string Source,
-    string FilePath);
+    string FilePath,
+    string? ModelProfile = null,
+    IReadOnlyList<string>? Skills = null,
+    string? Mode = null,
+    string? PermissionPreset = null);
 
 /// <summary>
 /// Layered agent catalog (SPEC-95): effective set of

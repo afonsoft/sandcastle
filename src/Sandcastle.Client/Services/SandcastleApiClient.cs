@@ -2080,6 +2080,43 @@ public sealed class SandcastleApiClient(HttpClient http)
     public async Task<bool> DeleteAgentProfileAsync(Guid id, CancellationToken ct = default) =>
         (await http.DeleteAsync($"/api/v1/agent-profiles/{id}", ct)).IsSuccessStatusCode;
 
+    public async Task<IReadOnlyList<AgentDefinitionDto>> ListAgentDefinitionsAsync(CancellationToken ct = default) =>
+        await http.GetFromJsonAsync<List<AgentDefinitionDto>>("/api/v1/agent-definitions", Json, ct) ?? [];
+    public async Task<AgentDefinitionDto?> CreateAgentDefinitionAsync(object body, CancellationToken ct = default)
+    {
+        var resp = await http.PostAsJsonAsync("/api/v1/agent-definitions", body, Json, ct);
+        return resp.IsSuccessStatusCode ? await resp.Content.ReadFromJsonAsync<AgentDefinitionDto>(Json, ct) : null;
+    }
+    public async Task<AgentDefinitionDto?> UpdateAgentDefinitionAsync(Guid id, object body, CancellationToken ct = default)
+    {
+        var resp = await http.PutAsJsonAsync($"/api/v1/agent-definitions/{id}", body, Json, ct);
+        return resp.IsSuccessStatusCode ? await resp.Content.ReadFromJsonAsync<AgentDefinitionDto>(Json, ct) : null;
+    }
+    public async Task<bool> DeleteAgentDefinitionAsync(Guid id, CancellationToken ct = default) =>
+        (await http.DeleteAsync($"/api/v1/agent-definitions/{id}", ct)).IsSuccessStatusCode;
+    public async Task<AgentDefinitionValidationDto?> ValidateAgentDefinitionAsync(Guid id, CancellationToken ct = default)
+    {
+        var resp = await http.PostAsync($"/api/v1/agent-definitions/{id}/validate", null, ct);
+        return resp.IsSuccessStatusCode ? await resp.Content.ReadFromJsonAsync<AgentDefinitionValidationDto>(Json, ct) : null;
+    }
+    public async Task<IReadOnlyList<PromptPackDto>> ListPromptPacksAsync(CancellationToken ct = default) =>
+        await http.GetFromJsonAsync<List<PromptPackDto>>("/api/v1/prompt-packs", Json, ct) ?? [];
+    public async Task<PromptPackDto?> CreatePromptPackAsync(object body, CancellationToken ct = default)
+    {
+        var resp = await http.PostAsJsonAsync("/api/v1/prompt-packs", body, Json, ct);
+        return resp.IsSuccessStatusCode ? await resp.Content.ReadFromJsonAsync<PromptPackDto>(Json, ct) : null;
+    }
+    public async Task<PromptPackDto?> UpdatePromptPackAsync(Guid packId, object body, CancellationToken ct = default)
+    {
+        var resp = await http.PutAsJsonAsync($"/api/v1/prompt-packs/{packId}", body, Json, ct);
+        return resp.IsSuccessStatusCode ? await resp.Content.ReadFromJsonAsync<PromptPackDto>(Json, ct) : null;
+    }
+    public async Task<PromptPackDto?> RollbackPromptPackAsync(Guid packId, int version, CancellationToken ct = default)
+    {
+        var resp = await http.PostAsync($"/api/v1/prompt-packs/{packId}/rollback/{version}", null, ct);
+        return resp.IsSuccessStatusCode ? await resp.Content.ReadFromJsonAsync<PromptPackDto>(Json, ct) : null;
+    }
+
 
 }
 
@@ -2308,6 +2345,22 @@ public sealed record AgentProfileDto(
     string? RuntimeProfile, Guid? LlmProfileId,
     JsonElement AllowedTools, JsonElement Skills,
     DateTimeOffset CreatedAt, DateTimeOffset UpdatedAt);
+
+
+/// <summary>SPEC-181: declarative agent definition exposed by the runtime catalog.</summary>
+public sealed record AgentDefinitionDto(
+    Guid? Id, string? Scope, string Name, string? Description,
+    string? Instructions, string[]? Tools, string? Model, string? ModelProfile,
+    string[]? Skills, string? Mode, string? PermissionPreset,
+    bool Enabled, bool Persisted, string Source);
+/// <summary>SPEC-181: validation result for an agent definition.</summary>
+public sealed record AgentDefinitionValidationDto(bool Valid, string[] Errors, string[] UnknownTools);
+/// <summary>SPEC-181: immutable prompt-pack version.</summary>
+public sealed record PromptPackDto(
+    Guid Id, Guid PackId, string Scope, string Name, string BasePrompt,
+    string? HarnessRules, string? PlanModePrompt, string? BuildModePrompt,
+    string? AdvisorPrompt, string? PermissionJudgePrompt,
+    int Version, bool Active, DateTimeOffset CreatedAt);
 
 /// <summary>SPEC-157: workspace item (prompt/preset/context_file).</summary>
 public sealed record WorkspaceItemDto(

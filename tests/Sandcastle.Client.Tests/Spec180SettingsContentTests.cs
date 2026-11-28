@@ -96,6 +96,19 @@ public sealed class Spec180SettingsContentTests : BunitContext
         cut.Markup.ShouldContain("Perfis de agente");
     }
 
+
+    [Fact]
+    public void Settings_Profiles_Tab_Renders_Agent_Definitions_And_Prompt_Packs()
+    {
+        var cut = Render<SettingsContent>(p => p.Add(x => x.InitialTab, "profiles"));
+
+        cut.WaitForAssertion(() =>
+            cut.Markup.ShouldContain("Definições de agentes"));
+        cut.Markup.ShouldContain("Prompt packs");
+        cut.Markup.ShouldContain("repo-reviewer");
+        cut.Markup.ShouldContain("default-cloud");
+    }
+
     private sealed class SettingsApiHandler : HttpMessageHandler
     {
         protected override Task<HttpResponseMessage> SendAsync(
@@ -109,6 +122,8 @@ public sealed class Spec180SettingsContentTests : BunitContext
                 "/api/v1/provider-connections" => "[]",
                 "/api/v1/llm-profiles" => "[]",
                 "/api/v1/agent-profiles" => "[]",
+                "/api/v1/agent-definitions" => """[{"id":"00000000-0000-0000-0000-000000000001","scope":"user","name":"repo-reviewer","description":"reviews","instructions":"review","tools":["file_read"],"model":null,"model_profile":null,"skills":[],"mode":"plan","permission_preset":"read-only","enabled":true,"persisted":true,"source":"user"}]""",
+                "/api/v1/prompt-packs" => """[{"id":"00000000-0000-0000-0000-000000000002","pack_id":"00000000-0000-0000-0000-000000000003","scope":"user","name":"default-cloud","base_prompt":"base","harness_rules":null,"plan_mode_prompt":null,"build_mode_prompt":null,"advisor_prompt":null,"permission_judge_prompt":null,"version":1,"active":true,"created_at":"2026-01-01T00:00:00Z"}]""",
                 "/api/v1/secrets" => "[]",
                 "/api/v1/settings/llm-keys/providers" => "[]",
                 "/api/v1/settings/llm-keys" => "[]",

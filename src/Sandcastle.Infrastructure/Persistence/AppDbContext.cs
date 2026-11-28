@@ -165,6 +165,12 @@ public class AppDbContext : DbContext, IDataProtectionKeyContext
     /// <summary>SPEC-180: named agent profiles.</summary>
     public DbSet<AgentProfileRecord> AgentProfiles => Set<AgentProfileRecord>();
 
+    /// <summary>SPEC-181: user/org declarative agent definitions.</summary>
+    public DbSet<AgentDefinitionRecord> AgentDefinitions => Set<AgentDefinitionRecord>();
+
+    /// <summary>SPEC-181: immutable prompt-pack versions.</summary>
+    public DbSet<PromptPackRecord> PromptPacks => Set<PromptPackRecord>();
+
     /// <summary>SPEC-134: BYOK — provider keys por usuário.</summary>
     public DbSet<UserLlmKeyRecord> UserLlmKeys => Set<UserLlmKeyRecord>();
 
