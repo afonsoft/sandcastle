@@ -415,11 +415,11 @@ public static class BuiltinParityTools
             {
                 tokens_estimate = value.TryGetProperty("tokens_estimate", out var tokens)
                     ? tokens.GetInt32() : 0,
-                window = value.TryGetProperty("Window", out var window)
+                window = (value.TryGetProperty("window", out var window) || value.TryGetProperty("Window", out window))
                     && window.ValueKind == JsonValueKind.Number ? window.GetInt32() : (int?)null,
-                compactions = value.TryGetProperty("Compactions", out var compactions)
+                compactions = (value.TryGetProperty("compactions", out var compactions) || value.TryGetProperty("Compactions", out compactions))
                     ? compactions.GetInt32() : 0,
-                model = value.TryGetProperty("Model", out var model)
+                model = (value.TryGetProperty("model", out var model) || value.TryGetProperty("Model", out model))
                     ? model.GetString() : null,
                 updated_at = value.TryGetProperty("updated_at", out var updated)
                     ? updated.GetDateTimeOffset() : (DateTimeOffset?)null,

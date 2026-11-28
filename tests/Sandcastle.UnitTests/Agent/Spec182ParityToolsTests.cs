@@ -273,7 +273,7 @@ public sealed class Spec182ParityToolsTests
         await events.AppendAsync(conversationId, new ConversationStateUpdateEvent
         {
             Key = "context_state",
-            Value = JsonSerializer.SerializeToElement(new { tokens_estimate = 123, Window = 1000 }),
+            Value = JsonSerializer.SerializeToElement(new { tokens_estimate = 123, window = 1000, compactions = 1, model = "m" }),
         }, CancellationToken.None);
         var services = new ServiceCollection().BuildServiceProvider();
         var ctx = Ctx(services, events: events, conversationId: conversationId);
