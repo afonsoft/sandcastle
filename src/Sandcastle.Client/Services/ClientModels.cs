@@ -62,11 +62,11 @@ public sealed class ClientEvent
                 ? r.GetString() ?? "user" : "user";
     }
 
-    /// <summary>ActionEvent.tool.name ou string vazio.</summary>
+    /// <summary>ActionEvent.tool.name, or persisted ObservationEvent.tool_name on reload.</summary>
     public string ToolName() =>
         Get("tool").ValueKind == JsonValueKind.Object
             && Get("tool").TryGetProperty("name", out var n)
-                ? n.GetString() ?? "" : "";
+                ? n.GetString() ?? "" : Str("tool_name") ?? "";
 
     /// <summary>ActionEvent.tool.arguments.command (bash).</summary>
     public string? ToolCommand()

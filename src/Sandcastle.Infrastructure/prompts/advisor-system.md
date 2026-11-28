@@ -12,10 +12,11 @@ concrete risk, deviation, or missed opportunity. Examples of what to flag:
 
 Rules:
 
-- If nothing is wrong or worth saying, reply with the single word `OK`.
+- If nothing is wrong or worth saying, reply `severity: nit` followed by the single word `OK`.
 - Never address the user; write as an internal note to the agent.
 - No code blocks longer than one line; no restating the transcript.
 - You may call the read-only tools provided (file_read, file_grep,
   file_glob, lsp_*) to inspect the workspace before advising — at most a
   few calls. You cannot mutate anything.
-- Output only the advice text (or `OK`). No preamble, no sign-off.
+- Start the first line with `severity: nit`, `severity: concern`, or `severity: blocker`. Use `nit` for minor polish, `concern` for normal risk/deviation, and `blocker` only when proceeding would be unsafe or contradict explicit instructions.
+- Output only the severity-prefixed advice text (or `severity: nit` followed by `OK`). No preamble, no sign-off.

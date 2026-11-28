@@ -113,6 +113,10 @@
             {
                 <pre>@ObsText()</pre>
             }
+            else if (ObsPreview() is { Length: > 0 } obsPreview)
+            {
+                <pre class="obs-preview">@obsPreview</pre>
+            }
         </div>
         break;
 
@@ -206,15 +210,22 @@
         @* SPEC-41 RF-004: heartbeat é liveness — não renderiza card. *@
         @if (Event.Str("phase") != "heartbeat")
         {
-            <div class="ev-card condense">
-                — @L.T("event.progress",
-                    ("i", Event.Get("iteration").GetInt32().ToString()),
-                    ("max", Event.Get("max_iterations").GetInt32().ToString()),
-                    ("phase", Event.Str("phase") ?? ""),
-                    ("tools", (Event.Get("tools_used").ValueKind == JsonValueKind.Number
-                        ? Event.Get("tools_used").GetInt32() : 0).ToString()),
-                    ("files", (Event.Get("files_touched").ValueKind == JsonValueKind.Number
-                        ? Event.Get("files_touched").GetInt32() : 0).ToString())) —
+            <div class="ev-card condense run-phase-@(Event.Str("phase") ?? "")">
+                @if (Event.Get("iteration").GetInt32() == 0)
+                {
+                    <span>— @Event.Str("phase") —</span>
+                }
+                else
+                {
+                    <span>— @L.T("event.progress",
+                        ("i", Event.Get("iteration").GetInt32().ToString()),
+                        ("max", Event.Get("max_iterations").GetInt32().ToString()),
+                        ("phase", Event.Str("phase") ?? ""),
+                        ("tools", (Event.Get("tools_used").ValueKind == JsonValueKind.Number
+                            ? Event.Get("tools_used").GetInt32() : 0).ToString()),
+                        ("files", (Event.Get("files_touched").ValueKind == JsonValueKind.Number
+                            ? Event.Get("files_touched").GetInt32() : 0).ToString())) —</span>
+                }
             </div>
         }
         break;
@@ -232,6 +243,27 @@
             <div class="ev-head" style="justify-content:center">
                 <Icon Name="stop" Size="13" /><span>@L["event.interrupted"]</span>
             </div>
+        </div>
+        break;
+
+    case "run_goal":
+        <div class="ev-card goal">
+            <div class="ev-head">
+                <Icon Name="target" Size="14" /><span>@L["event.run_goal"]</span>
+                <span class="ev-time">@Event.Timestamp.LocalDateTime.ToString("HH:mm:ss")</span>
+            </div>
+            <p>@Event.Str("objective")</p>
+        </div>
+        break;
+
+    case "advisor":
+        <div class="ev-card advisor advisor-@(Event.Str("severity") ?? "concern")">
+            <div class="ev-head">
+                <Icon Name="info" Size="14" />
+                <span>@L.T("event.advisor", ("severity", Event.Str("severity") ?? "concern"))</span>
+                <span class="ev-time">@Event.Timestamp.LocalDateTime.ToString("HH:mm:ss")</span>
+            </div>
+            <p>@Event.Str("answer")</p>
         </div>
         break;
 
@@ -350,6 +382,10 @@
 
         return s.Length > 80 ? s[..80] + "…" : s;
     }
+
+    private string? ObsPreview() =>
+        ToolOutputPreview.Summary(Event.Get("observation"))
+        ?? ToolOutputPreview.Preview(ObsText(), 4, 420);
 
     /// <summary>SPEC-41 RF-006: copy → clipboard com feedback breve.</summary>
     private async Task CopyAsync(string text)

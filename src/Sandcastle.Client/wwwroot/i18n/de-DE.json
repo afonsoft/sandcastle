@@ -1279,5 +1279,9 @@
   "lifecycle.details": "Details",
   "lifecycle.created": "Created",
   "lifecycle.invite": "Invite",
-  "chat.activity.github_pr": "GitHub-Pull-Request wird geprüft"
+  "chat.activity.github_pr": "GitHub-Pull-Request wird geprüft",
+  "event.run_goal": "Laufziel",
+  "event.advisor": "Advisor · {{severity}}",
+  "chat.activity.goal": "Ziel wird gesetzt",
+  "chat.activity.wait": "Warten"
 }

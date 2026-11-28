@@ -3,6 +3,7 @@ using System.Text.Json;
 using Microsoft.Extensions.DependencyInjection;
 
 using Sandcastle.Application.Agent;
+using Sandcastle.Infrastructure.Agent;
 
 namespace Sandcastle.Infrastructure.Agent.Tools;
 
@@ -63,11 +64,13 @@ public static class BuiltinAdvisor
                 Answer = verdict.Answer,
                 Model = verdict.Model,
                 ElapsedMs = verdict.ElapsedMs,
+                Severity = AdvisorSeverityParser.Normalize(verdict.Answer),
                 ParentId = ctx.ActionId,
             }, ct);
             return ToolResult.Ok(new
             {
                 advisor = verdict.Answer,
+                severity = AdvisorSeverityParser.Normalize(verdict.Answer),
                 model = verdict.Model,
             });
         });
