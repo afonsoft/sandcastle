@@ -126,6 +126,20 @@ else
         <input placeholder="UTC" @bind="_timeZone"
                aria-label="@(L["automations.time_zone"])" />
     }
+    <select @bind="_llmProfileId" aria-label="@L["settings.profiles.llm_profile"]">
+        <option value="">@L["settings.profiles.no_profile"]</option>
+        @foreach (var p in _llmProfiles)
+        {
+            <option value="@p.Id">@p.Name</option>
+        }
+    </select>
+    <select @bind="_agentProfileId" aria-label="@L["settings.profiles.agent"]">
+        <option value="">@L["settings.profiles.no_profile"]</option>
+        @foreach (var p in _agentProfiles)
+        {
+            <option value="@p.Id">@p.Name</option>
+        }
+    </select>
     <select @bind="_preset" aria-label="@(L["automations.approval_preset"])">
         <option value="">@L["automations.preset_default"]</option>
         <option value="allow">@L["automations.preset_allow"]</option>
@@ -157,6 +171,9 @@ else
     private int _interval = 60, _weekday = 1;
     // SPEC-162: cron + timezone + approval preset.
     private string? _cron, _timeZone, _preset;
+    private string _llmProfileId = "", _agentProfileId = "";
+    private IReadOnlyList<LlmProfileDto> _llmProfiles = [];
+    private IReadOnlyList<AgentProfileDto> _agentProfiles = [];
 
     /// <inheritdoc />
     protected override async Task OnInitializedAsync() => await Reload();
@@ -174,6 +191,10 @@ else
         _upcoming = _items
             .Where(a => a.Enabled && a.NextRunAt is not null)
             .OrderBy(a => a.NextRunAt).Take(10).ToList();
+        try { _llmProfiles = await Api.ListLlmProfilesAsync(); }
+        catch { _llmProfiles = []; }
+        try { _agentProfiles = await Api.ListAgentProfilesAsync(); }
+        catch { _agentProfiles = []; }
     }
 
     // SPEC-163 RF-003: cor/label do dot de saúde.
@@ -244,6 +265,8 @@ else
                     ? null : _timeZone,
                 approval_preset = string.IsNullOrWhiteSpace(_preset)
                     ? null : _preset,
+                llm_profile_id = Guid.TryParse(_llmProfileId, out var lp) ? lp : (Guid?)null,
+                agent_profile_id = Guid.TryParse(_agentProfileId, out var ap) ? ap : (Guid?)null,
             });
             Nav.NavigateTo($"/automations/{created.Id}");
         }

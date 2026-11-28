@@ -5,6 +5,7 @@ using System.Text.Json;
 
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 
@@ -52,12 +53,12 @@ public sealed class Spec180ProviderConnectionEndpointsTests : IDisposable
         {
             name = "Work OpenAI",
             provider = "openai",
-            secret_value = "sk-live-1234567890abcdef",
+            secret_value = "test-secret-1234567890abcdef",
         });
 
         create.StatusCode.ShouldBe(HttpStatusCode.Created);
         var body = await create.Content.ReadAsStringAsync();
-        body.ShouldNotContain("sk-live-1234567890abcdef");
+        body.ShouldNotContain("test-secret-1234567890abcdef");
         var doc = JsonDocument.Parse(body).RootElement;
         var id = doc.GetProperty("id").GetGuid();
         doc.GetProperty("secret_ref").GetString().ShouldStartWith("provider_connection_");
@@ -87,21 +88,28 @@ public sealed class Spec180ProviderConnectionEndpointsTests : IDisposable
     {
         (await _http.PostAsJsonAsync("/api/v1/provider-connections", new
         {
-            name = "bad", provider = "bogus", secret_value = "sk-x",
+            name = "bad",
+            provider = "bogus",
+            secret_value = "sk-x",
         })).StatusCode.ShouldBe(HttpStatusCode.BadRequest);
         (await _http.PostAsJsonAsync("/api/v1/provider-connections", new
         {
-            name = "bad url", provider = "openai_compatible",
-            base_url = "http://evil.example.com", secret_value = "sk-x",
+            name = "bad url",
+            provider = "openai_compatible",
+            base_url = "http://evil.example.com",
+            secret_value = "sk-x",
         })).StatusCode.ShouldBe(HttpStatusCode.BadRequest);
         (await _http.PostAsJsonAsync("/api/v1/provider-connections", new
         {
-            name = "missing", provider = "openai",
+            name = "missing",
+            provider = "openai",
         })).StatusCode.ShouldBe(HttpStatusCode.BadRequest);
 
         var create = await _http.PostAsJsonAsync("/api/v1/provider-connections", new
         {
-            name = "mine", provider = "openai", secret_value = "sk-owner",
+            name = "mine",
+            provider = "openai",
+            secret_value = "sk-owner",
         });
         var id = (await create.Content.ReadFromJsonAsync<JsonElement>())
             .GetProperty("id").GetGuid();
@@ -116,6 +124,78 @@ public sealed class Spec180ProviderConnectionEndpointsTests : IDisposable
         var anonymous = _factory.CreateClient();
         (await anonymous.GetAsync("/api/v1/provider-connections"))
             .StatusCode.ShouldBe(HttpStatusCode.Unauthorized);
+
+        var secretless = await _http.PostAsJsonAsync("/api/v1/provider-connections", new
+        {
+            name = "local ollama",
+            provider = "ollama",
+        });
+        secretless.StatusCode.ShouldBe(HttpStatusCode.Created);
+        var secretlessId = (await secretless.Content.ReadFromJsonAsync<JsonElement>())
+            .GetProperty("id").GetGuid();
+        (await _http.PutAsJsonAsync($"/api/v1/provider-connections/{secretlessId}", new
+        {
+            provider = "openai",
+        })).StatusCode.ShouldBe(HttpStatusCode.BadRequest);
+    }
+
+    [Fact]
+    public async Task OrgScoped_Connections_Are_Readable_But_Not_Writable_By_Member()
+    {
+        var create = await _http.PostAsJsonAsync("/api/v1/provider-connections", new
+        {
+            name = "org openai",
+            scope = "org",
+            provider = "openai",
+            secret_value = "sk-org-secret",
+        });
+        create.StatusCode.ShouldBe(HttpStatusCode.Created);
+        var id = (await create.Content.ReadFromJsonAsync<JsonElement>())
+            .GetProperty("id").GetGuid();
+
+        using var scope = _factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+        var owner = await db.Users.SingleAsync(u => u.Email == "test@local");
+        var orgId = Guid.Parse(owner.CurrentOrgId!);
+        var member = new UserRecord
+        {
+            Id = Guid.NewGuid(),
+            Email = "member180@local",
+            DisplayName = "member180",
+            RolesJson = "[]",
+            CurrentOrgId = orgId.ToString(),
+            CreatedAt = DateTimeOffset.UtcNow,
+        };
+        db.Users.Add(member);
+        db.OrgMembers.Add(new OrgMemberRecord
+        {
+            OrgId = orgId,
+            UserId = member.Id,
+            Role = "member",
+            CreatedAt = DateTimeOffset.UtcNow,
+        });
+        await db.SaveChangesAsync();
+
+        using var memberHttp = TestAuth.Login(_factory, "member180@local");
+        var listBody = await memberHttp.GetAsync("/api/v1/provider-connections");
+        listBody.StatusCode.ShouldBe(HttpStatusCode.OK);
+        var listText = await listBody.Content.ReadAsStringAsync();
+        listText.ShouldContain(id.ToString());
+        listText.ShouldNotContain("sk-org-secret");
+
+        (await memberHttp.PostAsJsonAsync("/api/v1/provider-connections", new
+        {
+            name = "member org write",
+            scope = "org",
+            provider = "openai",
+            secret_value = "sk-x",
+        })).StatusCode.ShouldBe(HttpStatusCode.Forbidden);
+        (await memberHttp.PutAsJsonAsync($"/api/v1/provider-connections/{id}", new
+        {
+            name = "forbidden rename",
+        })).StatusCode.ShouldBe(HttpStatusCode.Forbidden);
+        (await memberHttp.DeleteAsync($"/api/v1/provider-connections/{id}"))
+            .StatusCode.ShouldBe(HttpStatusCode.Forbidden);
     }
 
     [Fact]
@@ -124,7 +204,9 @@ public sealed class Spec180ProviderConnectionEndpointsTests : IDisposable
         _handler.Body = """{"data":[{"id":"gpt-5"},{"id":"gpt-5-mini"}]}""";
         var create = await _http.PostAsJsonAsync("/api/v1/provider-connections", new
         {
-            name = "openai", provider = "openai", secret_value = "sk-test-9999",
+            name = "openai",
+            provider = "openai",
+            secret_value = "sk-test-9999",
         });
         var id = (await create.Content.ReadFromJsonAsync<JsonElement>())
             .GetProperty("id").GetGuid();

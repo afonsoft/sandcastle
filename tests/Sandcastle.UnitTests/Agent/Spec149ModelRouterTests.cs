@@ -483,6 +483,32 @@ public sealed class Spec149ModelRouterTests
     }
 
     [Fact]
+    public async Task Profile_Overlay_Selects_Role_Model_And_Walks_Fallback_Chain()
+    {
+        var router = Make(withScope: false, breaker: new LlmCircuitBreaker());
+        var ctx = new LlmRouteContext(
+            Guid.NewGuid(), Guid.NewGuid(), "u1", PreferredModel: "legacy-pick",
+            ProfileRoleModels: new Dictionary<string, string>
+            {
+                ["code"] = "profile-primary",
+            },
+            ProfileFallbackModels: ["profile-fallback"]);
+
+        var first = await router.ResolveAsync(
+            LlmRole.Code, ctx, CancellationToken.None);
+
+        first!.Model.ShouldBe("profile-primary");
+        first.Reason.ShouldBe("profile");
+        first.Route!.Candidates.Select(c => c.Model)
+            .ShouldBe(["profile-primary", "profile-fallback"]);
+
+        var second = await router.NextFallbackAsync(
+            first, LlmErrorKind.RateLimited, CancellationToken.None);
+        second!.Model.ShouldBe("profile-fallback");
+        second.FallbackFrom.ShouldBe("profile-primary");
+    }
+
+    [Fact]
     public async Task No_Route_When_All_Candidates_Filtered()
     {
         var doc = new RoutingRulesDocument

@@ -24,6 +24,20 @@
                     disabled="@(_repositories.Count >= 4 || string.IsNullOrWhiteSpace(_repository))">
                 +
             </button>
+            <select aria-label="@L["settings.profiles.llm_profile"]" @bind="_llmProfileId">
+                <option value="">@L["settings.profiles.no_profile"]</option>
+                @foreach (var p in _llmProfiles)
+                {
+                    <option value="@p.Id">@p.Name</option>
+                }
+            </select>
+            <select aria-label="@L["settings.profiles.agent"]" @bind="_agentProfileId">
+                <option value="">@L["settings.profiles.no_profile"]</option>
+                @foreach (var p in _agentProfiles)
+                {
+                    <option value="@p.Id">@p.Name</option>
+                }
+            </select>
             <label title="@L["home.confirm_title"]">
                 <input type="checkbox" @bind="_confirmMode" /> @L["home.confirmation"]
             </label>
@@ -119,6 +133,9 @@
     /// <summary>SPEC-146: seleção multi-repo (máx 4; índice 0 = primário).</summary>
     private readonly List<string> _repositories = [];
     private bool _confirmMode;
+    private string _llmProfileId = "", _agentProfileId = "";
+    private IReadOnlyList<LlmProfileDto> _llmProfiles = [];
+    private IReadOnlyList<AgentProfileDto> _agentProfiles = [];
     private bool _starting;
     private string? _error;
     private readonly List<(string Status, bool Active)> _progress = [];
@@ -132,6 +149,10 @@
         catch { _conversations = []; }
         try { _indexing = await Api.GetIndexingStatusAsync(); }
         catch { /* badge best-effort — sem status, sem badge */ }
+        try { _llmProfiles = await Api.ListLlmProfilesAsync(); }
+        catch { _llmProfiles = []; }
+        try { _agentProfiles = await Api.ListAgentProfilesAsync(); }
+        catch { _agentProfiles = []; }
     }
 
     private static string BadgeClass(string status) =>
@@ -198,7 +219,9 @@
                 string.IsNullOrWhiteSpace(_initialMessage) ? null : _initialMessage,
                 repos?[0],
                 run: true, confirmationMode: _confirmMode,
-                repositories: repos);
+                repositories: repos,
+                llmProfileId: Guid.TryParse(_llmProfileId, out var lp) ? lp : null,
+                agentProfileId: Guid.TryParse(_agentProfileId, out var ap) ? ap : null);
             TrackStatus(task.Status);
             _poll = new System.Timers.Timer(1200);
             _poll.Elapsed += async (_, _) => await PollTaskAsync(task.Id);

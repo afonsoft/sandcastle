@@ -102,6 +102,16 @@ public sealed class AppConversationService( // NOSONAR S107 â€” SPEC-104 (decisÃ
             if (agentProfile is null)
                 throw new ProfileSelectionException("agent_profile_not_found");
         }
+        if (!request.LlmProfileId.HasValue
+            && agentProfile?.LlmProfileId is { } linkedLlmProfileId)
+        {
+            llmProfile = await db.LlmProfiles.AsNoTracking()
+                .FirstOrDefaultAsync(p => p.Id == linkedLlmProfileId
+                    && ((p.Scope == "user" && p.OwnerId == ownerId)
+                        || (p.Scope == "org" && p.OrgId == orgId)), ct);
+            if (llmProfile is null)
+                throw new ProfileSelectionException("llm_profile_not_found");
+        }
 
         IReadOnlyList<Application.Agent.AgentPermissionRule>? effectivePermissions =
             request.Permissions;

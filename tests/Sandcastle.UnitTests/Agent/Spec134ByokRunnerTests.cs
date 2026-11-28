@@ -1,7 +1,10 @@
 using System.Text.Json;
 
+using Microsoft.Extensions.DependencyInjection;
+
 using Sandcastle.Application.Agent;
 using Sandcastle.Domain.Events;
+using Sandcastle.Infrastructure.Persistence;
 
 using Shouldly;
 
@@ -181,6 +184,78 @@ public sealed class Spec134ByokRunnerTests
         var route = fx.Events.Events.OfType<ConversationStateUpdateEvent>()
             .First(e => e.Key == "llm_route");
         route.Value!.Value.GetProperty("key_source").GetString().ShouldBe("user");
+    }
+
+    private sealed class FakeSecretStore(string? value)
+        : Sandcastle.Application.Contracts.ISecretStore
+    {
+        public Task<string?> ResolveAsync(
+            string scope, string ownerId, string name, CancellationToken ct) =>
+            Task.FromResult(value);
+        public Task<IReadOnlyList<string>> ListNamesAsync(
+            string scope, string ownerId, CancellationToken ct) =>
+            Task.FromResult<IReadOnlyList<string>>([]);
+        public Task SetAsync(string scope, string ownerId, string name,
+            string plaintext, CancellationToken ct) => Task.CompletedTask;
+        public Task<bool> DeleteAsync(
+            string scope, string ownerId, string name, CancellationToken ct) =>
+            Task.FromResult(true);
+    }
+
+    [Fact]
+    public async Task Run_Uses_Llm_Profile_Connection_Temperature_And_Role_Model()
+    {
+        var llm = new CapturingLlmProvider(FinishScript);
+        await using var fx = new AgentRunnerFixture(FinishScript,
+            options: new AgentLlmOptions { Model = "gpt-global", ApiKey = "sk-global" },
+            provider: llm,
+            catalog: new FakeCatalog(
+                new ModelInfo("profile-primary", "openai"),
+                new ModelInfo("profile-fallback", "openai")),
+            configureConv: c => c.CreatedByUserId = "u1",
+            secretStore: new FakeSecretStore("sk-profile"));
+        var db = fx.ScopeServices.GetRequiredService<AppDbContext>();
+        var connectionId = Guid.NewGuid();
+        var profileId = Guid.NewGuid();
+        db.ProviderConnections.Add(new ProviderConnectionRecord
+        {
+            Id = connectionId,
+            Scope = "user",
+            OwnerId = "u1",
+            Name = "openai",
+            Provider = "openai",
+            BaseUrl = "https://api.openai.com/v1",
+            SecretRef = "provider-key",
+            Enabled = true,
+        });
+        db.LlmProfiles.Add(new LlmProfileRecord
+        {
+            Id = profileId,
+            Scope = "user",
+            OwnerId = "u1",
+            Name = "profile",
+            ProviderConnectionId = connectionId,
+            Model = "profile-primary",
+            Temperature = 0.7,
+            RoleModelsJson = """{"code":"profile-primary"}""",
+            FallbackJson = """["profile-fallback"]""",
+        });
+        (await db.Conversations.FindAsync(fx.ConversationId))!
+            .LlmProfileId = profileId;
+        await db.SaveChangesAsync();
+
+        await fx.Runner.RunAsync(CancellationToken.None)
+            .WaitAsync(TimeSpan.FromSeconds(15));
+
+        llm.LastOptions.ShouldNotBeNull();
+        llm.LastOptions!.Model.ShouldBe("profile-primary");
+        llm.LastOptions.Temperature.ShouldBe(0.7);
+        llm.LastOptions.UserKey!.Key.ShouldBe("sk-profile");
+        llm.LastOptions.UserKey.BaseUrl.ShouldBe("https://api.openai.com/v1");
+        var route = fx.Events.Events.OfType<ConversationStateUpdateEvent>()
+            .First(e => e.Key == "llm_route");
+        route.Value!.Value.GetProperty("key_source").GetString()
+            .ShouldBe("provider_connection");
     }
 
     private sealed class StubByor(

@@ -33,6 +33,7 @@ public sealed class SandcastleApiClient(HttpClient http)
         string? initialMessage, string? selectedRepository,
         bool run = true, bool confirmationMode = false,
         IReadOnlyList<string>? repositories = null,
+        Guid? llmProfileId = null, Guid? agentProfileId = null,
         CancellationToken ct = default)
     {
         object? initial = initialMessage is null ? null : new
@@ -47,6 +48,8 @@ public sealed class SandcastleApiClient(HttpClient http)
             selected_repository = selectedRepository,
             selected_repositories = repositories,
             confirmation_mode = confirmationMode,
+            llm_profile_id = llmProfileId,
+            agent_profile_id = agentProfileId,
         }, Json, ct);
         resp.EnsureSuccessStatusCode();
         return (await resp.Content.ReadFromJsonAsync<StartTaskItem>(Json, ct))!;
@@ -2026,6 +2029,11 @@ public sealed class SandcastleApiClient(HttpClient http)
         var resp = await http.PostAsJsonAsync("/api/v1/provider-connections", body, Json, ct);
         return resp.IsSuccessStatusCode ? await resp.Content.ReadFromJsonAsync<ProviderConnectionDto>(Json, ct) : null;
     }
+    public async Task<ProviderConnectionDto?> UpdateProviderConnectionAsync(Guid id, object body, CancellationToken ct = default)
+    {
+        var resp = await http.PutAsJsonAsync($"/api/v1/provider-connections/{id}", body, Json, ct);
+        return resp.IsSuccessStatusCode ? await resp.Content.ReadFromJsonAsync<ProviderConnectionDto>(Json, ct) : null;
+    }
     public async Task<bool> DeleteProviderConnectionAsync(Guid id, CancellationToken ct = default) =>
         (await http.DeleteAsync($"/api/v1/provider-connections/{id}", ct)).IsSuccessStatusCode;
     public async Task<ProviderTestDto?> TestProviderConnectionAsync(Guid id, CancellationToken ct = default)
@@ -2045,6 +2053,11 @@ public sealed class SandcastleApiClient(HttpClient http)
         var resp = await http.PostAsJsonAsync("/api/v1/llm-profiles", body, Json, ct);
         return resp.IsSuccessStatusCode ? await resp.Content.ReadFromJsonAsync<LlmProfileDto>(Json, ct) : null;
     }
+    public async Task<LlmProfileDto?> UpdateLlmProfileAsync(Guid id, object body, CancellationToken ct = default)
+    {
+        var resp = await http.PutAsJsonAsync($"/api/v1/llm-profiles/{id}", body, Json, ct);
+        return resp.IsSuccessStatusCode ? await resp.Content.ReadFromJsonAsync<LlmProfileDto>(Json, ct) : null;
+    }
     public async Task<bool> DeleteLlmProfileAsync(Guid id, CancellationToken ct = default) =>
         (await http.DeleteAsync($"/api/v1/llm-profiles/{id}", ct)).IsSuccessStatusCode;
     public async Task<IReadOnlyList<AgentProfileDto>> ListAgentProfilesAsync(CancellationToken ct = default) =>
@@ -2052,6 +2065,11 @@ public sealed class SandcastleApiClient(HttpClient http)
     public async Task<AgentProfileDto?> CreateAgentProfileAsync(object body, CancellationToken ct = default)
     {
         var resp = await http.PostAsJsonAsync("/api/v1/agent-profiles", body, Json, ct);
+        return resp.IsSuccessStatusCode ? await resp.Content.ReadFromJsonAsync<AgentProfileDto>(Json, ct) : null;
+    }
+    public async Task<AgentProfileDto?> UpdateAgentProfileAsync(Guid id, object body, CancellationToken ct = default)
+    {
+        var resp = await http.PutAsJsonAsync($"/api/v1/agent-profiles/{id}", body, Json, ct);
         return resp.IsSuccessStatusCode ? await resp.Content.ReadFromJsonAsync<AgentProfileDto>(Json, ct) : null;
     }
     public async Task<AgentProfileDto?> DuplicateAgentProfileAsync(Guid id, CancellationToken ct = default)

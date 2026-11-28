@@ -127,7 +127,9 @@ public sealed class ModelRouter(
             if (doc is null || candidates is null or { Count: 0 })
             {
                 var sel = await PassThroughAsync(
-                    role, ctx.PreferredModel, cfg, ct);
+                    role, ctx.PreferredModel, cfg, ct,
+                    ctx.ProfileRoleModels, ctx.ProfileFallbackModels,
+                    router.CircuitOpenSec, roleWire, ctx);
                 await RecordDecisionAsync(audit, roleWire, ctx, sel.Model,
                     sel.Provider, "pass_through",
                     evaluated: null, sw, ct);
@@ -319,14 +321,60 @@ public sealed class ModelRouter(
     /// <summary>SPEC-23 selection — RoleModels → preferred → default.</summary>
     private async Task<ModelSelection> PassThroughAsync(
         LlmRole role, string? preferred, AgentLlmOptions cfg,
-        CancellationToken ct)
+        CancellationToken ct,
+        IReadOnlyDictionary<string, string>? profileRoleModels = null,
+        IReadOnlyList<string>? profileFallbackModels = null,
+        int circuitOpenSec = 60, string? roleWire = null,
+        LlmRouteContext? routeContext = null)
     {
-        var modelId = ResolveRoleModel(role, cfg) ?? preferred ?? cfg.Model;
+        var wire = roleWire ?? LlmRoles.ToWire(role);
+        var profileModel = profileRoleModels is null ? null
+            : ProfileRoleModel(profileRoleModels, wire);
+        var modelId = profileModel ?? ResolveRoleModel(role, cfg)
+            ?? preferred ?? cfg.Model;
         var info = await catalog.GetAsync(modelId, ct);
+        RoutePlan? plan = null;
+        if (profileFallbackModels is { Count: > 0 })
+        {
+            var chain = new[] { modelId }
+                .Concat(profileFallbackModels)
+                .Where(m => !string.IsNullOrWhiteSpace(m))
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .Select(m => new RouteCandidate(m.Trim()))
+                .ToList();
+            if (chain.Count > 1)
+            {
+                plan = new RoutePlan(wire, routeContext?.OrgId,
+                    routeContext?.UserId, preferred, chain,
+                    RulesActive: false, circuitOpenSec);
+            }
+        }
+
         return new ModelSelection(
             modelId, info?.Provider, info?.ContextWindow,
             Attempt: 0, FallbackFrom: null,
-            ApiKeyRef: "default", Reason: "pass_through");
+            ApiKeyRef: "default",
+            Reason: profileModel is not null || plan is not null
+                ? "profile" : "pass_through",
+            Route: plan);
+    }
+
+    private static string? ProfileRoleModel(
+        IReadOnlyDictionary<string, string> models, string wire)
+    {
+        if (models.TryGetValue(wire, out var model) && model.Length > 0)
+            return model;
+        var alias = wire switch
+        {
+            "code" => "worker",
+            "plan" => "planner",
+            "review" => "reviewer",
+            _ => null,
+        };
+        return alias is not null
+            && models.TryGetValue(alias, out var aliasModel)
+            && aliasModel.Length > 0
+            ? aliasModel : null;
     }
 
     private async Task RecordDecisionAsync(

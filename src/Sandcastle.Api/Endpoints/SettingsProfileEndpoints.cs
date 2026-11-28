@@ -86,11 +86,16 @@ public static class SettingsProfileEndpoints
         var now = DateTimeOffset.UtcNow;
         var row = new ProviderConnectionRecord
         {
-            Id = Guid.NewGuid(), Scope = scope.Scope!, OwnerId = scope.OwnerId,
-            OrgId = scope.OrgId, Name = req.Name!.Trim(),
+            Id = Guid.NewGuid(),
+            Scope = scope.Scope!,
+            OwnerId = scope.OwnerId,
+            OrgId = scope.OrgId,
+            Name = req.Name!.Trim(),
             Provider = req.Provider!.Trim().ToLowerInvariant(),
             BaseUrl = NormalizedBaseUrl(req),
-            Enabled = req.Enabled ?? true, CreatedAt = now, UpdatedAt = now,
+            Enabled = req.Enabled ?? true,
+            CreatedAt = now,
+            UpdatedAt = now,
         };
         if (!string.IsNullOrWhiteSpace(req.SecretValue))
         {
@@ -319,7 +324,7 @@ public static class SettingsProfileEndpoints
     {
         var user = current.User;
         if (user is null) return Results.Unauthorized();
-        if (await ValidateLlmRequestAsync(req, null, db, ct) is { } error)
+        if (await ValidateLlmRequestAsync(req, null, current, orgs, db, ct) is { } error)
             return Results.BadRequest(new { detail = error });
         var scope = await ResolveWriteScopeAsync(req.Scope, user, orgs, db, ct);
         if (scope.Error is not null) return Results.Json(
@@ -327,14 +332,19 @@ public static class SettingsProfileEndpoints
         var now = DateTimeOffset.UtcNow;
         var row = new LlmProfileRecord
         {
-            Id = Guid.NewGuid(), Scope = scope.Scope!, OwnerId = scope.OwnerId,
-            OrgId = scope.OrgId, Name = req.Name!.Trim(),
+            Id = Guid.NewGuid(),
+            Scope = scope.Scope!,
+            OwnerId = scope.OwnerId,
+            OrgId = scope.OrgId,
+            Name = req.Name!.Trim(),
             ProviderConnectionId = req.ProviderConnectionId,
             Provider = req.Provider?.Trim().ToLowerInvariant(),
-            Model = req.Model!.Trim(), Temperature = req.Temperature,
+            Model = req.Model!.Trim(),
+            Temperature = req.Temperature,
             RoleModelsJson = Json(req.RoleModels),
             FallbackJson = Json(req.FallbackModels),
-            CreatedAt = now, UpdatedAt = now,
+            CreatedAt = now,
+            UpdatedAt = now,
         };
         db.LlmProfiles.Add(row);
         await db.SaveChangesAsync(ct);
@@ -362,7 +372,7 @@ public static class SettingsProfileEndpoints
         if (row is null) return Results.NotFound();
         if (!await CanWriteAsync(row.Scope, row.OrgId, user, db, ct))
             return Results.Json(new { detail = "forbidden" }, statusCode: 403);
-        if (await ValidateLlmRequestAsync(req, row, db, ct) is { } error)
+        if (await ValidateLlmRequestAsync(req, row, current, orgs, db, ct) is { } error)
             return Results.BadRequest(new { detail = error });
         if (!string.IsNullOrWhiteSpace(req.Name)) row.Name = req.Name.Trim();
         if (req.ProviderConnectionId.HasValue)
@@ -389,7 +399,9 @@ public static class SettingsProfileEndpoints
         if (row is null) return Results.NotFound();
         if (!await CanWriteAsync(row.Scope, row.OrgId, user, db, ct))
             return Results.Json(new { detail = "forbidden" }, statusCode: 403);
-        var inUse = await db.AgentProfiles.AnyAsync(p => p.LlmProfileId == id, ct);
+        var inUse = await db.AgentProfiles.AnyAsync(p => p.LlmProfileId == id, ct)
+            || await db.Conversations.AnyAsync(c => c.LlmProfileId == id, ct)
+            || await db.Automations.AnyAsync(a => a.LlmProfileId == id, ct);
         if (inUse) return Results.Conflict(new { detail = "llm_profile_in_use" });
         db.LlmProfiles.Remove(row);
         await db.SaveChangesAsync(ct);
@@ -424,8 +436,11 @@ public static class SettingsProfileEndpoints
         var now = DateTimeOffset.UtcNow;
         var row = new AgentProfileRecord
         {
-            Id = Guid.NewGuid(), Scope = scope.Scope!, OwnerId = scope.OwnerId,
-            OrgId = scope.OrgId, Name = req.Name!.Trim(),
+            Id = Guid.NewGuid(),
+            Scope = scope.Scope!,
+            OwnerId = scope.OwnerId,
+            OrgId = scope.OrgId,
+            Name = req.Name!.Trim(),
             Description = TrimOrNull(req.Description),
             PromptPack = TrimOrNull(req.PromptPack),
             AgentType = TrimOrNull(req.AgentType),
@@ -434,7 +449,8 @@ public static class SettingsProfileEndpoints
             LlmProfileId = req.LlmProfileId,
             AllowedToolsJson = Json(req.AllowedTools),
             SkillsJson = Json(req.Skills),
-            CreatedAt = now, UpdatedAt = now,
+            CreatedAt = now,
+            UpdatedAt = now,
         };
         db.AgentProfiles.Add(row);
         await db.SaveChangesAsync(ct);
@@ -491,14 +507,21 @@ public static class SettingsProfileEndpoints
         var now = DateTimeOffset.UtcNow;
         var copy = new AgentProfileRecord
         {
-            Id = Guid.NewGuid(), Scope = "user",
-            OwnerId = user.UserId.ToString(), OrgId = null,
-            Name = $"{row.Name} copy", Description = row.Description,
-            PromptPack = row.PromptPack, AgentType = row.AgentType,
-            Mode = row.Mode, RuntimeProfile = row.RuntimeProfile,
+            Id = Guid.NewGuid(),
+            Scope = "user",
+            OwnerId = user.UserId.ToString(),
+            OrgId = null,
+            Name = $"{row.Name} copy",
+            Description = row.Description,
+            PromptPack = row.PromptPack,
+            AgentType = row.AgentType,
+            Mode = row.Mode,
+            RuntimeProfile = row.RuntimeProfile,
             LlmProfileId = row.LlmProfileId,
             AllowedToolsJson = row.AllowedToolsJson,
-            SkillsJson = row.SkillsJson, CreatedAt = now, UpdatedAt = now,
+            SkillsJson = row.SkillsJson,
+            CreatedAt = now,
+            UpdatedAt = now,
         };
         db.AgentProfiles.Add(copy);
         await db.SaveChangesAsync(ct);
@@ -518,6 +541,9 @@ public static class SettingsProfileEndpoints
         if (row is null) return Results.NotFound();
         if (!await CanWriteAsync(row.Scope, row.OrgId, user, db, ct))
             return Results.Json(new { detail = "forbidden" }, statusCode: 403);
+        var inUse = await db.Conversations.AnyAsync(c => c.AgentProfileId == id, ct)
+            || await db.Automations.AnyAsync(a => a.AgentProfileId == id, ct);
+        if (inUse) return Results.Conflict(new { detail = "agent_profile_in_use" });
         db.AgentProfiles.Remove(row);
         await db.SaveChangesAsync(ct);
         await audit.RecordAsync("agent_profile.delete", user.UserId.ToString(),
@@ -538,15 +564,17 @@ public static class SettingsProfileEndpoints
             return "base_url_invalid";
         if (descriptor.RequiresBaseUrl && string.IsNullOrWhiteSpace(baseUrl))
             return "base_url_required";
-        if (existing is null && descriptor.RequiresSecret
+        var secretRef = req.SecretRef ?? existing?.SecretRef;
+        if (descriptor.RequiresSecret
             && string.IsNullOrWhiteSpace(req.SecretValue)
-            && string.IsNullOrWhiteSpace(req.SecretRef))
+            && string.IsNullOrWhiteSpace(secretRef))
             return "secret_required";
         return null;
     }
 
     private static async Task<string?> ValidateLlmRequestAsync(
         LlmProfileRequest req, LlmProfileRecord? existing,
+        ICurrentUserAccessor current, IEffectiveOrgResolver orgs,
         AppDbContext db, CancellationToken ct)
     {
         if (existing is null && string.IsNullOrWhiteSpace(req.Name))
@@ -558,8 +586,8 @@ public static class SettingsProfileEndpoints
             && ProviderConnectionTypes.Find(req.Provider) is null)
             return "unknown_provider";
         if (req.ProviderConnectionId.HasValue
-            && !await db.ProviderConnections.AnyAsync(
-                p => p.Id == req.ProviderConnectionId.Value, ct))
+            && await FindVisibleProviderAsync(
+                req.ProviderConnectionId.Value, current, orgs, db, ct) is null)
             return "provider_connection_not_found";
         return null;
     }
@@ -675,7 +703,7 @@ public static class SettingsProfileEndpoints
 
     private static string? NormalizedBaseUrl(ProviderConnectionRequest req) =>
         string.IsNullOrWhiteSpace(req.BaseUrl)
-            ? ProviderConnectionTypes.Find(req.Provider)?.DefaultBaseUrl is { Length: >0 } d ? d : null
+            ? ProviderConnectionTypes.Find(req.Provider)?.DefaultBaseUrl is { Length: > 0 } d ? d : null
             : req.BaseUrl.Trim().TrimEnd('/');
 
     private static string SecretOwner(ProviderConnectionRecord row) =>
@@ -689,26 +717,47 @@ public static class SettingsProfileEndpoints
 
     private static object ToProviderDto(ProviderConnectionRecord p) => new
     {
-        p.Id, p.Scope, p.Name, p.Provider, p.BaseUrl, p.SecretRef,
-        p.Enabled, p.CreatedAt, p.UpdatedAt,
+        p.Id,
+        p.Scope,
+        p.Name,
+        p.Provider,
+        p.BaseUrl,
+        p.SecretRef,
+        p.Enabled,
+        p.CreatedAt,
+        p.UpdatedAt,
     };
 
     private static object ToLlmDto(LlmProfileRecord p) => new
     {
-        p.Id, p.Scope, p.Name, p.ProviderConnectionId, p.Provider,
-        p.Model, p.Temperature,
+        p.Id,
+        p.Scope,
+        p.Name,
+        p.ProviderConnectionId,
+        p.Provider,
+        p.Model,
+        p.Temperature,
         role_models = JsonDocument.Parse(p.RoleModelsJson ?? "{}").RootElement,
         fallback_models = JsonDocument.Parse(p.FallbackJson ?? "[]").RootElement,
-        p.CreatedAt, p.UpdatedAt,
+        p.CreatedAt,
+        p.UpdatedAt,
     };
 
     private static object ToAgentDto(AgentProfileRecord p) => new
     {
-        p.Id, p.Scope, p.Name, p.Description, p.PromptPack,
-        p.AgentType, p.Mode, p.RuntimeProfile, p.LlmProfileId,
+        p.Id,
+        p.Scope,
+        p.Name,
+        p.Description,
+        p.PromptPack,
+        p.AgentType,
+        p.Mode,
+        p.RuntimeProfile,
+        p.LlmProfileId,
         allowed_tools = JsonDocument.Parse(p.AllowedToolsJson ?? "[]").RootElement,
         skills = JsonDocument.Parse(p.SkillsJson ?? "[]").RootElement,
-        p.CreatedAt, p.UpdatedAt,
+        p.CreatedAt,
+        p.UpdatedAt,
     };
 
     private sealed record ProviderProbe(

@@ -45,20 +45,25 @@ public sealed class Spec180ProfileEndpointsTests : IDisposable
     {
         (await _http.PostAsJsonAsync("/api/v1/llm-profiles", new
         {
-            name = "broken", model = "gpt-x",
+            name = "broken",
+            model = "gpt-x",
             provider_connection_id = Guid.NewGuid(),
         })).StatusCode.ShouldBe(HttpStatusCode.BadRequest);
 
         var connection = await _http.PostAsJsonAsync("/api/v1/provider-connections", new
         {
-            name = "openai", provider = "openai", secret_value = "sk-x",
+            name = "openai",
+            provider = "openai",
+            secret_value = "sk-x",
         });
         var connectionId = (await connection.Content.ReadFromJsonAsync<JsonElement>())
             .GetProperty("id").GetGuid();
 
         var create = await _http.PostAsJsonAsync("/api/v1/llm-profiles", new
         {
-            name = "Code primary", provider = "openai", model = "gpt-5",
+            name = "Code primary",
+            provider = "openai",
+            model = "gpt-5",
             provider_connection_id = connectionId,
             temperature = 0.2,
             role_models = new { code = "gpt-5", review = "gpt-5-mini" },
@@ -73,7 +78,8 @@ public sealed class Spec180ProfileEndpointsTests : IDisposable
 
         var agent = await _http.PostAsJsonAsync("/api/v1/agent-profiles", new
         {
-            name = "coder", llm_profile_id = id,
+            name = "coder",
+            llm_profile_id = id,
         });
         agent.StatusCode.ShouldBe(HttpStatusCode.Created);
         (await _http.DeleteAsync($"/api/v1/llm-profiles/{id}"))
@@ -85,7 +91,8 @@ public sealed class Spec180ProfileEndpointsTests : IDisposable
     {
         (await _http.PostAsJsonAsync("/api/v1/agent-profiles", new
         {
-            name = "bad", mode = "yeet",
+            name = "bad",
+            mode = "yeet",
         })).StatusCode.ShouldBe(HttpStatusCode.BadRequest);
 
         var create = await _http.PostAsJsonAsync("/api/v1/agent-profiles", new
@@ -123,14 +130,18 @@ public sealed class Spec180ProfileEndpointsTests : IDisposable
     {
         var llm = await _http.PostAsJsonAsync("/api/v1/llm-profiles", new
         {
-            name = "cheap", model = "gpt-5-mini",
+            name = "cheap",
+            model = "gpt-5-mini",
         });
         var llmId = (await llm.Content.ReadFromJsonAsync<JsonElement>())
             .GetProperty("id").GetGuid();
         var agent = await _http.PostAsJsonAsync("/api/v1/agent-profiles", new
         {
-            name = "planner", agent_type = "plan", mode = "plan",
-            runtime_profile = "small", llm_profile_id = llmId,
+            name = "planner",
+            agent_type = "plan",
+            mode = "plan",
+            runtime_profile = "small",
+            llm_profile_id = llmId,
             allowed_tools = new[] { "file_read" },
         });
         var agentId = (await agent.Content.ReadFromJsonAsync<JsonElement>())
@@ -155,6 +166,23 @@ public sealed class Spec180ProfileEndpointsTests : IDisposable
         conv.AgentProfileId.ShouldBe(agentId);
         conv.PermissionsJson!.ShouldContain("file_read");
 
+        var agentOnly = await _http.PostAsJsonAsync("/api/v1/app-conversations", new
+        {
+            initial_message = new { role = "user", content = new object[] { "agent only" }, run = false },
+            agent_profile_id = agentId,
+        });
+        agentOnly.StatusCode.ShouldBe(HttpStatusCode.Created);
+        var agentOnlyConv = (await db.Conversations.ToListAsync())
+            .OrderByDescending(c => c.CreatedAt).First();
+        agentOnlyConv.AgentProfileId.ShouldBe(agentId);
+        agentOnlyConv.LlmProfileId.ShouldBe(llmId);
+        agentOnlyConv.LlmModel.ShouldBe("gpt-5-mini");
+
+        (await _http.DeleteAsync($"/api/v1/agent-profiles/{agentId}"))
+            .StatusCode.ShouldBe(HttpStatusCode.Conflict);
+        (await _http.DeleteAsync($"/api/v1/llm-profiles/{llmId}"))
+            .StatusCode.ShouldBe(HttpStatusCode.Conflict);
+
         var other = TestAuth.Login(_factory, "other-profiles@example.com");
         var denied = await other.PostAsJsonAsync("/api/v1/app-conversations", new
         {
@@ -162,6 +190,27 @@ public sealed class Spec180ProfileEndpointsTests : IDisposable
             llm_profile_id = llmId,
         });
         denied.StatusCode.ShouldBe(HttpStatusCode.BadRequest);
+
+        var automation = await _http.PostAsJsonAsync("/api/v1/automations", new
+        {
+            name = "profile automation",
+            prompt = "run with profiles",
+            schedule_kind = "interval",
+            interval_minutes = 60,
+            llm_profile_id = llmId,
+            agent_profile_id = agentId,
+        });
+        automation.StatusCode.ShouldBe(HttpStatusCode.Created);
+
+        var invalidAutomation = await _http.PostAsJsonAsync("/api/v1/automations", new
+        {
+            name = "invalid profile automation",
+            prompt = "reject missing profile",
+            schedule_kind = "interval",
+            interval_minutes = 60,
+            llm_profile_id = Guid.NewGuid(),
+        });
+        invalidAutomation.StatusCode.ShouldBe(HttpStatusCode.BadRequest);
         other.Dispose();
     }
 }

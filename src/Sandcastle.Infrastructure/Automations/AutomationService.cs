@@ -68,6 +68,30 @@ public sealed class AutomationService(
         r.Id, r.AutomationId, r.StartedAt, r.FinishedAt, r.Status,
         r.ConversationId, r.Error, r.Missed);
 
+    private async Task<string?> ValidateProfileSelectionAsync(
+        Guid? llmProfileId, Guid? agentProfileId, Guid ownerUserId,
+        Guid? orgId, CancellationToken ct)
+    {
+        var owner = ownerUserId.ToString();
+        if (llmProfileId.HasValue
+            && !await db.LlmProfiles.AnyAsync(p => p.Id == llmProfileId.Value
+                && ((p.Scope == "user" && p.OwnerId == owner)
+                    || (p.Scope == "org" && orgId != null && p.OrgId == orgId)), ct))
+        {
+            return "llm_profile_not_found";
+        }
+
+        if (agentProfileId.HasValue
+            && !await db.AgentProfiles.AnyAsync(p => p.Id == agentProfileId.Value
+                && ((p.Scope == "user" && p.OwnerId == owner)
+                    || (p.Scope == "org" && orgId != null && p.OrgId == orgId)), ct))
+        {
+            return "agent_profile_not_found";
+        }
+
+        return null;
+    }
+
     /// <summary>Validação de upsert (SPEC-47 RF-003 + SPEC-143 kind).</summary>
     public static string? Validate(
         string? name, string? prompt, string? scheduleKind,
@@ -479,6 +503,13 @@ public sealed class AutomationService(
             return (null, advancedError);
         }
 
+        if (await ValidateProfileSelectionAsync(
+            req.LlmProfileId, req.AgentProfileId, ownerUserId, orgId, ct)
+            is { } profileError)
+        {
+            return (null, profileError);
+        }
+
         var now = DateTimeOffset.UtcNow;
         var rec = new AutomationRecord
         {
@@ -554,6 +585,13 @@ public sealed class AutomationService(
         if (advancedError is not null)
         {
             return (null, advancedError);
+        }
+
+        if (await ValidateProfileSelectionAsync(
+            req.LlmProfileId, req.AgentProfileId, ownerUserId, rec.OrgId, ct)
+            is { } profileError)
+        {
+            return (null, profileError);
         }
 
         if (req.Name is not null) { rec.Name = req.Name.Trim(); }
