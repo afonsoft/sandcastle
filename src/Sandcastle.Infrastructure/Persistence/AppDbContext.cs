@@ -53,6 +53,12 @@ public class AppDbContext : DbContext, IDataProtectionKeyContext
 
     /// <summary>Append-only conversation event stream.</summary>
     public DbSet<EventRecord> Events => Set<EventRecord>();
+    public DbSet<Sandcastle.Infrastructure.Collaboration.ChannelRecord> CollabChannels => Set<Sandcastle.Infrastructure.Collaboration.ChannelRecord>();
+    public DbSet<Sandcastle.Infrastructure.Collaboration.ChannelMessageRecord> CollabChannelMessages => Set<Sandcastle.Infrastructure.Collaboration.ChannelMessageRecord>();
+    public DbSet<Sandcastle.Infrastructure.Collaboration.ChannelReadRecord> CollabChannelReads => Set<Sandcastle.Infrastructure.Collaboration.ChannelReadRecord>();
+    public DbSet<Sandcastle.Infrastructure.Collaboration.NoteRecord> CollabNotes => Set<Sandcastle.Infrastructure.Collaboration.NoteRecord>();
+    public DbSet<Sandcastle.Infrastructure.Collaboration.NoteVersionRecord> CollabNoteVersions => Set<Sandcastle.Infrastructure.Collaboration.NoteVersionRecord>();
+    public DbSet<Sandcastle.Infrastructure.Collaboration.NotificationRecord> CollabNotifications => Set<Sandcastle.Infrastructure.Collaboration.NotificationRecord>();
 
     /// <summary>Sandbox containers bound to conversations.</summary>
     public DbSet<Sandcastle.Infrastructure.Sandbox.SandboxRecord> Sandboxes =>

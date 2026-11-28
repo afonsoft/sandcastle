@@ -1,0 +1,25 @@
+@page "/notifications"
+@using Sandcastle.Client.Services
+@inject SandcastleApiClient Api
+@inject LocalizationService L
+
+<PageTitle>@L["notifications.title"]</PageTitle>
+<div class="settings-wrap collab-page">
+    <h1>@L["notifications.title"]</h1>
+    <p>@L["notifications.subtitle"]</p>
+    @foreach (var n in _items)
+    {
+        <article class="message-card @(n.Read ? "" : "unread")">
+            <div class="message-meta">@n.Type · @n.CreatedAt.ToLocalTime().ToString("g")</div>
+            <h3>@n.Title</h3>
+            <p>@n.Body</p>
+            @if (!string.IsNullOrWhiteSpace(n.DeepLink)) { <a href="@n.DeepLink">@L["notifications.open"]</a> }
+            @if (!n.Read) { <button class="secondary" @onclick="() => MarkReadAsync(n.Id)">@L["notifications.mark_read"]</button> }
+        </article>
+    }
+</div>
+@code {
+    private IReadOnlyList<CollabNotificationDto> _items = [];
+    protected override async Task OnInitializedAsync() => _items = await Api.ListCollabNotificationsAsync();
+    private async Task MarkReadAsync(Guid id) { await Api.MarkCollabNotificationReadAsync(id); _items = await Api.ListCollabNotificationsAsync(); }
+}

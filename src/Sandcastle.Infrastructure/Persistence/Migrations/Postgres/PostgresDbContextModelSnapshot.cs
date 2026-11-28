@@ -780,6 +780,263 @@ namespace Sandcastle.Infrastructure.Persistence.Migrations.Postgres
                     b.ToTable("chat_thread_bindings", (string)null);
                 });
 
+            modelBuilder.Entity("Sandcastle.Infrastructure.Collaboration.ChannelMessageRecord", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<string>("Body")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("body");
+
+                    b.Property<Guid>("ChannelId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("channel_id");
+
+                    b.Property<Guid?>("ConversationId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("conversation_id");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<Guid?>("ParentId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("parent_id");
+
+                    b.Property<string>("ReactionsJson")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("reactions_json");
+
+                    b.Property<string>("SenderUserId")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("sender_user_id");
+
+                    b.HasKey("Id")
+                        .HasName("pk_collab_channel_messages");
+
+                    b.HasIndex("ChannelId", "CreatedAt")
+                        .HasDatabaseName("ix_collab_channel_messages_channel_id_created_at");
+
+                    b.ToTable("collab_channel_messages", (string)null);
+                });
+
+            modelBuilder.Entity("Sandcastle.Infrastructure.Collaboration.ChannelReadRecord", b =>
+                {
+                    b.Property<Guid>("ChannelId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("channel_id");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("user_id");
+
+                    b.Property<DateTimeOffset>("LastReadAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("last_read_at");
+
+                    b.HasKey("ChannelId", "UserId")
+                        .HasName("pk_collab_channel_reads");
+
+                    b.ToTable("collab_channel_reads", (string)null);
+                });
+
+            modelBuilder.Entity("Sandcastle.Infrastructure.Collaboration.ChannelRecord", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)")
+                        .HasColumnName("name");
+
+                    b.Property<Guid?>("OrgId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("org_id");
+
+                    b.Property<string>("OwnerUserId")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("owner_user_id");
+
+                    b.Property<string>("PinnedUserIdsJson")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("pinned_user_ids_json");
+
+                    b.Property<string>("Type")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("type");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.HasKey("Id")
+                        .HasName("pk_collab_channels");
+
+                    b.HasIndex("OrgId")
+                        .HasDatabaseName("ix_collab_channels_org_id");
+
+                    b.ToTable("collab_channels", (string)null);
+                });
+
+            modelBuilder.Entity("Sandcastle.Infrastructure.Collaboration.NoteRecord", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<string>("Body")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("body");
+
+                    b.Property<Guid?>("ConversationId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("conversation_id");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<string>("KnowledgeLink")
+                        .HasColumnType("text")
+                        .HasColumnName("knowledge_link");
+
+                    b.Property<Guid?>("OrgId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("org_id");
+
+                    b.Property<string>("OwnerUserId")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("owner_user_id");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)")
+                        .HasColumnName("title");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.Property<int>("Version")
+                        .HasColumnType("integer")
+                        .HasColumnName("version");
+
+                    b.HasKey("Id")
+                        .HasName("pk_collab_notes");
+
+                    b.HasIndex("OrgId")
+                        .HasDatabaseName("ix_collab_notes_org_id");
+
+                    b.ToTable("collab_notes", (string)null);
+                });
+
+            modelBuilder.Entity("Sandcastle.Infrastructure.Collaboration.NoteVersionRecord", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<string>("Body")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("body");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<Guid>("NoteId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("note_id");
+
+                    b.Property<int>("Version")
+                        .HasColumnType("integer")
+                        .HasColumnName("version");
+
+                    b.HasKey("Id")
+                        .HasName("pk_collab_note_versions");
+
+                    b.HasIndex("NoteId", "Version")
+                        .HasDatabaseName("ix_collab_note_versions_note_id_version");
+
+                    b.ToTable("collab_note_versions", (string)null);
+                });
+
+            modelBuilder.Entity("Sandcastle.Infrastructure.Collaboration.NotificationRecord", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<string>("Body")
+                        .HasColumnType("text")
+                        .HasColumnName("body");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<string>("DeepLink")
+                        .HasColumnType("text")
+                        .HasColumnName("deep_link");
+
+                    b.Property<Guid?>("OrgId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("org_id");
+
+                    b.Property<DateTimeOffset?>("ReadAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("read_at");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("title");
+
+                    b.Property<string>("Type")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("type");
+
+                    b.Property<string>("UserId")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("user_id");
+
+                    b.HasKey("Id")
+                        .HasName("pk_collab_notifications");
+
+                    b.HasIndex("UserId", "CreatedAt")
+                        .HasDatabaseName("ix_collab_notifications_user_id_created_at");
+
+                    b.ToTable("collab_notifications", (string)null);
+                });
+
             modelBuilder.Entity("Sandcastle.Infrastructure.Conversations.ConversationRecord", b =>
                 {
                     b.Property<Guid>("Id")

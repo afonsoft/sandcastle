@@ -118,6 +118,26 @@
                 <Icon Name="box" Size="16" />
                 <span class="txt">@L["sidebar.workspace_items"]</span>
             </a>
+            <a class="sb-item @(IsActive("/channels") ? "active" : "")"
+               href="/channels" title="@L["sidebar.channels"]">
+                <Icon Name="chat" Size="16" />
+                <span class="txt">@L["sidebar.channels"]</span>
+            </a>
+            <a class="sb-item @(IsActive("/notes") ? "active" : "")"
+               href="/notes" title="@L["sidebar.notes"]">
+                <Icon Name="file" Size="16" />
+                <span class="txt">@L["sidebar.notes"]</span>
+            </a>
+            <a class="sb-item @(IsActive("/calendar") ? "active" : "")"
+               href="/calendar" title="@L["sidebar.calendar"]">
+                <Icon Name="clock" Size="16" />
+                <span class="txt">@L["sidebar.calendar"]</span>
+            </a>
+            <a class="sb-item @(IsActive("/notifications") ? "active" : "")"
+               href="/notifications" title="@L["sidebar.notifications"]">
+                <Icon Name="alert" Size="16" />
+                <span class="txt">@L["sidebar.notifications"]</span>
+            </a>
             <a class="sb-item @(IsActive("/knowledge") ? "active" : "")"
                href="/knowledge" title="@L["sidebar.knowledge"]">
                 <Icon Name="book" Size="16" />
