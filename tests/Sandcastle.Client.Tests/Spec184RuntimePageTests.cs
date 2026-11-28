@@ -1,10 +1,14 @@
 using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json;
+
 using Bunit;
+
 using Microsoft.Extensions.DependencyInjection;
+
 using Sandcastle.Client.Pages.Admin;
 using Sandcastle.Client.Services;
+
 using Shouldly;
 
 namespace Sandcastle.Client.Tests;
@@ -34,7 +38,8 @@ public sealed class Spec184RuntimePageTests : BunitContext
             });
             if (url.Contains("runtime/pools")) return Json(new[] { new { image = "agent:latest", desired = 1, available = 1, claimed = 0, stale = 0, health = "healthy" } });
             return Json(new { });
-        })) { BaseAddress = new Uri("http://localhost:8080") };
+        }))
+        { BaseAddress = new Uri("http://localhost:8080") };
         var api = new AdminApiClient(http);
         Services.AddSingleton(api);
         Services.AddSingleton(new AdminState(api));
