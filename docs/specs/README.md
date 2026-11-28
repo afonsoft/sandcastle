@@ -211,3 +211,4 @@ Arquivado em 2026-10-19 pela SPEC-65 (gap-analysis).
 | SPEC | Título | Entrega |
 |---|---|---|
 | 179 | devin-navigation-shell — shell estilo Devin, command center, telemetria UX, rotas foundation | PR #566 · #553 |
+| 180 | settings-profiles-control-center — provider connections, LLM/agent profiles, settings center v2 | PR #568 · #554 |
