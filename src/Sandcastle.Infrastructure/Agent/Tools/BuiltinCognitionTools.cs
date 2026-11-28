@@ -5,6 +5,7 @@ using Microsoft.Extensions.DependencyInjection;
 
 using Sandcastle.Application.Agent;
 using Sandcastle.Domain.Events;
+using Sandcastle.Infrastructure.Conversations;
 using Sandcastle.Infrastructure.Persistence;
 
 namespace Sandcastle.Infrastructure.Agent.Tools;
@@ -116,90 +117,116 @@ public static class BuiltinCognitionTools
                  "additionalProperties":false}
                 """)),
         Risky: false,
-        Handler: async (ctx, args, ct) =>
+        Handler: ReflectMemoryAsync);
+
+    private static async Task<ToolResult> ReflectMemoryAsync(
+        ToolCallContext ctx, JsonElement args, CancellationToken ct)
+    {
+        var db = ctx.Services.GetService<AppDbContext>();
+        if (db is null) return ToolResult.Error("memory store unavailable");
+        var query = Str(args, "query")?.Trim();
+        var limit = Math.Clamp(Int(args, "limit", 5), 1, 10);
+        var entries = new List<object>();
+
+        await AddConversationMemoriesAsync(db, ctx, query, limit, entries, ct);
+        var conv = await db.Conversations.AsNoTracking()
+            .FirstOrDefaultAsync(c => c.Id == ctx.ConversationId, ct);
+        if (conv?.OrgId is { } orgId)
         {
-            var db = ctx.Services.GetService<AppDbContext>();
-            if (db is null) return ToolResult.Error("memory store unavailable");
-            var query = Str(args, "query")?.Trim();
-            var limit = Math.Clamp(Int(args, "limit", 5), 1, 10);
-            var entries = new List<object>();
+            await AddOrgMemoriesAsync(db, orgId, query, limit, entries, ct);
+        }
+        if (conv is not null)
+        {
+            await AddKnowledgeChunksAsync(db, conv, query, limit, entries, ct);
+        }
 
-            var convRows = await db.ConversationMemories.AsNoTracking()
-                .Where(m => m.ConversationId == ctx.ConversationId)
-                .Take(100).ToListAsync(ct);
-            foreach (var row in convRows
-                .OrderByDescending(m => m.UpdatedAt)
-                .Where(m => Matches(m.Key + "\n" + m.Value, query)).Take(limit))
-            {
-                entries.Add(new
-                {
-                    source = "conversation_memory",
-                    key = row.Key,
-                    excerpt = Cap(row.Value, 240),
-                    updated_at = row.UpdatedAt,
-                    provenance = $"conversation:{ctx.ConversationId}/memory/{row.Key}",
-                });
-            }
-
-            var conv = await db.Conversations.AsNoTracking()
-                .FirstOrDefaultAsync(c => c.Id == ctx.ConversationId, ct);
-            if (conv?.OrgId is { } orgId)
-            {
-                var orgRows = await db.MemoryRecords.AsNoTracking()
-                    .Where(m => m.OrgId == orgId && m.DeletedAt == null)
-                    .Take(200).ToListAsync(ct);
-                foreach (var row in orgRows
-                    .OrderByDescending(m => m.UpdatedAt)
-                    .Where(m => Matches(m.Key + "\n" + m.Text, query))
-                    .Take(Math.Max(0, limit - entries.Count)))
-                {
-                    entries.Add(new
-                    {
-                        source = "org_memory",
-                        key = row.Key,
-                        excerpt = Cap(row.Text, 240),
-                        updated_at = row.UpdatedAt,
-                        provenance = $"memory:{row.Id}",
-                    });
-                }
-            }
-
-            if (conv is not null)
-            {
-                var collectionIds = await db.KnowledgeCollections.AsNoTracking()
-                    .Where(c => (conv.OrgId != null && c.OrgId == conv.OrgId)
-                        || (conv.CreatedByUserId != null && c.OwnerUserId == conv.CreatedByUserId))
-                    .Select(c => c.Id).Take(100).ToListAsync(ct);
-                var docRows = await db.KnowledgeDocuments.AsNoTracking()
-                    .Where(d => collectionIds.Contains(d.CollectionId))
-                    .Take(200).ToListAsync(ct);
-                var docIds = docRows.Select(d => d.Id).ToHashSet();
-                var chunks = await db.KnowledgeChunks.AsNoTracking()
-                    .Where(c => docIds.Contains(c.DocumentId))
-                    .Take(500).ToListAsync(ct);
-                foreach (var chunk in chunks.Where(c => Matches(c.Text, query))
-                    .Take(Math.Max(0, limit - entries.Count)))
-                {
-                    var doc = docRows.First(d => d.Id == chunk.DocumentId);
-                    entries.Add(new
-                    {
-                        source = "knowledge_chunk",
-                        key = doc.Title,
-                        excerpt = Cap(chunk.Text, 240),
-                        updated_at = chunk.CreatedAt,
-                        provenance = $"knowledge:{chunk.Id}",
-                    });
-                }
-            }
-
-            return ToolResult.Ok(new
-            {
-                query,
-                count = entries.Count,
-                truncated = entries.Count == limit,
-                entries,
-            });
+        return ToolResult.Ok(new
+        {
+            query,
+            count = entries.Count,
+            truncated = entries.Count == limit,
+            entries,
         });
+    }
+
+    private static async Task AddConversationMemoriesAsync(
+        AppDbContext db, ToolCallContext ctx, string? query, int limit,
+        List<object> entries, CancellationToken ct)
+    {
+        if (entries.Count >= limit) return;
+        var rows = await db.ConversationMemories.AsNoTracking()
+            .Where(m => m.ConversationId == ctx.ConversationId)
+            .Take(100).ToListAsync(ct);
+        foreach (var row in rows
+            .Where(m => Matches(m.Key + "\n" + m.Value, query))
+            .OrderByDescending(m => m.UpdatedAt)
+            .Take(limit - entries.Count))
+        {
+            entries.Add(new
+            {
+                source = "conversation_memory",
+                key = row.Key,
+                excerpt = Cap(row.Value, 240),
+                updated_at = row.UpdatedAt,
+                provenance = $"conversation:{ctx.ConversationId}/memory/{row.Key}",
+            });
+        }
+    }
+
+    private static async Task AddOrgMemoriesAsync(
+        AppDbContext db, Guid orgId, string? query, int limit,
+        List<object> entries, CancellationToken ct)
+    {
+        if (entries.Count >= limit) return;
+        var rows = await db.MemoryRecords.AsNoTracking()
+            .Where(m => m.OrgId == orgId && m.DeletedAt == null)
+            .Take(200).ToListAsync(ct);
+        foreach (var row in rows
+            .Where(m => Matches(m.Key + "\n" + m.Text, query))
+            .OrderByDescending(m => m.UpdatedAt)
+            .Take(limit - entries.Count))
+        {
+            entries.Add(new
+            {
+                source = "org_memory",
+                key = row.Key,
+                excerpt = Cap(row.Text, 240),
+                updated_at = row.UpdatedAt,
+                provenance = $"memory:{row.Id}",
+            });
+        }
+    }
+
+    private static async Task AddKnowledgeChunksAsync(
+        AppDbContext db, ConversationRecord conv, string? query, int limit,
+        List<object> entries, CancellationToken ct)
+    {
+        if (entries.Count >= limit) return;
+        var collectionIds = await db.KnowledgeCollections.AsNoTracking()
+            .Where(c => (conv.OrgId != null && c.OrgId == conv.OrgId)
+                || (conv.CreatedByUserId != null && c.OwnerUserId == conv.CreatedByUserId))
+            .Select(c => c.Id).Take(100).ToListAsync(ct);
+        var docRows = await db.KnowledgeDocuments.AsNoTracking()
+            .Where(d => collectionIds.Contains(d.CollectionId))
+            .Take(200).ToListAsync(ct);
+        var docIds = docRows.Select(d => d.Id).ToHashSet();
+        var chunks = await db.KnowledgeChunks.AsNoTracking()
+            .Where(c => docIds.Contains(c.DocumentId))
+            .Take(500).ToListAsync(ct);
+        foreach (var chunk in chunks.Where(c => Matches(c.Text, query))
+            .Take(limit - entries.Count))
+        {
+            var doc = docRows.First(d => d.Id == chunk.DocumentId);
+            entries.Add(new
+            {
+                source = "knowledge_chunk",
+                key = doc.Title,
+                excerpt = Cap(chunk.Text, 240),
+                updated_at = chunk.CreatedAt,
+                provenance = $"knowledge:{chunk.Id}",
+            });
+        }
+    }
 
     private static bool Matches(string haystack, string? query)
     {
