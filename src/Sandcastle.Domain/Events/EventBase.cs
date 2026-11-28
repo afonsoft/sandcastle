@@ -48,6 +48,7 @@ public static class EventTree
 [JsonDerivedType(typeof(ToolProgressEvent), "tool_progress")]
 [JsonDerivedType(typeof(FilesChangedEvent), "files_changed")]
 [JsonDerivedType(typeof(RunProgressEvent), "run_progress")]
+[JsonDerivedType(typeof(RunGoalEvent), "run_goal")]
 [JsonDerivedType(typeof(WorkSummaryEvent), "work_summary")]
 [JsonDerivedType(typeof(AgentDiagnosticEvent), "agent_diagnostic")]
 [JsonDerivedType(typeof(PullRequestCreatedEvent), "pull_request_created")]

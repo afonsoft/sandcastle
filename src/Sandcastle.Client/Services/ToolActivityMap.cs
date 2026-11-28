@@ -13,7 +13,7 @@ public static class ToolActivityMap
     /// <summary>Campos de args candidatos a virar o alvo curto da linha,
     /// em ordem de preferência.</summary>
     private static readonly string[] TargetFields =
-        ["query", "url", "path", "command", "prompt", "pattern", "task"];
+        ["query", "url", "path", "command", "prompt", "pattern", "task", "objective", "job_id"];
 
     /// <summary>
     /// Resolve (key i18n, alvo curto) para uma tool_call.
@@ -52,6 +52,8 @@ public static class ToolActivityMap
                 "run") => "chat.activity.exec",
             _ when Contains(name, "delegate", "subagent", "spawn", "team_",
                 "task_status", "task_result", "task") => "chat.activity.delegate",
+            "goal" => "chat.activity.goal",
+            "wait" => "chat.activity.wait",
             _ when Contains(name, "memory", "context_") => "chat.activity.memory",
             _ when Contains(name, "file_list", "file_grep", "file_glob",
                 "grep", "glob", "find", "lsp_", "worktree_diff",

@@ -52,6 +52,44 @@ public sealed class RunActivityTracker
         }
     }
 
+    private bool _analyzingEmitted;
+    private bool _generatingEmitted;
+
+    /// <summary>SPEC-193 RF-004: exactly one canonical analyzing phase per run.</summary>
+    public async Task EnsureAnalyzingAsync(IEventService events,
+        Guid conversationId, CancellationToken ct)
+    {
+        if (_analyzingEmitted) return;
+        _analyzingEmitted = true;
+        await events.AppendAsync(conversationId, new RunProgressEvent
+        {
+            Iteration = 0,
+            MaxIterations = 0,
+            Phase = "analyzing",
+            ElapsedMs = _elapsed.ElapsedMilliseconds,
+            ToolsUsed = _toolsUsed,
+            FilesTouched = _filesTouched.Count,
+        }, ct);
+    }
+
+    /// <summary>SPEC-193 RF-004: first generation marker, always after analyzing.</summary>
+    public async Task NoteGeneratingAsync(IEventService events,
+        Guid conversationId, CancellationToken ct)
+    {
+        if (_generatingEmitted) return;
+        await EnsureAnalyzingAsync(events, conversationId, ct);
+        _generatingEmitted = true;
+        await events.AppendAsync(conversationId, new RunProgressEvent
+        {
+            Iteration = 0,
+            MaxIterations = 0,
+            Phase = "generating",
+            ElapsedMs = _elapsed.ElapsedMilliseconds,
+            ToolsUsed = _toolsUsed,
+            FilesTouched = _filesTouched.Count,
+        }, ct);
+    }
+
     /// <summary>Per-iteration progress; the UI replaces the previous one.</summary>
     public async Task ProgressAsync(IEventService events,
         Guid conversationId, int iteration, int maxIterations,

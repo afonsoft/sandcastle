@@ -97,6 +97,10 @@ public sealed class ToolRegistry : IToolRegistry
             BuiltinLsp.LspReferences(),
             BuiltinLsp.LspHover(),
             BuiltinTools.Think(),
+            // SPEC-193: run cognition/activity tools.
+            BuiltinCognitionTools.Goal(),
+            BuiltinCognitionTools.Wait(),
+            BuiltinCognitionTools.MemoryReflect(),
             BuiltinTools.TaskTracker(tracker),
             BuiltinTools.GitCommit(bashTimeout),
             // SPEC-52 RF-003: PR a partir do workspace (push + provider).

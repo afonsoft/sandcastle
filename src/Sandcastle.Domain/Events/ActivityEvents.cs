@@ -91,8 +91,8 @@ public sealed record RunProgressEvent : EventBase
     public int MaxIterations { get; init; }
 
     /// <summary>
-    /// <c>thinking</c> | <c>tool_call</c> | <c>waiting_confirmation</c> |
-    /// <c>finishing</c> | <c>interrupted</c>.
+    /// <c>analyzing</c> | <c>generating</c> | <c>iteration</c> |
+    /// <c>waiting</c> | <c>heartbeat</c> | <c>interrupted</c>.
     /// </summary>
     public string Phase { get; init; } = "";
 
@@ -154,6 +154,25 @@ public sealed record AgentDiagnosticEvent : EventBase
 }
 
 /// <summary>
+/// Current run objective (kind <c>run_goal</c>, SPEC-193 RF-001), emitted by
+/// the explicit <c>goal</c> tool and rendered as activity state.
+/// </summary>
+public sealed record RunGoalEvent : EventBase
+{
+    /// <summary>Creates an agent-sourced goal marker.</summary>
+    public RunGoalEvent() => Source = EventSource.Agent;
+
+    /// <summary>Current bounded objective text.</summary>
+    public string Objective { get; init; } = "";
+
+    /// <summary>Tool call that recorded the goal.</summary>
+    public string? ToolCallId { get; init; }
+
+    /// <summary>ActionEvent id owning the goal tool call.</summary>
+    public string? ActionId { get; init; }
+}
+
+/// <summary>
 /// Advisor opinion (kind <c>advisor</c>, SPEC-125 RF-005): segunda
 /// análise de um modelo consultor sobre ação risky ou pergunta do
 /// agente — observacional, nunca bloqueia a decisão de permissão.
@@ -171,6 +190,9 @@ public sealed record AdvisorEvent : EventBase
 
     /// <summary>Model id usado na consulta.</summary>
     public string Model { get; init; } = "";
+
+    /// <summary>SPEC-193 RF-005: normalized severity — nit|concern|blocker.</summary>
+    public string Severity { get; init; } = "concern";
 
     /// <summary>Latência da consulta (ms).</summary>
     public long ElapsedMs { get; init; }

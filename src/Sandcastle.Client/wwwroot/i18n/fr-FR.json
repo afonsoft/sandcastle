@@ -1279,5 +1279,9 @@
   "lifecycle.details": "Details",
   "lifecycle.created": "Created",
   "lifecycle.invite": "Invite",
-  "chat.activity.github_pr": "Inspection de la pull request GitHub"
+  "chat.activity.github_pr": "Inspection de la pull request GitHub",
+  "event.run_goal": "objectif d’exécution",
+  "event.advisor": "advisor · {{severity}}",
+  "chat.activity.goal": "Définition de l’objectif",
+  "chat.activity.wait": "Attente"
 }

@@ -1454,3 +1454,15 @@ a.chip.mention { text-decoration: none; }
 .panel-head { align-items: center; display: flex; justify-content: space-between; }
 .knowledge-v2 { margin-bottom: 1rem; padding: 1rem; }
 .knowledge-v2 textarea { min-height: 8rem; width: 100%; }
+
+.ev-card.goal { border-color: var(--sc-accent); }
+.ev-card.advisor-nit { border-style: dashed; }
+.ev-card.advisor-concern { border-color: var(--sc-yellow); }
+.ev-card.advisor-blocker { border-color: var(--sc-red); }
+.ev-card.obs .obs-preview { max-height: 8rem; overflow: hidden; white-space: pre-wrap; }
+@media (max-width: 860px) {
+  .ev-card .ev-head { flex-wrap: wrap; row-gap: 4px; }
+  .ev-card .ev-time { margin-left: 0; }
+  .ev-card pre { max-width: 100%; overflow-x: auto; }
+  .tc-activity { flex-basis: 100%; order: 5; }
+}

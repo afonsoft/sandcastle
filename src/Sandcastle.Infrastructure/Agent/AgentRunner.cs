@@ -769,6 +769,8 @@ public sealed class AgentRunner(
             using var llmSpan = Telemetry.ScTelemetry.StartSpan(
                 "llm_call", conversationId, st.Sandbox.Id.ToString());
             llmSpan?.SetTag("model", st.Model);
+            await st.Activity.EnsureAnalyzingAsync(
+                st.Events, conversationId, ct);
             await foreach (var chunk in st.Llm.ChatStreamAsync(
                 request, toolSchemas,
                 new LlmOptions(Model: st.Model,
@@ -778,18 +780,24 @@ public sealed class AgentRunner(
                 switch (chunk)
                 {
                     case TextDelta d:
+                        await st.Activity.NoteGeneratingAsync(
+                            st.Events, conversationId, ct);
                         turn.Text.Append(d.Text);
                         // SPEC-34 RF-001: delta vai só ao bus efêmero —
                         // nunca persistido/replayado pelo IEventService.
                         turn.Batcher?.Add(d.Text);
                         break;
                     case ReasoningDelta rd:
+                        await st.Activity.NoteGeneratingAsync(
+                            st.Events, conversationId, ct);
                         turn.Reasoning.Append(rd.Text);
                         // SPEC-41 RF-001: canal separado — o client
                         // renderiza na ThinkingSection, não no content.
                         turn.Batcher?.Add(rd.Text, "reasoning");
                         break;
                     case ToolCallDelta tcd:
+                        await st.Activity.NoteGeneratingAsync(
+                            st.Events, conversationId, ct);
                         if (!turn.Calls.TryGetValue(tcd.Index, out var cur))
                         {
                             cur = ("", "", new System.Text.StringBuilder());
@@ -1501,6 +1509,7 @@ public sealed class AgentRunner(
                         Answer = verdict.Answer,
                         Model = verdict.Model,
                         ElapsedMs = verdict.ElapsedMs,
+                        Severity = AdvisorSeverityParser.Normalize(verdict.Answer),
                         ParentId = actionEvent.Id,
                     }, ct);
             }

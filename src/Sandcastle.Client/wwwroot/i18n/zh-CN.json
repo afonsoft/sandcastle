@@ -1279,5 +1279,9 @@
   "lifecycle.details": "Details",
   "lifecycle.created": "Created",
   "lifecycle.invite": "Invite",
-  "chat.activity.github_pr": "正在检查 GitHub 拉取请求"
+  "chat.activity.github_pr": "正在检查 GitHub 拉取请求",
+  "event.run_goal": "运行目标",
+  "event.advisor": "顾问 · {{severity}}",
+  "chat.activity.goal": "正在设置目标",
+  "chat.activity.wait": "等待中"
 }
