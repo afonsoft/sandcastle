@@ -237,3 +237,19 @@ Aprovado pelo usuário em 2026-11-28.
 | 196 | run-evidence-progress-ux | Approved | #606 · Epic #603 |
 | 197 | model-aware-agent-instructions | Approved | #607 · Epic #603 |
 | 198 | visual-docs-refresh | Approved | #608 · Epic #603 |
+
+
+### Onda J — autonomous-agent parity follow-up (dez/2026) — Approved
+
+Deep dive Sandcastle × OpenWebUiCode × OpenHands × Cursor × Devin ×
+Claude Code, registrado em
+`docs/research/2026-11-autonomous-agent-parity-deep-dive.md`. SPECs
+aprovadas pelo usuário em 2026-11-28.
+
+| SPEC | Título | Status | Ticket |
+|---|---|---|---|
+| 194 | prompt-cache-progressive-skills | Approved | Epic pending |
+| 195 | project-coordinator-workspaces | Approved | Epic pending |
+| 196 | run-evidence-progress-ux | Approved | Epic pending |
+| 197 | model-aware-agent-instructions | Approved | Epic pending |
+| 198 | visual-docs-refresh | Approved | Epic pending |
