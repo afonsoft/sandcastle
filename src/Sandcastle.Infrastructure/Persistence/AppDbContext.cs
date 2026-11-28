@@ -59,6 +59,7 @@ public class AppDbContext : DbContext, IDataProtectionKeyContext
     public DbSet<Sandcastle.Infrastructure.Collaboration.NoteRecord> CollabNotes => Set<Sandcastle.Infrastructure.Collaboration.NoteRecord>();
     public DbSet<Sandcastle.Infrastructure.Collaboration.NoteVersionRecord> CollabNoteVersions => Set<Sandcastle.Infrastructure.Collaboration.NoteVersionRecord>();
     public DbSet<Sandcastle.Infrastructure.Collaboration.NotificationRecord> CollabNotifications => Set<Sandcastle.Infrastructure.Collaboration.NotificationRecord>();
+    public DbSet<Sandcastle.Infrastructure.Extensions.PluginRecord> Plugins => Set<Sandcastle.Infrastructure.Extensions.PluginRecord>();
 
     /// <summary>Sandbox containers bound to conversations.</summary>
     public DbSet<Sandcastle.Infrastructure.Sandbox.SandboxRecord> Sandboxes =>

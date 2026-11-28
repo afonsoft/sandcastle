@@ -1447,3 +1447,4 @@ a.chip.mention { text-decoration: none; }
 .composer-row input { flex: 1; }
 .note-editor { min-height: 24rem; width: 100%; }
 @media (max-width: 760px) { .collab-grid { grid-template-columns: 1fr; } }
+.extensions-page .panel { margin-top: 1rem; }
