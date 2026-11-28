@@ -94,6 +94,13 @@ public sealed class Spec181AgentDefinitionEndpointsTests : IDisposable
             && x.GetProperty("persisted").GetBoolean() == false);
         list!.ShouldNotContain(x => x.GetProperty("name").GetString() == "repo-reviewer");
 
+        using var other = TestAuth.Login(_factory, "other181@local");
+        (await other.GetAsync($"/api/v1/agent-definitions/{id}"))
+            .StatusCode.ShouldBe(HttpStatusCode.NotFound);
+        var anonymous = _factory.CreateClient();
+        (await anonymous.GetAsync("/api/v1/agent-definitions"))
+            .StatusCode.ShouldBe(HttpStatusCode.Unauthorized);
+
         (await _http.DeleteAsync($"/api/v1/agent-definitions/{id}"))
             .StatusCode.ShouldBe(HttpStatusCode.NoContent);
     }

@@ -23,6 +23,8 @@ namespace Sandcastle.Infrastructure.Agent.Context;
 /// </summary>
 public sealed class ConversationHistoryBuilder(IServiceProvider services)
 {
+    private readonly HashSet<Guid> _skillAuditRecorded = [];
+
     /// <summary>Result of a rebuild: messages + parallel event ids + tail.</summary>
     public sealed record RebuiltHistory(
         List<LlmMessage> Messages,
@@ -194,6 +196,7 @@ public sealed class ConversationHistoryBuilder(IServiceProvider services)
         }
 
         if (skills.Count > 0
+            && _skillAuditRecorded.Add(conversationId)
             && services.GetService<IAuditService>() is { } audit)
         {
             await audit.RecordAsync("agent.skills_loaded",
