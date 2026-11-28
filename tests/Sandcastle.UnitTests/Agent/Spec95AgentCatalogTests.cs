@@ -82,6 +82,29 @@ public sealed class Spec95AgentCatalogTests
         def.Model.ShouldBe("gpt-4o-mini");
     }
 
+    [Fact]
+    public void Parse_ExtendedFrontmatter_ReturnsProfileSkillsModeAndPermissions()
+    {
+        var def = Catalog().Parse("""
+            ---
+            name: deep-reviewer
+            description: Reviews with a governed runtime
+            tools: [file_read, git_diff]
+            model_profile: review-fast
+            skills: [code-review, security-review]
+            mode: plan
+            permission_preset: read-only
+            ---
+            Review only.
+            """, "org", "db:1");
+
+        def.ShouldNotBeNull();
+        def.ModelProfile.ShouldBe("review-fast");
+        def.Skills.ShouldBe(["code-review", "security-review"]);
+        def.Mode.ShouldBe("plan");
+        def.PermissionPreset.ShouldBe("read-only");
+    }
+
     // ---------- RF-006: caps ----------
 
     [Fact]
@@ -263,6 +286,42 @@ public sealed class Spec95AgentCatalogTests
         error.ShouldContain("unknown subagent_type 'nope'");
         error.ShouldContain("reviewer");
         error.ShouldContain("explore");
+    }
+
+    [Fact]
+    public async Task Task_ExplicitWorkspaceScope_CanUseDeclarativeOverrideOfBuiltinName()
+    {
+        var executor = new FakeSandboxExecutor();
+        executor.SeedFile(
+            "/workspace/repo/.claude/agents/explore.agent.md", """
+            ---
+            name: explore
+            description: workspace explorer override
+            tools: [think, finish]
+            ---
+            WORKSPACE EXPLORER PERSONA
+            """);
+        var llm = new CapturingLlm();
+        var scoped = new ServiceCollection()
+            .AddSingleton<IAgentCatalog>(Catalog())
+            .AddSingleton<IAgentLlmProvider>(llm)
+            .AddSingleton<ISubagentHost, SubagentHost>()
+            .AddSingleton<ITaskTrackerService, InMemoryTaskTrackerService>()
+            .AddSingleton<IToolRegistry, ToolRegistry>()
+            .AddSingleton(Options.Create(new AgentLlmOptions()))
+            .BuildServiceProvider();
+        var ctx = new ToolCallContext(Guid.NewGuid(), Sandbox(),
+            executor, new FakeEventService(), scoped,
+            TimeSpan.FromMinutes(1), ToolCallId: "call-1");
+
+        var result = await BuiltinTools.SpawnTask().Handler(ctx,
+            JsonDocument.Parse("""
+                {"prompt":"explore it","subagent_type":"explore","agent_scope":"workspace"}
+                """).RootElement, CancellationToken.None);
+
+        result.IsError.ShouldBeFalse();
+        llm.SystemPrompt.ShouldNotBeNull()
+            .ShouldContain("WORKSPACE EXPLORER PERSONA");
     }
 
     // ---------- RF-005: allowlist nunca escala ----------

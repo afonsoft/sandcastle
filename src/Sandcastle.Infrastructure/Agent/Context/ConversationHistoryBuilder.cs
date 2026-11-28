@@ -9,6 +9,7 @@ using Microsoft.Extensions.Logging.Abstractions;
 
 using Sandcastle.Application.Agent;
 using Sandcastle.Application.Events;
+using Sandcastle.Application.Identity;
 using Sandcastle.Domain.Events;
 using Sandcastle.Infrastructure.Conversations;
 
@@ -22,6 +23,8 @@ namespace Sandcastle.Infrastructure.Agent.Context;
 /// </summary>
 public sealed class ConversationHistoryBuilder(IServiceProvider services)
 {
+    private readonly HashSet<Guid> _skillAuditRecorded = [];
+
     /// <summary>Result of a rebuild: messages + parallel event ids + tail.</summary>
     public sealed record RebuiltHistory(
         List<LlmMessage> Messages,
@@ -192,7 +195,56 @@ public sealed class ConversationHistoryBuilder(IServiceProvider services)
             skills = skills.Where(s => allowed.Contains(s.Name)).ToList();
         }
 
+        if (skills.Count > 0
+            && _skillAuditRecorded.Add(conversationId)
+            && services.GetService<IAuditService>() is { } audit)
+        {
+            await audit.RecordAsync("agent.skills_loaded",
+                conv.CreatedByUserId, conv.OrgId, "conversation",
+                conversationId.ToString(),
+                metadata: new { count = skills.Count, skills = skills.Select(s => s.Name).ToArray() },
+                cancellationToken: ct);
+        }
         return new SkillResolution(skills, loaded);
+    }
+
+
+    private async Task<string?> LoadPromptPackInstructionsAsync(
+        string reference, ConversationRecord conv, CancellationToken ct)
+    {
+        if (!reference.StartsWith("pack:", StringComparison.OrdinalIgnoreCase)
+            || services.GetService<Persistence.AppDbContext>() is not { } db)
+        {
+            return null;
+        }
+        var name = reference[5..].Trim();
+        if (name.Length == 0) return null;
+        var rows = await db.PromptPacks.AsNoTracking()
+            .Where(p => p.Active && p.Name == name
+                && ((p.Scope == "user" && p.OwnerId == conv.CreatedByUserId)
+                    || (p.Scope == "org" && p.OrgId == conv.OrgId)))
+            .ToListAsync(ct);
+        var pack = rows
+            .OrderByDescending(p => p.Scope == "user")
+            .ThenByDescending(p => p.Version)
+            .FirstOrDefault();
+        if (pack is null || string.IsNullOrWhiteSpace(pack.BasePrompt)) return null;
+
+        var sections = new List<string>();
+        void Add(string title, string? body)
+        {
+            if (!string.IsNullOrWhiteSpace(body))
+            {
+                sections.Add($"## {title}\n" + SecretRedactor.Redact(body.Trim()));
+            }
+        }
+        Add("Prompt pack base instructions", pack.BasePrompt);
+        Add("Harness rules", pack.HarnessRules);
+        Add(conv.Mode == "plan" ? "Plan mode instructions" : "Build mode instructions",
+            conv.Mode == "plan" ? pack.PlanModePrompt : pack.BuildModePrompt);
+        Add("Advisor instructions", pack.AdvisorPrompt);
+        Add("Permission judge instructions", pack.PermissionJudgePrompt);
+        return "\n\n" + string.Join("\n\n", sections);
     }
 
     private async Task<string?> AppendSystemPromptAsync(
@@ -235,8 +287,12 @@ public sealed class ConversationHistoryBuilder(IServiceProvider services)
             });
         if (!string.IsNullOrWhiteSpace(agentProfile?.PromptPack))
         {
-            prompt += "\n\n## Agent profile instructions\n"
-                + agentProfile.PromptPack.Trim();
+            var packInstructions = await LoadPromptPackInstructionsAsync(
+                agentProfile.PromptPack, conv, ct);
+            prompt += packInstructions is not null
+                ? packInstructions
+                : "\n\n## Agent profile instructions\n"
+                    + agentProfile.PromptPack.Trim();
         }
         var sp = new SystemPromptEvent
         {

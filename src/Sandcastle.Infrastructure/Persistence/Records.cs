@@ -609,6 +609,47 @@ public sealed class AgentProfileRecord
     public DateTimeOffset UpdatedAt { get; set; }
 }
 
+/// <summary>SPEC-181 RF-001/003: user/org declarative agent definition.</summary>
+public sealed class AgentDefinitionRecord
+{
+    public required Guid Id { get; set; }
+    public required string Scope { get; set; }
+    public string? OwnerId { get; set; }
+    public Guid? OrgId { get; set; }
+    public required string Name { get; set; }
+    public required string Description { get; set; }
+    public required string Instructions { get; set; }
+    public string? ToolsJson { get; set; }
+    public string? Model { get; set; }
+    public string? ModelProfile { get; set; }
+    public string? SkillsJson { get; set; }
+    public string? Mode { get; set; }
+    public string? PermissionPreset { get; set; }
+    public bool Enabled { get; set; } = true;
+    public DateTimeOffset CreatedAt { get; set; }
+    public DateTimeOffset UpdatedAt { get; set; }
+}
+
+/// <summary>SPEC-181 RF-002: immutable prompt-pack version row.</summary>
+public sealed class PromptPackRecord
+{
+    public required Guid Id { get; set; }
+    public required Guid PackId { get; set; }
+    public required string Scope { get; set; }
+    public string? OwnerId { get; set; }
+    public Guid? OrgId { get; set; }
+    public required string Name { get; set; }
+    public required string BasePrompt { get; set; }
+    public string? HarnessRules { get; set; }
+    public string? PlanModePrompt { get; set; }
+    public string? BuildModePrompt { get; set; }
+    public string? AdvisorPrompt { get; set; }
+    public string? PermissionJudgePrompt { get; set; }
+    public int Version { get; set; }
+    public bool Active { get; set; } = true;
+    public DateTimeOffset CreatedAt { get; set; }
+}
+
 /// <summary>
 /// SPEC-134 RF-001: BYOK por usuário — provider key colada no Settings.
 /// Plaintext persiste só como ciphertext DataProtection

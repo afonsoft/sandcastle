@@ -67,19 +67,66 @@
             <div class="profile-row"><span><strong>@p.Name</strong><small>@p.AgentType · @p.Mode</small></span><button @onclick="() => EditAgentProfile(p)">@L["common.edit"]</button><button @onclick="() => DuplicateAgentAsync(p.Id)">@L["settings.profiles.duplicate"]</button><button class="danger" @onclick="() => DeleteAgentAsync(p.Id)">@L["common.delete"]</button></div>
         }
     </section>
+
+    <section class="profile-card" aria-labelledby="agent-definitions-title">
+        <h4 id="agent-definitions-title">@L["settings.agentdefs.title"]</h4>
+        <div class="field"><label>@L["common.name"]</label><input aria-label="@L["common.name"]" @bind="_adName" /></div>
+        <div class="field"><label>@L["common.description"]</label><input aria-label="@L["common.description"]" @bind="_adDescription" /></div>
+        <div class="field"><label>@L["settings.agentdefs.instructions"]</label><textarea aria-label="@L["settings.agentdefs.instructions"]" rows="3" @bind="_adInstructions"></textarea></div>
+        <div class="field"><label>@L["settings.profiles.tools"]</label><input aria-label="@L["settings.profiles.tools"]" placeholder="file_read, bash" @bind="_adTools" /></div>
+        <div class="field"><label>@L["settings.profiles.mode"]</label><select aria-label="@L["settings.profiles.mode"]" @bind="_adMode"><option value="build">build</option><option value="plan">plan</option></select></div>
+        <div class="field"><label>@L["settings.agentdefs.permission_preset"]</label><input aria-label="@L["settings.agentdefs.permission_preset"]" @bind="_adPermissionPreset" /></div>
+        <button class="primary" @onclick="SaveAgentDefinitionAsync" disabled="@_busy">@L["common.save"]</button>
+        @foreach (var d in _agentDefinitions)
+        {
+            <div class="profile-row">
+                <span><strong>@d.Name</strong><small>@d.Source · @(d.Mode ?? "build")</small></span>
+                @if (d.Persisted && d.Id is not null)
+                {
+                    <button @onclick="() => EditAgentDefinition(d)">@L["common.edit"]</button>
+                    <button @onclick="() => ValidateAgentDefinitionAsync(d.Id.Value)">@L["settings.agentdefs.validate"]</button>
+                    <button class="danger" @onclick="() => DeleteAgentDefinitionAsync(d.Id.Value)">@L["common.delete"]</button>
+                }
+            </div>
+        }
+        @if (_adValidation is not null) { <p class="muted">@_adValidation</p> }
+    </section>
+
+    <section class="profile-card" aria-labelledby="prompt-packs-title">
+        <h4 id="prompt-packs-title">@L["settings.promptpacks.title"]</h4>
+        <div class="field"><label>@L["common.name"]</label><input aria-label="@L["common.name"]" @bind="_ppName" /></div>
+        <div class="field"><label>@L["settings.promptpacks.base_prompt"]</label><textarea aria-label="@L["settings.promptpacks.base_prompt"]" rows="3" @bind="_ppBasePrompt"></textarea></div>
+        <div class="field"><label>@L["settings.promptpacks.harness_rules"]</label><textarea aria-label="@L["settings.promptpacks.harness_rules"]" rows="2" @bind="_ppHarnessRules"></textarea></div>
+        <div class="field"><label>@L["settings.promptpacks.plan_mode"]</label><textarea aria-label="@L["settings.promptpacks.plan_mode"]" rows="2" @bind="_ppPlanMode"></textarea></div>
+        <div class="field"><label>@L["settings.promptpacks.build_mode"]</label><textarea aria-label="@L["settings.promptpacks.build_mode"]" rows="2" @bind="_ppBuildMode"></textarea></div>
+        <button class="primary" @onclick="SavePromptPackAsync" disabled="@_busy">@L["common.save"]</button>
+        @foreach (var p in _promptPacks)
+        {
+            <div class="profile-row">
+                <span><strong>@p.Name</strong><small>v@p.Version · @p.Scope</small></span>
+                <button @onclick="() => EditPromptPack(p)">@L["common.edit"]</button>
+                @if (p.Version > 1) { <button @onclick="() => RollbackPromptPackAsync(p.PackId, p.Version - 1)">@L["settings.promptpacks.rollback"]</button> }
+            </div>
+        }
+    </section>
 </div>
 
 @code {
     private List<ProviderConnectionDto> _connections = [];
     private List<LlmProfileDto> _llmProfiles = [];
     private List<AgentProfileDto> _agentProfiles = [];
+    private List<AgentDefinitionDto> _agentDefinitions = [];
+    private List<PromptPackDto> _promptPacks = [];
     private bool _busy;
     private string? _testResult;
-    private Guid? _pcEditId, _lpEditId, _apEditId;
+    private Guid? _pcEditId, _lpEditId, _apEditId, _adEditId, _ppPackId;
     private string _pcName = "", _pcScope = "user", _pcProvider = "openai", _pcBaseUrl = "", _pcSecret = "";
     private string _lpName = "", _lpScope = "user", _lpModel = "", _lpConnection = "", _lpRoles = "", _lpFallback = "";
     private double _lpTemperature = 0.2;
     private string _apName = "", _apScope = "user", _apDescription = "", _apPromptPack = "", _apType = "default", _apMode = "build", _apTools = "", _apSkills = "", _apLlmProfile = "", _apRuntimeProfile = "";
+    private string _adName = "", _adDescription = "", _adInstructions = "", _adTools = "", _adMode = "build", _adPermissionPreset = "";
+    private string _ppName = "", _ppBasePrompt = "", _ppHarnessRules = "", _ppPlanMode = "", _ppBuildMode = "";
+    private string? _adValidation;
 
     protected override async Task OnInitializedAsync() => await ReloadAsync();
 
@@ -88,6 +135,8 @@
         _connections = (await Api.ListProviderConnectionsAsync()).ToList();
         _llmProfiles = (await Api.ListLlmProfilesAsync()).ToList();
         _agentProfiles = (await Api.ListAgentProfilesAsync()).ToList();
+        _agentDefinitions = (await Api.ListAgentDefinitionsAsync()).ToList();
+        _promptPacks = (await Api.ListPromptPacksAsync()).ToList();
     }
 
     private async Task SaveConnectionAsync()
@@ -183,6 +232,77 @@
 
     private async Task DuplicateAgentAsync(Guid id) { await Api.DuplicateAgentProfileAsync(id); await ReloadAsync(); }
     private async Task DeleteAgentAsync(Guid id) { await Api.DeleteAgentProfileAsync(id); await ReloadAsync(); }
+
+    private async Task SaveAgentDefinitionAsync()
+    {
+        if (string.IsNullOrWhiteSpace(_adName) || string.IsNullOrWhiteSpace(_adDescription)
+            || string.IsNullOrWhiteSpace(_adInstructions)) return;
+        var body = new
+        {
+            name = _adName,
+            description = _adDescription,
+            instructions = _adInstructions,
+            tools = SplitCsv(_adTools),
+            mode = _adMode,
+            permission_preset = EmptyNull(_adPermissionPreset),
+        };
+        var saved = _adEditId is { } id
+            ? await Api.UpdateAgentDefinitionAsync(id, body)
+            : await Api.CreateAgentDefinitionAsync(body);
+        if (saved is null) { Toasts.Error(L["settings.profiles.save_failed"]); return; }
+        _adEditId = null; _adName = _adDescription = _adInstructions = _adTools = _adPermissionPreset = "";
+        await ReloadAsync();
+    }
+
+    private void EditAgentDefinition(AgentDefinitionDto d)
+    {
+        _adEditId = d.Id; _adName = d.Name; _adDescription = d.Description ?? "";
+        _adInstructions = d.Instructions ?? ""; _adTools = string.Join(", ", d.Tools ?? []);
+        _adMode = d.Mode ?? "build"; _adPermissionPreset = d.PermissionPreset ?? "";
+    }
+
+    private async Task ValidateAgentDefinitionAsync(Guid id)
+    {
+        var result = await Api.ValidateAgentDefinitionAsync(id);
+        _adValidation = result is null ? L["settings.agentdefs.validate_failed"]
+            : result.Valid ? L["settings.agentdefs.validate_ok"]
+            : string.Join("; ", result.Errors);
+    }
+
+    private async Task DeleteAgentDefinitionAsync(Guid id) { await Api.DeleteAgentDefinitionAsync(id); await ReloadAsync(); }
+
+    private async Task SavePromptPackAsync()
+    {
+        if (string.IsNullOrWhiteSpace(_ppName) || string.IsNullOrWhiteSpace(_ppBasePrompt)) return;
+        var body = new
+        {
+            name = _ppName,
+            base_prompt = _ppBasePrompt,
+            harness_rules = EmptyNull(_ppHarnessRules),
+            plan_mode_prompt = EmptyNull(_ppPlanMode),
+            build_mode_prompt = EmptyNull(_ppBuildMode),
+        };
+        var saved = _ppPackId is { } packId
+            ? await Api.UpdatePromptPackAsync(packId, body)
+            : await Api.CreatePromptPackAsync(body);
+        if (saved is null) { Toasts.Error(L["settings.profiles.save_failed"]); return; }
+        _ppPackId = null; _ppName = _ppBasePrompt = _ppHarnessRules = _ppPlanMode = _ppBuildMode = "";
+        await ReloadAsync();
+    }
+
+    private void EditPromptPack(PromptPackDto p)
+    {
+        _ppPackId = p.PackId; _ppName = p.Name; _ppBasePrompt = p.BasePrompt;
+        _ppHarnessRules = p.HarnessRules ?? ""; _ppPlanMode = p.PlanModePrompt ?? "";
+        _ppBuildMode = p.BuildModePrompt ?? "";
+    }
+
+    private async Task RollbackPromptPackAsync(Guid packId, int version)
+    {
+        await Api.RollbackPromptPackAsync(packId, version);
+        await ReloadAsync();
+    }
+
     private static string? EmptyNull(string value) => string.IsNullOrWhiteSpace(value) ? null : value.Trim();
     private static List<string> SplitCsv(string value) => value.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).ToList();
 

@@ -75,8 +75,11 @@ public sealed class Spec170MentionAutocompleteTests : BunitContext
 
         cut.Find(".mention-item").Click();
         var expected = "@[release fixer](skill:skill-1)";
-        cut.Find("textarea").GetAttribute("value")!.ShouldContain(expected);
-        cut.Find(".chip.mention").TextContent.ShouldContain("@release fixer");
+        cut.WaitForAssertion(() =>
+        {
+            cut.Find("textarea").GetAttribute("value")!.ShouldContain(expected);
+            cut.Find(".chip.mention").TextContent.ShouldContain("@release fixer");
+        }, TimeSpan.FromSeconds(2));
         cut.Find(".send-btn").Click();
         sent!.ShouldContain(expected);
     }

@@ -1,9 +1,13 @@
 using System.Collections.Concurrent;
+using System.Text.Json;
 
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 
 using Sandcastle.Application.Agent;
 using Sandcastle.Application.Sandbox;
+using Sandcastle.Infrastructure.Persistence;
 
 using RuntimeSandbox = Sandcastle.Domain.Sandbox.Sandbox;
 
@@ -17,7 +21,9 @@ namespace Sandcastle.Infrastructure.Agent.Subagents;
 /// Same <c>name</c>: the higher layer wins. Invalid files are skipped
 /// with a warning — a hostile repo can never break the run.
 /// </summary>
-public sealed class AgentCatalogService(ILogger<AgentCatalogService> logger)
+public sealed class AgentCatalogService(
+    ILogger<AgentCatalogService> logger,
+    IServiceScopeFactory? scopes = null)
     : IAgentCatalog
 {
     private const string RepoRoot = "/workspace/repo";
@@ -63,9 +69,23 @@ public sealed class AgentCatalogService(ILogger<AgentCatalogService> logger)
         {
             map[embedded.Name] = embedded;
         }
+        // SPEC-181: system/embedded < org < user < workspace. Database
+        // definitions join the same precedence pipeline when the sandbox is
+        // bound to a conversation; file/embedded behavior stays unchanged.
+        var databaseDefinitions = sandbox?.ConversationId is not null
+            ? await ScanDatabaseLayerAsync(sandbox.ConversationId.Value, ct)
+            : [];
+        foreach (var dbDef in databaseDefinitions.Where(d => d.Scope == "org"))
+        {
+            map[dbDef.Definition.Name] = dbDef.Definition;
+        }
         foreach (var user in ScanUserLayer())
         {
             map[user.Name] = user;
+        }
+        foreach (var dbDef in databaseDefinitions.Where(d => d.Scope == "user"))
+        {
+            map[dbDef.Definition.Name] = dbDef.Definition;
         }
         if (sandbox is not null && executor is not null)
         {
@@ -131,6 +151,52 @@ public sealed class AgentCatalogService(ILogger<AgentCatalogService> logger)
                 yield return def;
             }
         }
+    }
+
+
+    private async Task<IReadOnlyList<(string Scope, AgentDefinition Definition)>>
+        ScanDatabaseLayerAsync(Guid conversationId, CancellationToken ct)
+    {
+        if (scopes is null) return [];
+        try
+        {
+            await using var scope = scopes.CreateAsyncScope();
+            var db = scope.ServiceProvider.GetService<AppDbContext>();
+            if (db is null) return [];
+            var conv = await db.Conversations.AsNoTracking()
+                .Where(c => c.Id == conversationId)
+                .Select(c => new { c.CreatedByUserId, c.OrgId })
+                .FirstOrDefaultAsync(ct);
+            if (conv is null) return [];
+            var rows = await db.AgentDefinitions.AsNoTracking()
+                .Where(a => a.Enabled
+                    && ((a.Scope == "user" && a.OwnerId == conv.CreatedByUserId)
+                        || (a.Scope == "org" && a.OrgId == conv.OrgId)))
+                .ToListAsync(ct);
+            return rows.Select(row => (row.Scope, new AgentDefinition(
+                row.Name, row.Description, ParseJsonList(row.ToolsJson),
+                row.Model, SecretRedactor.Redact(row.Instructions),
+                row.Scope, $"db:{row.Id}", row.ModelProfile,
+                ParseJsonList(row.SkillsJson), row.Mode,
+                row.PermissionPreset))).ToList();
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            logger.LogDebug(ex,
+                "database agent definitions unavailable — skipping layer");
+            return [];
+        }
+    }
+
+    private static List<string>? ParseJsonList(string? json)
+    {
+        if (string.IsNullOrWhiteSpace(json)) return null;
+        try
+        {
+            var items = JsonSerializer.Deserialize<List<string>>(json);
+            return items is { Count: > 0 } ? items : null;
+        }
+        catch (JsonException) { return null; }
     }
 
     /// <summary>Built-in presets como definições do catálogo.</summary>
@@ -283,8 +349,9 @@ public sealed class AgentCatalogService(ILogger<AgentCatalogService> logger)
         }
 
         var (fm, body) = parts;
-        string? name = null, desc = null, model = null;
-        List<string>? tools = null;
+        string? name = null, desc = null, model = null, modelProfile = null,
+            mode = null, permissionPreset = null;
+        List<string>? tools = null, skills = null;
         foreach (var line in fm.Split('\n'))
         {
             var colon = line.IndexOf(':');
@@ -314,6 +381,28 @@ public sealed class AgentCatalogService(ILogger<AgentCatalogService> logger)
             {
                 tools = ParseList(val);
             }
+            else if (key.Equals("model_profile",
+                StringComparison.OrdinalIgnoreCase)
+                || key.Equals("profile", StringComparison.OrdinalIgnoreCase))
+            {
+                modelProfile = val.Equals("inherit", StringComparison.OrdinalIgnoreCase)
+                    ? null : val;
+            }
+            else if (key.Equals("skills",
+                StringComparison.OrdinalIgnoreCase))
+            {
+                skills = ParseList(val);
+            }
+            else if (key.Equals("mode",
+                StringComparison.OrdinalIgnoreCase))
+            {
+                mode = val;
+            }
+            else if (key.Equals("permission_preset",
+                StringComparison.OrdinalIgnoreCase))
+            {
+                permissionPreset = val;
+            }
         }
 
         if (string.IsNullOrWhiteSpace(name)
@@ -325,7 +414,7 @@ public sealed class AgentCatalogService(ILogger<AgentCatalogService> logger)
         }
         return new AgentDefinition(
             name.Trim(), desc.Trim(), tools, model, body,
-            source, path);
+            source, path, modelProfile, skills, mode, permissionPreset);
     }
 
     /// <summary>Extrai (frontmatter, body) entre os fences `---`.</summary>

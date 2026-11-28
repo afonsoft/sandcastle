@@ -13,6 +13,83 @@
         ],
         "type": "object"
       },
+      "AgentDefinitionRequest": {
+        "properties": {
+          "description": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "enabled": {
+            "type": [
+              "null",
+              "boolean"
+            ]
+          },
+          "instructions": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "mode": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "model": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "model_profile": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "name": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "permission_preset": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "scope": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "skills": {
+            "items": {
+              "type": "string"
+            },
+            "type": [
+              "null",
+              "array"
+            ]
+          },
+          "tools": {
+            "items": {
+              "type": "string"
+            },
+            "type": [
+              "null",
+              "array"
+            ]
+          }
+        },
+        "type": "object"
+      },
       "AgentProfileRequest": {
         "properties": {
           "agent_type": {
@@ -1934,6 +2011,59 @@
             ]
           },
           "type": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        },
+        "type": "object"
+      },
+      "PromptPackRequest": {
+        "properties": {
+          "advisor_prompt": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "base_prompt": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "build_mode_prompt": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "harness_rules": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "name": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "permission_judge_prompt": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "plan_mode_prompt": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "scope": {
             "type": [
               "null",
               "string"
@@ -4050,6 +4180,178 @@
         "summary": "DELETE /api/v1/admin/users/{uid:guid}",
         "tags": [
           "Sandcastle.Api"
+        ]
+      }
+    },
+    "/api/v1/agent-definitions": {
+      "get": {
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          }
+        },
+        "summary": "GET /api/v1/agent-definitions/",
+        "tags": [
+          "Agents"
+        ]
+      },
+      "post": {
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AgentDefinitionRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          }
+        },
+        "summary": "POST /api/v1/agent-definitions/",
+        "tags": [
+          "Agents"
+        ]
+      }
+    },
+    "/api/v1/agent-definitions/{id}": {
+      "delete": {
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          }
+        },
+        "summary": "DELETE /api/v1/agent-definitions/{id:guid}",
+        "tags": [
+          "Agents"
+        ]
+      },
+      "get": {
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          }
+        },
+        "summary": "GET /api/v1/agent-definitions/{id:guid}",
+        "tags": [
+          "Agents"
+        ]
+      },
+      "put": {
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AgentDefinitionRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          }
+        },
+        "summary": "PUT /api/v1/agent-definitions/{id:guid}",
+        "tags": [
+          "Agents"
+        ]
+      }
+    },
+    "/api/v1/agent-definitions/{id}/validate": {
+      "post": {
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          }
+        },
+        "summary": "POST /api/v1/agent-definitions/{id:guid}/validate",
+        "tags": [
+          "Agents"
         ]
       }
     },
@@ -12419,6 +12721,273 @@
         ]
       }
     },
+    "/api/v1/prompt-packs": {
+      "get": {
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          }
+        },
+        "summary": "GET /api/v1/prompt-packs/",
+        "tags": [
+          "Agents"
+        ]
+      },
+      "post": {
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PromptPackRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          }
+        },
+        "summary": "POST /api/v1/prompt-packs/",
+        "tags": [
+          "Agents"
+        ]
+      }
+    },
+    "/api/v1/prompt-packs/{packId}": {
+      "delete": {
+        "parameters": [
+          {
+            "in": "path",
+            "name": "packId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          }
+        },
+        "summary": "DELETE /api/v1/prompt-packs/{packId:guid}",
+        "tags": [
+          "Agents"
+        ]
+      },
+      "get": {
+        "parameters": [
+          {
+            "in": "path",
+            "name": "packId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          }
+        },
+        "summary": "GET /api/v1/prompt-packs/{packId:guid}",
+        "tags": [
+          "Agents"
+        ]
+      },
+      "put": {
+        "parameters": [
+          {
+            "in": "path",
+            "name": "packId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PromptPackRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          }
+        },
+        "summary": "PUT /api/v1/prompt-packs/{packId:guid}",
+        "tags": [
+          "Agents"
+        ]
+      }
+    },
+    "/api/v1/prompt-packs/{packId}/compare": {
+      "get": {
+        "parameters": [
+          {
+            "in": "path",
+            "name": "packId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "from",
+            "required": true,
+            "schema": {
+              "format": "int32",
+              "pattern": "^-?(?:0|[1-9]\\d*)$",
+              "type": [
+                "integer",
+                "string"
+              ]
+            }
+          },
+          {
+            "in": "query",
+            "name": "to",
+            "required": true,
+            "schema": {
+              "format": "int32",
+              "pattern": "^-?(?:0|[1-9]\\d*)$",
+              "type": [
+                "integer",
+                "string"
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          }
+        },
+        "summary": "GET /api/v1/prompt-packs/{packId:guid}/compare",
+        "tags": [
+          "Agents"
+        ]
+      }
+    },
+    "/api/v1/prompt-packs/{packId}/rollback/{version}": {
+      "post": {
+        "parameters": [
+          {
+            "in": "path",
+            "name": "packId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "version",
+            "required": true,
+            "schema": {
+              "format": "int32",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          }
+        },
+        "summary": "POST /api/v1/prompt-packs/{packId:guid}/rollback/{version:int}",
+        "tags": [
+          "Agents"
+        ]
+      }
+    },
+    "/api/v1/prompt-packs/{packId}/versions": {
+      "get": {
+        "parameters": [
+          {
+            "in": "path",
+            "name": "packId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          }
+        },
+        "summary": "GET /api/v1/prompt-packs/{packId:guid}/versions",
+        "tags": [
+          "Agents"
+        ]
+      }
+    },
     "/api/v1/provider-connections": {
       "get": {
         "responses": {
@@ -16399,6 +16968,9 @@
     },
     {
       "name": "FrameworkAssetsEndpoints"
+    },
+    {
+      "name": "Agents"
     },
     {
       "name": "Events"
