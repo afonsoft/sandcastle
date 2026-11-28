@@ -8,11 +8,11 @@
 | Type | `Feature` |
 | Stack | `.NET 10 · Blazor WASM · ASP.NET Core · EF Core` |
 | Repository | `afonsoft/sandcastle` |
-| Status | `In implementation` |
+| Status | `Completed` |
 | Ticket | #554 · Epic #552 |
 | Scope | `src/` + `tests/` + `docs/` conforme requisitos |
 
-<!-- Aprovada em 2026-11-27 — issue #554, Epic #552. -->
+<!-- Aprovada em 2026-11-27 — issue #554, Epic #552. Entregue via PR #568. -->
 
 ## 1. User Story
 
