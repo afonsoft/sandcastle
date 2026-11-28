@@ -223,5 +223,4 @@ aprovadas em 2026-11-27 — Epic #552.
 | 186 | collaboration-workspace | Approved | #560 · Epic #552 |
 | 187 | extensions-integrations-hub | Approved | #561 · Epic #552 |
 | 188 | chat-ux-cloud-parity | Approved | #562 · Epic #552 |
-| 189 | knowledge-rag-context-platform | Approved | #563 · Epic #552 |
 | 190 | enterprise-cloud-lifecycle | Approved | #564 · Epic #552 |
